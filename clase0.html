@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clase 0: Redes y Binarios | Cloud Computing</title>
+  <meta name="description" content="Aprende cómo funcionan las redes, qué es una dirección IP, cómo calcular binarios y de qué manera la máscara actúa como un candado para el direccionamiento.">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Class-specific overrides */
+    .binary-score {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--color-teacher);
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <a href="index.html" class="nav-brand">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17.5 19A3.5 3.5 0 0 0 21 15.5c0-2.79-2.54-4.5-5-4.5-.42 0-.83.04-1.24.12A6.5 6.5 0 0 0 3 13.5A3.5 3.5 0 0 0 6.5 17H12" />
+        <path d="M12 12V21" />
+        <path d="m9 18 3 3 3-3" />
+      </svg>
+      <span>Cloud Foundations</span>
+    </a>
+    
+    <div class="nav-links">
+      <a href="index.html" class="nav-link">Dashboard</a>
+      
+      <!-- Teacher Mode Switcher -->
+      <div class="teacher-toggle-container">
+        <span class="teacher-toggle-label">Modo Profesor</span>
+        <label class="switch">
+          <input type="checkbox" id="teacherModeToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content Container -->
+  <main class="container">
+    
+    <!-- Back button -->
+    <a href="index.html" class="back-link">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+      </svg>
+      Volver al Dashboard
+    </a>
+
+    <!-- Class Header -->
+    <header class="class-header">
+      <span class="class-number" style="margin-bottom: 0.5rem; display: inline-block;">Clase 0</span>
+      <h1>Fundamentos de Redes, IPs y Números Binarios</h1>
+      <p style="color: var(--text-secondary); font-size: 1.1rem; max-width: 800px;">
+        Antes de hablar de la nube, debemos entender cómo hablan las máquinas físicamente. Aprende qué es una IP, cómo funciona el sistema binario y qué es la máscara de red.
+      </p>
+    </header>
+
+    <!-- Content Wrapper with Slides Container inside -->
+    <div class="class-content-wrapper">
+      
+      <!-- Slides list -->
+      <div class="main-content-flow slides-container" id="slidesContainer">
+        
+        <!-- SLIDE 1: INTRODUCTION -->
+        <section class="slide" id="slide-intro" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">0.1</span>
+            ¿Qué es una Red de Computadores?
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: La Analogía del Sistema Postal (5 min)</h4>
+            <p><strong>Meta:</strong> Definir red y dirección IP de forma intuitiva.</p>
+            <ul>
+              <li><strong>La analogía:</strong> Compara la red con el sistema de correos del país.
+                <ul>
+                  <li><strong>Computadores:</strong> Casas de personas.</li>
+                  <li><strong>Cables / Wi-Fi:</strong> Calles por las que viaja el camión de correos.</li>
+                  <li><strong>Mensajes (Paquetes):</strong> Cartas escritas.</li>
+                  <li><strong>Dirección IP:</strong> La dirección física (Calle y número) escrita en el sobre.</li>
+                </ul>
+              </li>
+              <li><strong>Punto clave:</strong> Si dos casas tienen la misma dirección, el cartero se confunde y no entrega la carta. Esto explica por qué las IPs **deben ser únicas** dentro de una misma red.</li>
+            </ul>
+          </div>
+
+          <p>
+            Una **red** es simplemente un conjunto de computadoras y dispositivos conectados entre sí para compartir información (mensajes, imágenes, páginas web).
+          </p>
+          <p style="margin-top: 1rem;">
+            Para que esta comunicación funcione, cada dispositivo necesita dos cosas básicas:
+          </p>
+
+          <div class="class-grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
+            <div class="card" style="margin-bottom:0;">
+              <h3 style="color: var(--color-accent); font-size: 1.2rem; margin-bottom: 0.5rem;">1. Medio de Conexión</h3>
+              <p style="font-size: 0.95rem;">Un canal físico (cables de cobre, fibra óptica) o inalámbrico (Wi-Fi, satélite) por el cual viajan los impulsos eléctricos o de luz.</p>
+            </div>
+            <div class="card" style="margin-bottom:0;">
+              <h3 style="color: var(--color-cyan); font-size: 1.2rem; margin-bottom: 0.5rem;">2. Identidad Única (IP)</h3>
+              <p style="font-size: 0.95rem;">Una dirección numérica que identifica al dispositivo. Sin una IP, las demás máquinas no sabrían a quién enviarle los datos.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 2: HOW COMPUTERS COUNT (BINARY) -->
+        <section class="slide" id="slide-binary" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">0.2</span>
+            ¿Cómo Cuentan las Computadoras? El Binario
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Por qué las computadoras usan Base 2 (5 min)</h4>
+            <p>Explica que las computadoras son físicas y funcionan con electricidad:</p>
+            <ul>
+              <li>Nosotros usamos Base 10 (decimal) porque tenemos 10 dedos.</li>
+              <li>Los microprocesadores usan **Base 2 (binario)** porque solo entienden dos estados físicos:
+                <ul>
+                  <li>**0:** Apagado (sin electricidad).</li>
+                  <li>**1:** Encendido (con electricidad).</li>
+                </ul>
+              </li>
+              <li>Un **Bit** es la unidad mínima de información (un 0 o un 1).</li>
+              <li>Un **Octeto (o Byte)** es un grupo de 8 bits. Un octeto puede representar números del 0 al 255.</li>
+            </ul>
+          </div>
+
+          <p>
+            Nosotros escribimos números en base decimal (0 al 9). Sin embargo, los transistores dentro de una computadora solo pueden estar en dos estados: **encendidos (1)** o **apagados (0)**.
+          </p>
+          <p style="margin-top: 1rem;">
+            Cada posición en binario representa una potencia de 2, de derecha a izquierda:
+          </p>
+
+          <table class="results-table" style="max-width: 600px; margin: 1.5rem auto;">
+            <thead>
+              <tr>
+                <th>Posición del Bit</th>
+                <th>Bit 7</th>
+                <th>Bit 6</th>
+                <th>Bit 5</th>
+                <th>Bit 4</th>
+                <th>Bit 3</th>
+                <th>Bit 2</th>
+                <th>Bit 1</th>
+                <th>Bit 0</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Valor Decimal</td>
+                <td><strong>128</strong></td>
+                <td><strong>64</strong></td>
+                <td><strong>32</strong></td>
+                <td><strong>16</strong></td>
+                <td><strong>8</strong></td>
+                <td><strong>4</strong></td>
+                <td><strong>2</strong></td>
+                <td><strong>1</strong></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p style="font-size: 0.95rem; color: var(--text-secondary);">
+            Si sumamos todos los bits encendidos: 128 + 64 + 32 + 16 + 8 + 4 + 2 + 1 = **255**. 
+            Por eso, las direcciones IP se escriben en 4 octetos, y ninguno puede ser mayor a 255 (ej: <code>192.168.1.255</code>).
+          </p>
+        </section>
+
+        <!-- SLIDE 3: BINARY GAME -->
+        <section class="slide" id="slide-game" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">0.3</span>
+            Juego: Entrenador Binario
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Dinámica del Juego Binario (10 min)</h4>
+            <p>Haz que todos los alumnos interactúen con el juego. Rétalos a lograr 5 aciertos seguidos.</p>
+            <ul>
+              <li><strong>Cómo jugar:</strong> Haz clic en los interruptores (los bits) para encenderlos (1) o apagados (0).</li>
+              <li>A la derecha verás el número decimal que vas formando sumando los valores activos.</li>
+              <li>El juego te pide formar un **Número Objetivo**. Enciende los bits correctos para alcanzarlo y pulsa "Validar".</li>
+              <li><em>Tip: Si quieres formar 192, debes encender los dos primeros bits (128 + 64 = 192).</em></li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="binary-game-layout">
+              <!-- Bit controllers -->
+              <div>
+                <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; text-align: left;">Interruptores de 8 Bits</h3>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); text-align: left;">Haz clic en los bits para activarlos o desactivarlos.</p>
+                
+                <div class="bit-switches-container">
+                  <div class="bit-switch-wrapper">
+                    <div class="bit-switch" data-value="128">0</div>
+                    <div class="bit-value">128</div>
+                  </div>
+                  <div class="bit-switch-wrapper">
+                    <div class="bit-switch" data-value="64">0</div>
+                    <div class="bit-value">64</div>
+                  </div>
+                  <div class="bit-switch-wrapper">
+                    <div class="bit-switch" data-value="32">0</div>
+                    <div class="bit-value">32</div>
+                  </div>
+                  <div class="bit-switch-wrapper">
+                    <div class="bit-switch" data-value="16">0</div>
+                    <div class="bit-value">16</div>
+                  </div>
+                  <div class="bit-switch-wrapper">
+                    <div class="bit-switch" data-value="8">0</div>
+                    <div class="bit-value">8</div>
+                  </div>
+                  <div class="bit-switch-wrapper">
+                    <div class="bit-switch" data-value="4">0</div>
+                    <div class="bit-value">4</div>
+                  </div>
+                  <div class="bit-switch-wrapper">
+                    <div class="bit-switch" data-value="2">0</div>
+                    <div class="bit-value">2</div>
+                  </div>
+                  <div class="bit-switch-wrapper">
+                    <div class="bit-switch" data-value="1">0</div>
+                    <div class="bit-value">1</div>
+                  </div>
+                </div>
+
+                <div style="text-align: left; font-family: 'Fira Code', monospace; font-size: 1.1rem;">
+                  Suma actual: <span id="currentBinarySum" style="color: var(--color-cyan); font-weight: bold;">0</span>
+                </div>
+              </div>
+
+              <!-- Target panel -->
+              <div class="game-target-display">
+                <span style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-muted); font-weight: bold;">Número Objetivo</span>
+                <div class="target-number" id="gameTarget">192</div>
+                
+                <!-- Custom target input -->
+                <div style="margin: 0.25rem 0 1rem 0; display: flex; gap: 0.5rem; justify-content: center; align-items: center; width: 100%;">
+                  <input type="number" id="customTargetInput" min="0" max="255" class="form-control" style="width: 75px; text-align: center; padding: 0.35rem; font-size: 0.85rem;" placeholder="0-255">
+                  <button class="btn btn-secondary" id="btnSetCustomTarget" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; border-radius: 8px;" title="Establecer número escrito como el nuevo objetivo">Fijar</button>
+                </div>
+
+                <button class="btn btn-teacher" id="btnVerifyGame" style="padding: 0.5rem 1.5rem; font-size: 0.9rem; width: 100%; justify-content: center;">
+                  Validar Número
+                </button>
+                <div class="binary-score" id="gameScore">Racha: 0 aciertos</div>
+                <div id="gameStatusAlert" class="status-alert" style="width:100%; text-align:center;"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 4: THE SUBNET MASK -->
+        <section class="slide" id="slide-mask-theory" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">0.4</span>
+            La Máscara de Red: El Candado Lógico
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: La Analogía del Stencil/Candado (10 min)</h4>
+            <p><strong>Meta:</strong> Explicar que la máscara sirve para dividir la IP en dos partes: Red (quién es mi grupo) y Host (quién soy yo).</p>
+            <ul>
+              <li><strong>La analogía del Stencil/Plantilla:</strong> 
+                Si pintas una pared usando una plantilla con agujeros, la pintura solo pasa por las zonas libres.
+                * La **Máscara de Red** es la plantilla.
+                * Los números **255** son la madera sólida (bloquean los números de la IP, no los puedes tocar).
+                * Los números **0** son los agujeros (te dejan pintar/cambiar ese número para tus dispositivos).
+              </li>
+              <li>En una red `192.168.1.50` con máscara `255.255.255.0`:
+                * Los primeros 3 octetos (`192.168.1`) representan la red y están **bloqueados** por los 255. Todos en la misma oficina/red deben empezar igual.
+                * El último octeto (`50`) es libre (0 en la máscara). Es el ID de tu máquina específica.
+              </li>
+            </ul>
+          </div>
+
+          <p>
+            Una dirección IP no viene sola, siempre la acompaña una **Máscara de Subred**. Su función es actuar como un candado que divide la IP en dos secciones:
+          </p>
+
+          <div class="class-grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
+            <div class="card" style="margin-bottom:0; border-left: 4px solid var(--color-accent);">
+              <h3 style="color: var(--color-accent); font-size: 1.15rem; margin-bottom: 0.5rem;">Porción de Red (Fija)</h3>
+              <p style="font-size: 0.9rem; color: var(--text-secondary);">Identifica a qué red pertenece el dispositivo. En la máscara, se representa con bits en 1 (o el número 255 en decimal). **Todas las computadoras de una misma red deben tener la misma Porción de Red**.</p>
+            </div>
+            <div class="card" style="margin-bottom:0; border-left: 4px solid var(--color-cyan);">
+              <h3 style="color: var(--color-cyan); font-size: 1.15rem; margin-bottom: 0.5rem;">Porción de Host (Variable)</h3>
+              <p style="font-size: 0.9rem; color: var(--text-secondary);">Identifica al dispositivo específico. En la máscara, se representa con bits en 0. **Es libre de ser modificada** para asignar IPs a nuevos dispositivos.</p>
+            </div>
+          </div>
+          
+          <div class="card" style="margin-top: 1.5rem; background: rgba(0,0,0,0.2);">
+            <h3 style="font-size: 1.2rem; margin-bottom: 1rem; color: var(--color-cyan);">Profundizando: La Máscara en Binario</h3>
+            <p style="font-size: 0.95rem; margin-bottom: 0.5rem;">Cuando hablamos de una máscara de subred, cada bit puede ser:</p>
+            <ul style="font-size: 0.9rem; color: var(--text-secondary); margin-left: 1.5rem; margin-bottom: 1rem;">
+              <li><strong>1</strong> → Pertenece a la parte de red (Network ID).</li>
+              <li><strong>0</strong> → Pertenece a la parte de host.</li>
+            </ul>
+            
+            <p style="font-size: 0.95rem; margin-bottom: 0.5rem;">Por ejemplo, la máscara <code>255.255.255.0</code> en binario es:</p>
+            <div style="background: rgba(255,255,255,0.05); padding: 0.5rem; border-radius: 4px; font-family: 'Fira Code', monospace; font-size: 0.9rem; color: var(--color-accent); text-align: center; margin-bottom: 1rem;">
+              11111111.11111111.11111111.00000000
+            </div>
+            
+            <p style="font-size: 0.95rem; margin-bottom: 1rem;">
+              Los bits en <strong>1</strong> indican qué parte de la IP corresponde a la red. Si tenemos la IP <code>192.168.1.45</code> con máscara <code>255.255.255.0</code>, los tres primeros octetos están "bloqueados" (<strong>255</strong>), por lo que pertenecen a la red (<code>192.168.1</code>). El último octeto pertenece a los hosts (<code>45</code>).
+            </p>
+
+            <p style="font-size: 0.95rem; margin-bottom: 0.5rem;">Una forma fácil de recordarlo:</p>
+            <table class="results-table" style="width: 100%; font-size: 0.85rem; margin-top: 0.5rem;">
+              <thead>
+                <tr>
+                  <th>Valor Decimal</th>
+                  <th>Binario</th>
+                  <th>Significado</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>255</td><td>11111111</td><td>Todo es red (octeto completamente bloqueado)</td></tr>
+                <tr><td>254</td><td>11111110</td><td>7 bits de red</td></tr>
+                <tr><td>252</td><td>11111100</td><td>6 bits de red</td></tr>
+                <tr><td>248</td><td>11111000</td><td>5 bits de red</td></tr>
+                <tr><td>240</td><td>11110000</td><td>4 bits de red</td></tr>
+                <tr><td>224</td><td>11100000</td><td>3 bits de red</td></tr>
+                <tr><td>192</td><td>11000000</td><td>2 bits de red</td></tr>
+                <tr><td>128</td><td>10000000</td><td>1 bit de red</td></tr>
+                <tr><td>0</td><td>00000000</td><td>Todo es host (octeto completamente libre)</td></tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <div style="text-align: center; margin-top: 2rem;">
+            <button class="btn btn-primary" id="btnOpenWorkshop" style="font-size: 1.1rem; padding: 0.75rem 2rem; box-shadow: 0 4px 15px rgba(6, 182, 212, 0.4);">🚀 Abrir Taller Práctico</button>
+          </div>
+        </section>
+
+        <!-- SLIDE 5: MASK LOCK SIMULATOR -->
+        <section class="slide" id="slide-mask-lock" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">0.5</span>
+            Simulador de Bloqueo de Máscara de Red
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Demostración de Candados (10 min)</h4>
+            <p>Esta es la respuesta a la retroalimentación del alumno. Mostramos visualmente el bloqueo de los octetos:</p>
+            <ul>
+              <li>Cambia la máscara a `255.255.255.0` (/24). Muéstrales cómo aparecen candados `🔒` en los primeros 3 octetos de la IP. El alumno no puede cambiar esos números. Solo el último octeto está libre `🔓` para escribir.</li>
+              <li>Cambia la máscara a `255.255.0.0` (/16). Ahora solo se bloquean 2 octetos. Hay más libertad para hosts.</li>
+              <li>Cambia a `255.0.0.0` (/8). Solo el primer octeto está bloqueado.</li>
+              <li><em>"Si bloqueamos más números con 255, ¿tenemos espacio para más o menos dispositivos?"</em> (Respuesta: Menos dispositivos, porque nos quedan menos octetos libres).</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="subnet-mask-lock-container">
+              <div class="form-group" style="max-width: 400px; margin: 0 auto;">
+                <label for="maskSelector">Selecciona la Máscara de Red</label>
+                <select id="maskSelector" class="form-control">
+                  <option value="24" selected>255.255.255.0 (Máscara /24)</option>
+                  <option value="16">255.255.0.0 (Máscara /16)</option>
+                  <option value="8">255.0.0.0 (Máscara /8)</option>
+                </select>
+              </div>
+
+              <!-- Interactive IP locked display -->
+              <div class="ip-octets-visual" id="ipOctetsVisual">
+                <!-- Dynamic generation via JS -->
+              </div>
+
+              <div class="mask-explanation-alert" id="maskExplanationAlert">
+                Con la máscara 255.255.255.0, los primeros 3 números (192.168.1) corresponden a la Red y están fijos. Solo el último octeto es libre.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 6: LOCAL LAB -->
+        <section class="slide" id="slide-local-lab" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">0.6</span>
+            Laboratorio: Identificar mi IP y mi Máscara
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Guía de Terminal Local (15 min)</h4>
+            <p>Pídeles que abran su consola y busquen su IP real:</p>
+            <ul>
+              <li><strong>En Windows (cmd / powershell):</strong> Escribir `ipconfig`. Buscar "Adaptador de LAN inalámbrica Wi-Fi" y fijarse en la dirección IPv4 y la Máscara de subred.</li>
+              <li><strong>En Mac / Linux:</strong> Escribir `ifconfig` o `ip a`. Buscar el adaptador activo (suele ser `en0` o `wlan0`).</li>
+              <li>Comenta que la gran mayoría tendrá la máscara `255.255.255.0`. Pregúntales qué significa eso (que comparten los primeros 3 bloques de IP con todos en el salón).</li>
+              <li><strong>El Router doméstico:</strong> Explica que el router es el "portero físico" de su casa y es quien les da su IP de forma automática.</li>
+            </ul>
+          </div>
+
+          <p>
+            Vamos a comprobar tu dirección IP real dentro de la red del aula o de tu hogar.
+          </p>
+
+          <h3 style="margin: 1.5rem 0 0.5rem 0; font-size: 1.2rem; text-align: left;">1. Abre tu Terminal y ejecuta el comando de red:</h3>
+          
+          <div class="terminal-window">
+            <div class="terminal-header">
+              <span class="terminal-dot red"></span>
+              <span class="terminal-dot yellow"></span>
+              <span class="terminal-dot green"></span>
+              <span class="terminal-title">Terminal</span>
+            </div>
+            <div class="terminal-body">
+              <span class="terminal-prompt">$</span><span class="terminal-cmd" id="terminalCmdText">ifconfig (en Mac) / ipconfig (en Windows)</span>
+              <div class="terminal-output" id="terminalOutputText">Adaptador de LAN inalámbrica Wi-Fi:
+   Dirección IPv4. . . . . . . . . . . . . . : 192.168.1.75
+   Máscara de subred . . . . . . . . . . . . : 255.255.255.0
+   Puerta de enlace predeterminada . . . . . : 192.168.1.1</div>
+            </div>
+          </div>
+
+          <h3 style="margin: 1.5rem 0 0.5rem 0; font-size: 1.2rem; text-align: left;">2. Analiza los resultados:</h3>
+          <ul style="text-align: left; font-size: 0.95rem; margin-left: 1.5rem; display: flex; flex-direction: column; gap: 0.4rem;">
+            <li><strong>Tu dirección IP:</strong> Por ejemplo, <code>192.168.1.75</code>.</li>
+            <li><strong>Tu máscara de subred:</strong> Al ver <code>255.255.255.0</code>, sabes que tu red está "congelada" en <code>192.168.1</code>.</li>
+            <li><strong>Puerta de enlace (Gateway):</strong> La IP <code>192.168.1.1</code>. ¡Esta es la IP privada de tu Router! Es el dispositivo al que le envías tus paquetes para que los saque a internet.</li>
+          </ul>
+        </section>
+
+        <!-- SLIDE 7: METACOGNITION -->
+        <section class="slide" id="slide-quiz" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">0.7</span>
+            Cierre: Metacognición y Autoevaluación
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Cierre de la clase 0 (10 min)</h4>
+            <p>Usa estas preguntas para consolidar el conocimiento y cerrar la sesión.</p>
+            <ul>
+              <li><strong>Pregunta 1:</strong> Verifica que recuerden el tamaño de bits en IPv4.</li>
+              <li><strong>Pregunta 2:</strong> Consolida la porción que se bloquea con 255.</li>
+              <li><strong>Pregunta 3:</strong> Lleva el conocimiento a la resolución de un problema práctico de configuración en el hogar.</li>
+            </ul>
+          </div>
+
+          <div class="quiz-container">
+            
+            <!-- Question 1 -->
+            <div class="quiz-question-card" id="q0_1">
+              <h4>1. ¿Cuántos bits totales componen una dirección IPv4 estándar?</h4>
+              <div class="quiz-options">
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">A</div>
+                  <span>8 bits</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">B</div>
+                  <span>16 bits</span>
+                </div>
+                <div class="quiz-option" data-correct="true">
+                  <div class="quiz-option-marker">C</div>
+                  <span>32 bits (4 octetos de 8 bits cada uno)</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">D</div>
+                  <span>255 bits</span>
+                </div>
+              </div>
+              <div class="quiz-explanation">
+                <strong>Correcto:</strong> Una dirección IPv4 está formada por 32 bits en total, los cuales dividimos en 4 grupos de 8 bits (octetos) representados en decimal para facilitar su lectura.
+              </div>
+            </div>
+
+            <!-- Question 2 -->
+            <div class="quiz-question-card" id="q0_2">
+              <h4>2. En una máscara de subred, ¿qué valor decimal representa que la porción de la IP está completamente bloqueada (es ID de Red)?</h4>
+              <div class="quiz-options">
+                <div class="quiz-option" data-correct="true">
+                  <div class="quiz-option-marker">A</div>
+                  <span>El número 255 (todos los bits del octeto en 1)</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">B</div>
+                  <span>El número 0 (todos los bits del octeto en 0)</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">C</div>
+                  <span>El número 1</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">D</div>
+                  <span>Cualquier número impar</span>
+                </div>
+              </div>
+              <div class="quiz-explanation">
+                <strong>Correcto:</strong> El número 255 en decimal equivale al binario 11111111. Esto le dice al router que ese octeto de la IP pertenece al identificador de la red y no se puede modificar para las computadoras de esa red.
+              </div>
+            </div>
+
+            <!-- Question 3 -->
+            <div class="quiz-question-card" id="q0_3">
+              <h4>3. Tienes un servidor en la IP <code>192.168.1.100</code> con máscara <code>255.255.255.0</code>. ¿Cuál de las siguientes IPs podrías asignarle a un segundo servidor para que se conecte directamente al primero sin cambiar de red?</h4>
+              <div class="quiz-options">
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">A</div>
+                  <span><code>192.168.2.100</code></span>
+                </div>
+                <div class="quiz-option" data-correct="true">
+                  <div class="quiz-option-marker">B</div>
+                  <span><code>192.168.1.200</code></span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">C</div>
+                  <span><code>10.0.0.100</code></span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">D</div>
+                  <span><code>192.255.1.100</code></span>
+                </div>
+              </div>
+              <div class="quiz-explanation">
+                <strong>Correcto:</strong> Como la máscara es 255.255.255.0, los primeros 3 octetos (192.168.1) están bloqueados y deben ser idénticos. El último octeto (.200) es libre, por lo que está en la misma red.
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Sticky Sidebar Navigation (Normal View) -->
+      <aside class="sidebar-navigation">
+        <h4>Contenido de la Clase</h4>
+        <ul class="sidebar-links">
+          <li><a href="#slide-intro" class="active">0.1 ¿Qué es una Red?</a></li>
+          <li><a href="#slide-binary">0.2 Números Binarios</a></li>
+          <li><a href="#slide-game">0.3 Entrenador Binario</a></li>
+          <li><a href="#slide-mask-theory">0.4 Máscara de Red</a></li>
+          <li><a href="#slide-mask-lock">0.5 Bloqueo de Máscara</a></li>
+          <li><a href="#slide-local-lab">0.6 Laboratorio de IP</a></li>
+          <li><a href="#slide-quiz">0.7 Autoevaluación</a></li>
+        </ul>
+      </aside>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>© 2026 Portal de Cloud Computing - Diseñado para una docencia ágil e interactiva.</p>
+    <p style="margin-top: 0.5rem;"><a href="index.html">← Volver al Dashboard Principal</a></p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="script.js"></script>
+  
+  <!-- Interactive logic for Class 0 -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initBinaryGame();
+      initMaskLockSimulator();
+      initQuiz();
+      initSidebarScrollSpy();
+      detectOsForTerminal();
+    });
+
+    // -------------------------------------------------------------
+    // 1. Binary Game Trainer Logic
+    // -------------------------------------------------------------
+    function initBinaryGame() {
+      const bitSwitches = document.querySelectorAll('.bit-switch');
+      const sumDisplay = document.getElementById('currentBinarySum');
+      const targetDisplay = document.getElementById('gameTarget');
+      const verifyBtn = document.getElementById('btnVerifyGame');
+      const scoreDisplay = document.getElementById('gameScore');
+      const statusAlert = document.getElementById('gameStatusAlert');
+
+      let currentSum = 0;
+      let targetNumber = 192;
+      let streakScore = 0;
+
+      // Handle custom target input
+      const customInput = document.getElementById('customTargetInput');
+      const setCustomBtn = document.getElementById('btnSetCustomTarget');
+
+      if (setCustomBtn && customInput) {
+        setCustomBtn.addEventListener('click', () => {
+          let val = parseInt(customInput.value);
+          if (isNaN(val) || val < 0 || val > 255) {
+            statusAlert.className = 'status-alert error';
+            statusAlert.innerHTML = `⚠️ <strong>Error:</strong> Ingresa un número entre 0 y 255.`;
+            statusAlert.style.display = 'block';
+            return;
+          }
+          targetNumber = val;
+          targetDisplay.textContent = targetNumber;
+          
+          // Reset bits when setting a custom number
+          bitSwitches.forEach(btn => {
+            btn.classList.remove('active');
+            btn.textContent = '0';
+          });
+          updateBinarySum();
+          statusAlert.style.display = 'none';
+        });
+      }
+
+      // Update current binary sum display
+      const updateBinarySum = () => {
+        currentSum = 0;
+        bitSwitches.forEach(btn => {
+          if (btn.classList.contains('active')) {
+            currentSum += parseInt(btn.getAttribute('data-value'));
+          }
+        });
+        sumDisplay.textContent = currentSum;
+        statusAlert.style.display = 'none';
+      };
+
+      // Toggle bit click
+      bitSwitches.forEach(btn => {
+        btn.addEventListener('click', () => {
+          btn.classList.toggle('active');
+          btn.textContent = btn.classList.contains('active') ? '1' : '0';
+          updateBinarySum();
+        });
+      });
+
+      // Verification
+      verifyBtn.addEventListener('click', () => {
+        if (currentSum === targetNumber) {
+          streakScore++;
+          scoreDisplay.textContent = `Racha: ${streakScore} aciertos`;
+          
+          statusAlert.className = 'status-alert success';
+          statusAlert.innerHTML = `🎉 <strong>¡Correcto!</strong> Escribiste el número ${targetNumber} en binario.`;
+          statusAlert.style.display = 'block';
+
+          // Set new target
+          setTimeout(() => {
+            generateNewTarget();
+          }, 1500);
+        } else {
+          streakScore = 0;
+          scoreDisplay.textContent = `Racha: 0 aciertos`;
+          
+          statusAlert.className = 'status-alert error';
+          statusAlert.innerHTML = `❌ <strong>Incorrecto.</strong> Tu suma es ${currentSum}, pero el objetivo es ${targetNumber}. ¡Inténtalo de nuevo!`;
+          statusAlert.style.display = 'block';
+        }
+      });
+
+      const generateNewTarget = () => {
+        // List of interesting network binary values
+        const networkTargets = [10, 192, 168, 255, 128, 64, 0, 172, 16, 224, 240, 248];
+        const randomIndex = Math.floor(Math.random() * networkTargets.length);
+        let newTarget = networkTargets[randomIndex];
+        
+        // Ensure it's not the same target
+        if (newTarget === targetNumber) {
+          newTarget = (newTarget + 64) % 256;
+        }
+
+        targetNumber = newTarget;
+        targetDisplay.textContent = targetNumber;
+        
+        // Reset bits
+        bitSwitches.forEach(btn => {
+          btn.classList.remove('active');
+          btn.textContent = '0';
+        });
+        updateBinarySum();
+      };
+    }
+
+    // -------------------------------------------------------------
+    // 2. Subnet Mask Lock Simulator Logic
+    // -------------------------------------------------------------
+    function initMaskLockSimulator() {
+      const maskSelector = document.getElementById('maskSelector');
+      const visualContainer = document.getElementById('ipOctetsVisual');
+      const explanationText = document.getElementById('maskExplanationAlert');
+
+      if (!maskSelector) return;
+
+      const octetValues = [192, 168, 1, 50];
+
+      const renderLockVisualizer = () => {
+        const maskBits = parseInt(maskSelector.value); // 8, 16, or 24
+        visualContainer.innerHTML = '';
+
+        // For /24 (255.255.255.0): octet 0,1,2 are locked (24 bits = 3 bytes)
+        // For /16 (255.255.0.0): octet 0,1 are locked
+        // For /8 (255.0.0.0): octet 0 is locked
+        const lockedOctetsCount = maskBits / 8;
+
+        for (let i = 0; i < 4; i++) {
+          const isLocked = i < lockedOctetsCount;
+          const octetBox = document.createElement('div');
+          octetBox.className = `octet-box ${isLocked ? 'locked' : 'unlocked'}`;
+          
+          octetBox.innerHTML = `
+            <div class="octet-box-title">${isLocked ? 'Red (Fijo)' : 'Host (Libre)'}</div>
+            <input type="number" class="octet-input" min="0" max="255" value="${octetValues[i]}" ${isLocked ? 'disabled' : ''} data-index="${i}">
+            ${isLocked ? '<span class="lock-badge" title="Bloqueado por la máscara">🔒</span>' : '<span class="unlock-badge" title="Libre para asignar">🔓</span>'}
+          `;
+
+          visualContainer.appendChild(octetBox);
+
+          // Add change listener to editable input
+          if (!isLocked) {
+            const input = octetBox.querySelector('input');
+            input.addEventListener('input', (e) => {
+              let val = parseInt(e.target.value);
+              if (isNaN(val)) val = 0;
+              if (val < 0) val = 0;
+              if (val > 255) val = 255;
+              e.target.value = val;
+              octetValues[i] = val;
+            });
+          }
+          
+          // Add dot separator
+          if (i < 3) {
+            const dot = document.createElement('span');
+            dot.className = 'dot-separator';
+            dot.textContent = '.';
+            dot.style.fontSize = '2rem';
+            dot.style.alignSelf = 'flex-end';
+            dot.style.marginBottom = '0.5rem';
+            visualContainer.appendChild(dot);
+          }
+        }
+
+        // Update explanation alert text
+        if (maskBits === 24) {
+          explanationText.innerHTML = `🔒 <strong>Máscara 255.255.255.0:</strong> Los primeros 3 octetos (<code>${octetValues[0]}.${octetValues[1]}.${octetValues[2]}</code>) pertenecen al ID de Red y están fijos. Solamente el último octeto (<code>.${octetValues[3]}</code>) se puede cambiar para agregar hosts en este grupo.`;
+        } else if (maskBits === 16) {
+          explanationText.innerHTML = `🔒 <strong>Máscara 255.255.0.0:</strong> Los primeros 2 octetos (<code>${octetValues[0]}.${octetValues[1]}</code>) están fijos. Tienes libertad de modificar los dos últimos octetos (<code>.${octetValues[2]}.${octetValues[3]}</code>) para tus dispositivos.`;
+        } else if (maskBits === 8) {
+          explanationText.innerHTML = `🔒 <strong>Máscara 255.0.0.0:</strong> Únicamente el primer octeto (<code>${octetValues[0]}</code>) está fijo. Esto te da una red inmensa con libertad en los otros tres octetos.`;
+        }
+      };
+
+      maskSelector.addEventListener('change', renderLockVisualizer);
+      renderLockVisualizer();
+    }
+
+    // -------------------------------------------------------------
+    // 3. Quiz Initialization
+    // -------------------------------------------------------------
+    function initQuiz() {
+      const quizCards = document.querySelectorAll('.quiz-question-card');
+      quizCards.forEach(card => {
+        const options = card.querySelectorAll('.quiz-option');
+        const explanation = card.querySelector('.quiz-explanation');
+        let answered = false;
+
+        options.forEach(opt => {
+          opt.addEventListener('click', () => {
+            if (answered) return;
+            answered = true;
+
+            const isCorrect = opt.getAttribute('data-correct') === 'true';
+            
+            if (isCorrect) {
+              opt.classList.add('correct');
+            } else {
+              opt.classList.add('incorrect');
+              options.forEach(o => {
+                if (o.getAttribute('data-correct') === 'true') {
+                  o.classList.add('correct');
+                }
+              });
+            }
+            explanation.style.display = 'block';
+          });
+        });
+      });
+    }
+
+    // -------------------------------------------------------------
+    // 4. Scroll Sync for Sidebar
+    // -------------------------------------------------------------
+    function initSidebarScrollSpy() {
+      const sidebarLinks = document.querySelectorAll('.sidebar-links a');
+      const slidesList = document.querySelectorAll('.slide');
+
+      const onScroll = () => {
+        if (document.body.classList.contains('presentation-mode')) return;
+        
+        let currentSlideId = '';
+        const scrollPosition = window.scrollY + 200;
+
+        slidesList.forEach(slide => {
+          const top = slide.offsetTop;
+          const height = slide.offsetHeight;
+          if (scrollPosition >= top && scrollPosition < top + height) {
+            currentSlideId = slide.getAttribute('id');
+          }
+        });
+
+        if (currentSlideId) {
+          sidebarLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href') === `#${currentSlideId}`) {
+              link.classList.add('active');
+            }
+          });
+        }
+      };
+
+      window.addEventListener('scroll', onScroll);
+    }
+
+    // -------------------------------------------------------------
+    // 5. OS Detection for Terminal instructions
+    // -------------------------------------------------------------
+    function detectOsForTerminal() {
+      const cmdText = document.getElementById('terminalCmdText');
+      const outputText = document.getElementById('terminalOutputText');
+      
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      if (isMac) {
+        cmdText.textContent = 'ifconfig en0';
+        outputText.innerHTML = `en0: flags=8863&lt;UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST&gt; mtu 1500
+        options=400&lt;CHANNEL_IO&gt;
+        ether f4:5c:89:a8:b9:c1 
+        inet 192.168.1.75 netmask 0xffffff00 broadcast 192.168.1.255
+        media: autoselect
+        status: active`;
+      } else {
+        cmdText.textContent = 'ipconfig';
+        outputText.innerHTML = `Adaptador de LAN inalámbrica Wi-Fi:
+        
+   Dirección IPv4. . . . . . . . . . . . . . : 192.168.1.75
+   Máscara de subred . . . . . . . . . . . . : 255.255.255.0
+   Puerta de enlace predeterminada . . . . . : 192.168.1.1`;
+      }
+    }
+    }
+  </script>
+
+  <!-- Modal Taller Práctico -->
+  <div id="workshopModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:999; justify-content:center; align-items:center; backdrop-filter: blur(5px);">
+    <div class="card" style="position:relative; width:90%; max-width:650px; max-height:90vh; overflow-y:auto; background:var(--bg-primary); border: 1px solid var(--color-cyan);">
+      <button id="closeWorkshopBtn" style="position:absolute; top:1rem; right:1rem; background:transparent; border:none; color:var(--text-secondary); font-size:1.5rem; cursor:pointer;">&times;</button>
+      
+      <h2 style="color:var(--color-cyan); margin-bottom:0.5rem; display:flex; align-items:center; gap:0.5rem;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>
+        Taller de Redes y Binario
+      </h2>
+      <p style="font-size:0.9rem; color:var(--text-secondary); margin-bottom:1.5rem;">Resuelve estos ejercicios generados aleatoriamente para poner a prueba tus conocimientos.</p>
+      
+      <div id="workshopExerciseContainer" style="background:rgba(255,255,255,0.03); padding:1.5rem; border-radius:8px; border:1px solid var(--glass-border); margin-bottom:1.5rem;">
+        <!-- Exercise injected here -->
+      </div>
+      
+      <div style="display:flex; gap:1rem; align-items: stretch;">
+        <input type="text" id="workshopInput" class="form-control" placeholder="Escribe tu respuesta..." autocomplete="off" style="flex:1; font-size:1.1rem; padding:0.75rem;">
+        <button id="btnVerifyWorkshop" class="btn btn-primary" style="padding:0 2rem;">Verificar</button>
+      </div>
+      
+      <div id="workshopFeedback" class="status-alert" style="margin-top:1rem; display:none;"></div>
+      
+      <button id="btnNextWorkshop" class="btn btn-secondary" style="margin-top:1.5rem; display:none; width:100%; justify-content:center;">Siguiente Ejercicio ➔</button>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initWorkshopModal();
+    });
+
+    function initWorkshopModal() {
+      const modal = document.getElementById('workshopModal');
+      const btnOpen = document.getElementById('btnOpenWorkshop');
+      const btnClose = document.getElementById('closeWorkshopBtn');
+      const container = document.getElementById('workshopExerciseContainer');
+      const input = document.getElementById('workshopInput');
+      const btnVerify = document.getElementById('btnVerifyWorkshop');
+      const btnNext = document.getElementById('btnNextWorkshop');
+      const feedback = document.getElementById('workshopFeedback');
+      
+      let currentExercise = null;
+
+      if(btnOpen) {
+        btnOpen.addEventListener('click', () => {
+          modal.style.display = 'flex';
+          generateExercise();
+        });
+      }
+
+      btnClose.addEventListener('click', () => {
+        modal.style.display = 'none';
+      });
+
+      btnVerify.addEventListener('click', verifyExercise);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') verifyExercise();
+      });
+
+      btnNext.addEventListener('click', () => {
+        generateExercise();
+      });
+
+      function generateExercise() {
+        input.value = '';
+        input.disabled = false;
+        btnVerify.style.display = 'block';
+        btnNext.style.display = 'none';
+        feedback.style.display = 'none';
+        input.focus();
+
+        // Randomly pick exercise type (0: CIDR IPs, 1: Binary to IP)
+        const type = Math.floor(Math.random() * 2);
+        
+        if (type === 0) {
+          // Type 0: CIDR to IP quantity
+          // Masks from /16 to /29
+          const mask = Math.floor(Math.random() * (29 - 16 + 1)) + 16;
+          const totalIps = Math.pow(2, 32 - mask);
+          
+          currentExercise = {
+            type: 'cidr',
+            answer: totalIps.toString(),
+            questionHtml: `
+              <h3 style="font-size:1.1rem; color:var(--text-primary); margin-bottom:0.5rem;">Cálculo de Direcciones IP</h3>
+              <p style="font-size:1rem; color:var(--text-secondary);">Dada la siguiente red:</p>
+              <div style="font-family:'Fira Code', monospace; font-size:1.5rem; color:var(--color-accent); text-align:center; margin:1rem 0;">
+                10.0.0.0/${mask}
+              </div>
+              <p style="font-size:0.95rem;">¿Cuántas direcciones IP en <strong>total</strong> puedes generar en esta subred? <br><small style="color:var(--text-muted);">(Nota: Sin descontar la de red y broadcast, solo el número total teórico 2<sup>32-N</sup>)</small></p>
+            `
+          };
+        } else {
+          // Type 1: Binary octets to Decimal IP
+          const octets = [
+            Math.floor(Math.random() * 256),
+            Math.floor(Math.random() * 256),
+            Math.floor(Math.random() * 256),
+            Math.floor(Math.random() * 256)
+          ];
+          
+          const binOctets = octets.map(o => o.toString(2).padStart(8, '0'));
+          const targetIp = octets.join('.');
+          
+          currentExercise = {
+            type: 'binary',
+            answer: targetIp,
+            questionHtml: `
+              <h3 style="font-size:1.1rem; color:var(--text-primary); margin-bottom:0.5rem;">Traductor de IP Binaria</h3>
+              <p style="font-size:1rem; color:var(--text-secondary);">Una máquina lee la IP en binario de esta forma:</p>
+              <div style="font-family:'Fira Code', monospace; font-size:1.2rem; color:var(--color-cyan); text-align:center; margin:1rem 0; letter-spacing:1px; word-break:break-all;">
+                ${binOctets.join('.')}
+              </div>
+              <p style="font-size:0.95rem;">Traduce esta dirección a formato decimal separado por puntos (ej: <code>192.168.1.1</code>).</p>
+            `
+          };
+        }
+        
+        container.innerHTML = currentExercise.questionHtml;
+      }
+
+      function verifyExercise() {
+        if (!currentExercise) return;
+        
+        const userAnswer = input.value.trim();
+        if (userAnswer === currentExercise.answer) {
+          feedback.className = 'status-alert success';
+          feedback.innerHTML = `🎉 <strong>¡Correcto!</strong> La respuesta es <strong>${currentExercise.answer}</strong>.`;
+          feedback.style.display = 'block';
+          
+          input.disabled = true;
+          btnVerify.style.display = 'none';
+          btnNext.style.display = 'flex';
+          btnNext.focus();
+        } else {
+          feedback.className = 'status-alert error';
+          feedback.innerHTML = `❌ <strong>Incorrecto.</strong> Tu respuesta fue "${userAnswer}". Revisa tus cálculos.`;
+          feedback.style.display = 'block';
+        }
+      }
+    }
+  </script>
+</body>
+</html>

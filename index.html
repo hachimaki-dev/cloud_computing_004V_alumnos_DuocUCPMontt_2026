@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fundamentos de Cloud Computing | Portal del Profesor y Estudiante</title>
+  <meta name="description" content="Portal interactivo para enseñar y aprender los fundamentos de cloud computing sin necesidad de consola AWS, enfocado en teoría sencilla, práctica y metacognición.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar" id="navbar">
+    <a href="index.html" class="nav-brand">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17.5 19A3.5 3.5 0 0 0 21 15.5c0-2.79-2.54-4.5-5-4.5-.42 0-.83.04-1.24.12A6.5 6.5 0 0 0 3 13.5A3.5 3.5 0 0 0 6.5 17H12" />
+        <path d="M12 12V21" />
+        <path d="m9 18 3 3 3-3" />
+      </svg>
+      <span>Cloud Foundations</span>
+    </a>
+    
+    <div class="nav-links">
+      <a href="index.html" class="nav-link active">Dashboard</a>
+      
+      <!-- Teacher Mode Switcher -->
+      <div class="teacher-toggle-container" title="Activa esto para ver notas y guías del profesor">
+        <span class="teacher-toggle-label">Modo Profesor</span>
+        <label class="switch">
+          <input type="checkbox" id="teacherModeToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <main class="container">
+    
+    <!-- Teacher Mode Guide Alert (Visible only in teacher mode) -->
+    <div class="teacher-note" style="margin-top: 0; margin-bottom: 2.5rem;">
+      <h4>
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 9v4"/>
+          <path d="M12 17h.01"/>
+          <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+        </svg>
+        Guía de Bienvenida para el Profesor
+      </h4>
+      <p><strong>¡Hola Colega!</strong> Bienvenido a tu asistente de clases rápido. Si no haces este ramo y te tocó como reemplazo de urgencia, no te preocupes. Hemos estructurado cada clase en 3 partes claras:</p>
+      <ul>
+        <li><strong>Teoría Simple (20-30 min):</strong> Te damos la analogía exacta del mundo real para explicar el concepto abstracto (ej. comparar VPC con un condominio privado).</li>
+        <li><strong>Práctica Interactiva (40-60 min):</strong> No necesitamos consola de AWS. Las páginas de cada clase incluyen simuladores interactivos locales donde los estudiantes pueden ver qué pasa en tiempo real.</li>
+        <li><strong>Metacognición (10-15 min):</strong> Preguntas y reflexiones guiadas al final para comprobar si entendieron los fundamentos y cerrar la clase con éxito.</li>
+      </ul>
+      <p style="margin-top: 0.5rem;">💡 <em>Consejo: Explora el contenido de la Clase 1 con el Modo Profesor activado antes de dictar para tener tus "chuletas" de teoría y preguntas listas.</em></p>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="hero">
+      <h1>Fundamentos de <span>Cloud Computing</span></h1>
+      <p>Aprende la arquitectura lógica de la nube a través de analogías directas, simuladores interactivos sin consola AWS y laboratorios locales de rápida ejecución.</p>
+    </section>
+
+    <!-- Classes Grid -->
+    <section>
+      <h2 style="font-size: 1.75rem; margin-bottom: 1.5rem; text-align: center;">Plan de Clases Disponibles</h2>
+      
+      <div class="class-grid">
+        
+        <!-- Class 0: Active -->
+        <article class="card class-card">
+          <div class="class-card-header">
+            <span class="class-number">Clase 0</span>
+            <span style="font-size: 0.8rem; color: var(--color-cyan); font-weight: bold;">Disponible</span>
+          </div>
+          <h3>Fundamentos de Redes y Binarios</h3>
+          <p>La base de todo. Qué es una IP, cómo leen las computadoras en binario, cómo se calcula un octeto y de qué manera la máscara actúa como un candado para dividir la red del host.</p>
+          <div class="class-footer">
+            <span class="class-duration">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+              90 Minutos
+            </span>
+            <a href="clase0.html" class="btn">Entrar a Clase</a>
+          </div>
+        </article>
+
+        <!-- Class 1: Active -->
+        <article class="card class-card">
+          <div class="class-card-header">
+            <span class="class-number">Clase 1</span>
+            <span style="font-size: 0.8rem; color: var(--color-cyan); font-weight: bold;">Disponible</span>
+          </div>
+          <h3>Redes Virtuales y VPC</h3>
+          <p>Pasa de redes físicas a la nube. Entiende la segmentación en AWS usando rangos de IP, notación CIDR, subredes públicas y privadas, tablas de enrutamiento y el Internet Gateway (IGW) con nuestro simulador interactivo.</p>
+          <div class="class-footer">
+            <span class="class-duration">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+              90 Minutos
+            </span>
+            <a href="clase1.html" class="btn">Entrar a Clase</a>
+          </div>
+        </article>
+
+        <!-- Class 2: Active -->
+        <article class="card class-card">
+          <div class="class-card-header">
+            <span class="class-number">Clase 2</span>
+            <span style="font-size: 0.8rem; color: var(--color-cyan); font-weight: bold;">Disponible</span>
+          </div>
+          <h3>Seguridad y Resiliencia en la Nube</h3>
+          <p>Defensa en profundidad usando Network ACLs y Security Groups. Aprende qué es el enrutamiento Stateful vs Stateless, el rol del NAT Gateway y cómo diseñar arquitecturas tolerantes a desastres (Multi-AZ).</p>
+          <div class="class-footer">
+            <span class="class-duration">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+              90 Minutos
+            </span>
+            <a href="clase2.html" class="btn">Entrar a Clase</a>
+          </div>
+        </article>
+
+        <!-- Class 3: Active -->
+        <article class="card class-card">
+          <div class="class-card-header">
+            <span class="class-number">Clase 3</span>
+            <span style="font-size: 0.8rem; color: var(--color-cyan); font-weight: bold;">Disponible</span>
+          </div>
+          <h3>EC2 y Cómputo (Servidores Virtuales)</h3>
+          <p>Entiende la virtualización y el aprovisionamiento de máquinas. Usa la terminal web interactiva para "conectar" por SSH, y aprende cómo hacer público un servidor usando Ngrok o Glitch.</p>
+          <div class="class-footer">
+            <span class="class-duration">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+              90 Minutos
+            </span>
+            <a href="clase3.html" class="btn">Entrar a Clase</a>
+          </div>
+        </article>
+
+        <!-- Class 4: Active -->
+        <article class="card class-card">
+          <div class="class-card-header">
+            <span class="class-number">Clase 4</span>
+            <span style="font-size: 0.8rem; color: var(--color-cyan); font-weight: bold;">Disponible</span>
+          </div>
+          <h3>Almacenamiento de Objetos (S3)</h3>
+          <p>Diferencias entre almacenamiento en bloque y objetos. Sube archivos a nuestro "Bucket Simulator" y descubre cómo los metadatos y permisos controlan la web moderna.</p>
+          <div class="class-footer">
+            <span class="class-duration">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+              90 Minutos
+            </span>
+            <a href="clase4.html" class="btn">Entrar a Clase</a>
+          </div>
+        </article>
+
+        <!-- Class 5: Active -->
+        <article class="card class-card">
+          <div class="class-card-header">
+            <span class="class-number">Clase 5</span>
+            <span style="font-size: 0.8rem; color: var(--color-cyan); font-weight: bold;">Disponible</span>
+          </div>
+          <h3>Identidad y Accesos (IAM)</h3>
+          <p>Principio de mínimo privilegio. Usuarios, Roles y Políticas. Escribe tus primeras reglas JSON en el simulador IAM para permitir o denegar el acceso a recursos críticos.</p>
+          <div class="class-footer">
+            <span class="class-duration">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+              90 Minutos
+            </span>
+            <a href="clase5.html" class="btn">Entrar a Clase</a>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>© 2026 Portal de Cloud Computing - Diseñado para una docencia ágil e interactiva.</p>
+    <p style="margin-top: 0.5rem;"><a href="doc_curriculum.md" style="font-family: 'Fira Code', monospace; font-size: 0.8rem;">[Ver Lineamientos Pedagógicos]</a></p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clase 3: EC2 y Cómputo | Cloud Computing</title>
+  <meta name="description" content="Aprende sobre servidores virtuales, cómputo en la nube, y conectividad SSH usando laboratorios prácticos con simuladores web, Ngrok y Glitch.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <a href="index.html" class="nav-brand">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17.5 19A3.5 3.5 0 0 0 21 15.5c0-2.79-2.54-4.5-5-4.5-.42 0-.83.04-1.24.12A6.5 6.5 0 0 0 3 13.5A3.5 3.5 0 0 0 6.5 17H12" />
+        <path d="M12 12V21" />
+        <path d="m9 18 3 3 3-3" />
+      </svg>
+      <span>Cloud Foundations</span>
+    </a>
+    
+    <div class="nav-links">
+      <a href="index.html" class="nav-link">Dashboard</a>
+      
+      <!-- Teacher Mode Switcher -->
+      <div class="teacher-toggle-container">
+        <span class="teacher-toggle-label">Modo Profesor</span>
+        <label class="switch">
+          <input type="checkbox" id="teacherModeToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content Container -->
+  <main class="container">
+    
+    <!-- Back button -->
+    <a href="index.html" class="back-link">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+      </svg>
+      Volver al Dashboard
+    </a>
+
+    <!-- Class Header -->
+    <header class="class-header">
+      <span class="class-number" style="margin-bottom: 0.5rem; display: inline-block;">Clase 3</span>
+      <h1>EC2 y Cómputo (Servidores Virtuales)</h1>
+      <p style="color: var(--text-secondary); font-size: 1.1rem; max-width: 800px;">
+        Entiende la virtualización y el aprovisionamiento de máquinas. Usa la terminal web interactiva para "conectar" por SSH, y aprende cómo hacer público un servidor usando Ngrok o Glitch.
+      </p>
+    </header>
+
+    <!-- Content with Slides Container -->
+    <div class="class-content-wrapper">
+      
+      <!-- Slides Container -->
+      <div class="main-content-flow slides-container" id="slidesContainer">
+        
+        <!-- SLIDE 1: INTRODUCTION -->
+        <section class="slide" id="slide-intro" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">3.1</span>
+            ¿Qué es un Servidor Virtual (EC2)?
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: El Arriendo de un Departamento (5 min)</h4>
+            <p><strong>Meta:</strong> Explicar que la nube no es magia, es alquilar computadores de alguien más de forma fraccionada.</p>
+            <ul>
+              <li><strong>Concepto 1: Virtualización.</strong> AWS compra un servidor gigante (Host) de $50,000 USD y lo divide en 100 máquinas virtuales pequeñas usando un Hypervisor.</li>
+              <li><strong>Concepto 2: Elastic Compute Cloud (EC2).</strong> "Elástico" porque puedes arrendar un servidor por 5 minutos, apagarlo y dejar de pagar. En el mundo tradicional, tienes que comprar el servidor físico completo por 5 años.</li>
+              <li><strong>Analogía:</strong> En lugar de construir una casa propia (servidor físico) que tarda meses y cuesta mucho dinero de golpe, EC2 es como arrendar un Airbnb por las noches que lo necesites (pago por uso).</li>
+            </ul>
+          </div>
+
+          <p>
+            Amazon Elastic Compute Cloud (EC2) es el servicio de cómputo principal de AWS. Te permite crear, configurar y lanzar servidores virtuales (llamados <strong>instancias</strong>) en cuestión de segundos.
+          </p>
+          <p style="margin-top: 1rem;">
+            En un entorno tradicional de TI (On-Premises), comprar e instalar un servidor físico puede tardar semanas o meses. Con EC2, tienes la máquina funcionando casi instantáneamente y solo pagas por los segundos o minutos que esté encendida.
+          </p>
+
+          <div class="analogy-box" style="border-color: rgba(6, 182, 212, 0.3); background: rgba(6, 182, 212, 0.02); margin-top:1.5rem;">
+            <h4>Los 3 pasos para lanzar una Instancia EC2:</h4>
+            <ul style="font-size:0.95rem; color:var(--text-secondary); margin-left:1.5rem; margin-top:0.5rem; display:flex; flex-direction:column; gap:0.5rem;">
+              <li><strong>1. Elegir la AMI (Amazon Machine Image):</strong> Es la plantilla del Sistema Operativo. ¿Quieres Windows, Ubuntu Linux, o Amazon Linux?</li>
+              <li><strong>2. Elegir el Tipo de Instancia:</strong> Es el tamaño del hardware virtual. Por ejemplo, `t2.micro` tiene 1 vCPU y 1 GB de RAM. Un `c5.18xlarge` tiene 72 vCPUs y 144 GB de RAM.</li>
+              <li><strong>3. Configurar Seguridad (Network & Security Group):</strong> ¿En qué VPC y Subred vivirá? ¿Tendrá IP pública? ¿Qué puertos abriremos en su firewall (ej. Puerto 22 para SSH, Puerto 80 para HTTP)?</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- SLIDE 2: INTERACTIVE SSH SIMULATOR -->
+        <section class="slide" id="slide-ssh-sim" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">3.2</span>
+            Práctica: Conexión SSH a tu Instancia Linux
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Ejecución del Simulador SSH (10 min)</h4>
+            <p>Pide a un alumno voluntario que dicte los comandos o que lea la pantalla.</p>
+            <ul>
+              <li><strong>Por qué SSH:</strong> Explica que los servidores Linux en la nube no tienen "monitor ni mouse". Todo se controla mediante texto desde tu computador hacia el de AWS.</li>
+              <li>Instruye a los alumnos a ejecutar exactamente los siguientes comandos en el simulador:
+                <br>1. <code>ssh ec2-user@54.120.30.5</code> (para entrar)
+                <br>2. <code>sudo apt update</code> (para buscar parches)
+                <br>3. <code>sudo apt install apache2</code> (instala el servidor web HTTP)
+                <br>4. <code>exit</code> (para cerrar la sesión)
+              </li>
+            </ul>
+          </div>
+
+          <p style="font-size: 0.95rem;">
+            Imagina que acabas de lanzar una instancia Ubuntu en AWS y tiene la IP pública <code>54.120.30.5</code>. Utiliza la terminal a continuación para conectarte por SSH, actualizar los paquetes e instalar un servidor web Apache.
+          </p>
+
+          <div class="card" style="padding: 1.5rem; max-width: 900px; margin-top:1.5rem;">
+            
+            <div style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; font-size:0.85rem;">
+              <strong style="color:var(--color-accent);">Misiones:</strong><br>
+              1. Conéctate a la instancia usando: <code style="color:var(--text-primary);">ssh ec2-user@54.120.30.5</code><br>
+              2. Actualiza el sistema usando: <code style="color:var(--text-primary);">sudo apt update</code><br>
+              3. Instala el servidor web usando: <code style="color:var(--text-primary);">sudo apt install apache2</code><br>
+              4. Cierra la conexión: <code style="color:var(--text-primary);">exit</code><br>
+              <em>*Tip: Escribe "help" para ver los comandos disponibles.</em>
+            </div>
+
+            <!-- SSH Terminal -->
+            <div class="ssh-terminal" id="sshTerminal" tabindex="0">
+              <div id="sshOutput">
+                <div class="ssh-line">Bienvenido a la terminal de tu computador local. (LocalOS v1.0)</div>
+                <div class="ssh-line" style="margin-bottom: 1rem;">Usa comandos SSH para administrar tus servidores remotos.</div>
+              </div>
+              <div class="ssh-input-line" id="sshInputLine">
+                <span class="ssh-prompt" id="sshPrompt">local@macbook:~$</span>
+                <input type="text" class="ssh-input" id="sshInput" autocomplete="off" spellcheck="false" autofocus>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- SLIDE 3: LABORATORY NGROK/GLITCH -->
+        <section class="slide" id="laboratorio-ngrok" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">3.3</span>
+            Laboratorio: Desplegando a Internet (Alternativas Gratuitas)
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: De lo Local a lo Público (20 min)</h4>
+            <p>AWS EC2 cuesta dinero. Para que experimenten la misma sensación de tener un servidor público, dales estas dos misiones prácticas gratuitas:</p>
+            <ul>
+              <li><strong>Opción 1 (Más técnica - Ngrok):</strong>
+                Haz que levanten un servidor local en su terminal escribiendo <code>python3 -m http.server 8080</code>. Si entran a <code>localhost:8080</code> lo verán. Pero si le mandan ese link a un amigo, no funciona.
+                Luego, pídeles que instalen <a href="https://ngrok.com" target="_blank" style="color:#0f0;">Ngrok</a> y ejecuten <code>ngrok http 8080</code>. Ngrok les dará una URL pública real que crea un túnel hacia su máquina. ¡Su notebook es ahora una instancia EC2!
+              </li>
+              <li><strong>Opción 2 (Más rápida - Glitch):</strong>
+                Que ingresen a <a href="https://glitch.com" target="_blank" style="color:#0f0;">Glitch.com</a>, creen un proyecto "Hello Webpage" y vean cómo Glitch les da un servidor web y un subdominio público instantáneamente.
+              </li>
+            </ul>
+          </div>
+
+          <p>
+            Tener un servidor web local es útil, pero el verdadero poder de la nube (como EC2) es tener una dirección IP pública para que clientes de todo el mundo puedan acceder a nuestra página web.
+          </p>
+
+          <div class="class-grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
+            
+            <div class="card" style="margin-bottom:0; border-top: 4px solid var(--color-accent);">
+              <h3 style="color: var(--color-accent); font-size: 1.2rem; margin-bottom: 0.5rem;">Opción 1: Túnel Ngrok</h3>
+              <p style="font-size: 0.95rem; margin-bottom: 1rem;">Convierte tu propio computador en un "servidor público" temporal.</p>
+              <ul style="font-size: 0.85rem; color: var(--text-secondary); margin-left: 1.25rem;">
+                <li>Crea una carpeta nueva y agrega un archivo <code>index.html</code>.</li>
+                <li>Abre la terminal en esa carpeta y corre <code>python3 -m http.server 8080</code>.</li>
+                <li>Instala <strong>Ngrok</strong> (gratuito) y en otra terminal corre <code>ngrok http 8080</code>.</li>
+                <li>¡Copia la URL <code>https://xxxxx.ngrok-free.app</code> y compártela!</li>
+              </ul>
+            </div>
+
+            <div class="card" style="margin-bottom:0; border-top: 4px solid var(--color-cyan);">
+              <h3 style="color: var(--color-cyan); font-size: 1.2rem; margin-bottom: 0.5rem;">Opción 2: Glitch.com</h3>
+              <p style="font-size: 0.95rem; margin-bottom: 1rem;">Un entorno de nube en el navegador. (Similar al aprovisionamiento rápido de EC2).</p>
+              <ul style="font-size: 0.85rem; color: var(--text-secondary); margin-left: 1.25rem;">
+                <li>Ingresa a <a href="https://glitch.com" target="_blank" style="color:var(--color-cyan);">Glitch.com</a>.</li>
+                <li>Haz clic en "New Project" y selecciona "glitch-hello-website".</li>
+                <li>Edita el archivo <code>index.html</code> en el navegador.</li>
+                <li>Haz clic en "Preview" -> "Open in a new window" para ver tu URL pública (ej. <code>tu-proyecto.glitch.me</code>).</li>
+              </ul>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- SLIDE 4: METACOGNITION -->
+        <section class="slide" id="metacognicion" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">3.4</span>
+            Cierre: Metacognición y Autoevaluación
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Preguntas del Cierre (10 min)</h4>
+            <p>Evalúa el aprendizaje final sobre servidores virtuales:</p>
+            <ul>
+              <li><strong>Pregunta 1:</strong> Apunta a la diferencia de costos entre On-Premise y EC2.</li>
+              <li><strong>Pregunta 2:</strong> Evalúa si entendieron que el hipervisor es la capa clave de la virtualización.</li>
+            </ul>
+          </div>
+
+          <div class="quiz-container">
+            
+            <!-- Question 1 -->
+            <div class="quiz-question-card">
+              <h4>1. ¿Cuál es el principal beneficio de EC2 frente a comprar un servidor físico tradicional?</h4>
+              <div class="quiz-options">
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">A</div>
+                  <span>EC2 no requiere sistemas operativos y ejecuta código directamente en el procesador.</span>
+                </div>
+                <div class="quiz-option" data-correct="true">
+                  <div class="quiz-option-marker">B</div>
+                  <span>Elasticidad y pago por uso: puedes rentarlo por horas, apagarlo y dejar de pagar, evitando grandes gastos de capital.</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">C</div>
+                  <span>Un servidor físico siempre es más barato a corto plazo que EC2.</span>
+                </div>
+              </div>
+              <div class="quiz-explanation">
+                <strong>Correcto:</strong> El modelo de nube cambia el gasto de capital (comprar hardware caro) por gasto operativo (arriendo elástico por segundo u hora).
+              </div>
+            </div>
+
+            <!-- Question 2 -->
+            <div class="quiz-question-card">
+              <h4>2. En la virtualización, ¿qué componente permite que un servidor gigante de hardware hospede múltiples máquinas virtuales de clientes diferentes?</h4>
+              <div class="quiz-options">
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">A</div>
+                  <span>Internet Gateway</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">B</div>
+                  <span>Security Group</span>
+                </div>
+                <div class="quiz-option" data-correct="true">
+                  <div class="quiz-option-marker">C</div>
+                  <span>El Hypervisor (Hipervisor)</span>
+                </div>
+              </div>
+              <div class="quiz-explanation">
+                <strong>Correcto:</strong> El Hipervisor es el software central en la capa de virtualización que toma los recursos físicos (CPU, RAM) y los divide lógicamente para entregárselos a cada Instancia EC2 invitada.
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Sticky Sidebar Navigation -->
+      <aside class="sidebar-navigation">
+        <h4>Contenido de la Clase</h4>
+        <ul class="sidebar-links">
+          <li><a href="#slide-intro" class="active">3.1 Cómputo y EC2</a></li>
+          <li><a href="#slide-ssh-sim">3.2 Simulador SSH</a></li>
+          <li><a href="#laboratorio-ngrok">3.3 Lab Ngrok/Glitch</a></li>
+          <li><a href="#metacognicion">3.4 Autoevaluación</a></li>
+        </ul>
+      </aside>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>© 2026 Portal de Cloud Computing - Diseñado para una docencia ágil e interactiva.</p>
+    <p style="margin-top: 0.5rem;"><a href="index.html">← Volver al Dashboard Principal</a></p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="script.js"></script>
+  
+  <!-- Interactive script logic for Clase 3 -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initSshSimulator();
+      initQuiz();
+      initSidebarScrollSpy();
+    });
+
+    // -------------------------------------------------------------
+    // 1. SSH Terminal Simulator
+    // -------------------------------------------------------------
+    function initSshSimulator() {
+      const terminal = document.getElementById('sshTerminal');
+      const input = document.getElementById('sshInput');
+      const output = document.getElementById('sshOutput');
+      const prompt = document.getElementById('sshPrompt');
+      
+      if (!terminal || !input) return;
+
+      let isConnected = false;
+
+      // Focus input when clicking anywhere on the terminal
+      terminal.addEventListener('click', () => {
+        input.focus();
+      });
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const command = input.value.trim();
+          input.value = '';
+          
+          // Print the command that was typed
+          const cmdLine = document.createElement('div');
+          cmdLine.className = 'ssh-line';
+          cmdLine.innerHTML = `<span class="ssh-prompt">${prompt.textContent}</span> ${command}`;
+          output.appendChild(cmdLine);
+
+          if (command === '') {
+            scrollToBottom();
+            return;
+          }
+
+          // Process command
+          processCommand(command);
+          scrollToBottom();
+        }
+      });
+
+      function processCommand(cmd) {
+        const lowerCmd = cmd.toLowerCase();
+
+        if (!isConnected) {
+          if (lowerCmd.startsWith('ssh ')) {
+            const parts = lowerCmd.split(' ');
+            if (parts.length > 1 && parts[1].includes('@')) {
+              printLine(`Conectando a ${parts[1]}...`);
+              setTimeout(() => {
+                printLine(`La autenticidad del host no pudo ser verificada. RSA key fingerprint is SHA256:xyz...`);
+                setTimeout(() => {
+                  isConnected = true;
+                  prompt.textContent = 'ec2-user@ip-10-0-2-50:~$';
+                  printLine(`<span style="color:#0f0;">¡Autenticación exitosa! (Clave SSH aceptada)</span>`);
+                  printLine(`Welcome to Ubuntu 22.04 LTS (GNU/Linux 5.15.0-aws x86_64)`);
+                  printLine(` `);
+                  printLine(` * Documentation:  https://help.ubuntu.com`);
+                  printLine(` * Management:     https://landscape.canonical.com`);
+                  printLine(` * Support:        https://ubuntu.com/advantage`);
+                  printLine(` `);
+                  scrollToBottom();
+                }, 800);
+              }, 400);
+            } else {
+              printLine(`Uso: ssh usuario@ip_address`);
+            }
+          } else if (lowerCmd === 'help') {
+            printLine(`Comandos disponibles: ssh, help`);
+          } else {
+            printLine(`bash: ${cmd}: command not found`);
+          }
+        } else {
+          // In EC2 Server
+          if (lowerCmd === 'sudo apt update') {
+            printLine(`Hit:1 http://us-east-1.ec2.archive.ubuntu.com/ubuntu jammy InRelease`);
+            printLine(`Get:2 http://us-east-1.ec2.archive.ubuntu.com/ubuntu jammy-updates InRelease [119 kB]`);
+            printLine(`Fetched 119 kB in 1s (119 kB/s)`);
+            printLine(`Reading package lists... Done`);
+            printLine(`Building dependency tree... Done`);
+            printLine(`Reading state information... Done`);
+          } else if (lowerCmd === 'sudo apt install apache2') {
+            printLine(`Reading package lists... Done`);
+            printLine(`Building dependency tree... Done`);
+            printLine(`The following NEW packages will be installed: apache2`);
+            setTimeout(() => {
+              printLine(`Installing apache2...`);
+              setTimeout(() => {
+                printLine(`Setting up apache2 (2.4.52-1ubuntu4.6)...`);
+                printLine(`<span style="color:var(--color-cyan);">[ OK ] apache2.service started successfully.</span>`);
+                printLine(`Tu servidor web ahora está escuchando en el puerto 80.`);
+                scrollToBottom();
+              }, 1000);
+            }, 600);
+          } else if (lowerCmd === 'exit') {
+            isConnected = false;
+            prompt.textContent = 'local@macbook:~$';
+            printLine(`logout`);
+            printLine(`Connection to 54.120.30.5 closed.`);
+          } else if (lowerCmd === 'help') {
+            printLine(`Comandos EC2 simulados: sudo apt update, sudo apt install apache2, exit`);
+          } else if (lowerCmd.trim() === '') {
+            // do nothing
+          } else {
+            printLine(`bash: ${cmd}: command not found`);
+          }
+        }
+      }
+
+      function printLine(html) {
+        const line = document.createElement('div');
+        line.className = 'ssh-line ssh-output';
+        line.innerHTML = html;
+        output.appendChild(line);
+      }
+
+      function scrollToBottom() {
+        terminal.scrollTop = terminal.scrollHeight;
+      }
+    }
+
+    // -------------------------------------------------------------
+    // 2. Quiz Initialization
+    // -------------------------------------------------------------
+    function initQuiz() {
+      const quizCards = document.querySelectorAll('.quiz-question-card');
+      quizCards.forEach(card => {
+        const options = card.querySelectorAll('.quiz-option');
+        const explanation = card.querySelector('.quiz-explanation');
+        let answered = false;
+
+        options.forEach(opt => {
+          opt.addEventListener('click', () => {
+            if (answered) return;
+            answered = true;
+
+            const isCorrect = opt.getAttribute('data-correct') === 'true';
+            
+            if (isCorrect) {
+              opt.classList.add('correct');
+            } else {
+              opt.classList.add('incorrect');
+              options.forEach(o => {
+                if (o.getAttribute('data-correct') === 'true') {
+                  o.classList.add('correct');
+                }
+              });
+            }
+            explanation.style.display = 'block';
+          });
+        });
+      });
+    }
+
+    // -------------------------------------------------------------
+    // 3. Scroll Sync for Sidebar
+    // -------------------------------------------------------------
+    function initSidebarScrollSpy() {
+      const sidebarLinks = document.querySelectorAll('.sidebar-links a');
+      const slidesList = document.querySelectorAll('.slide');
+
+      const onScroll = () => {
+        if (document.body.classList.contains('presentation-mode')) return;
+        
+        let currentSlideId = '';
+        const scrollPosition = window.scrollY + 200;
+
+        slidesList.forEach(slide => {
+          const top = slide.offsetTop;
+          const height = slide.offsetHeight;
+          if (scrollPosition >= top && scrollPosition < top + height) {
+            currentSlideId = slide.getAttribute('id');
+          }
+        });
+
+        if (currentSlideId) {
+          sidebarLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href') === `#${currentSlideId}`) {
+              link.classList.add('active');
+            }
+          });
+        }
+      };
+
+      window.addEventListener('scroll', onScroll);
+    }
+  </script>
+</body>
+</html>

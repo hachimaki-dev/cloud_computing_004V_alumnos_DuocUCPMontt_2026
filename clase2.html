@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clase 2: Seguridad y Resiliencia | Cloud Computing</title>
+  <meta name="description" content="Aprende sobre Security Groups, NACLs, NAT Gateways y Zonas de Disponibilidad (Multi-AZ) con simuladores interactivos de firewalls y tolerancia a fallos.">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Specific overrides for Clase 2 */
+    .firewall-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      text-align: left;
+    }
+    @media (max-width: 768px) {
+      .firewall-columns {
+        grid-template-columns: 1fr;
+      }
+    }
+    .rule-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.5rem;
+      background: rgba(0,0,0,0.2);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .rule-table th, .rule-table td {
+      padding: 0.5rem;
+      font-size: 0.8rem;
+      text-align: center;
+      border: 1px solid var(--glass-border);
+    }
+    .rule-table th {
+      background: rgba(255,255,255,0.02);
+      color: var(--text-secondary);
+    }
+    .badge-allow {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--color-teacher);
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    .badge-deny {
+      background: rgba(239, 68, 68, 0.15);
+      color: #ef4444;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    /* Firewall Canvas */
+    .fw-canvas-wrapper {
+      position: relative;
+      background: #050409;
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      height: 280px;
+      overflow: hidden;
+      margin-top: 1rem;
+    }
+    .fw-element {
+      position: absolute;
+      border: 1px solid var(--glass-border);
+      background: rgba(255,255,255,0.02);
+      border-radius: 8px;
+      padding: 0.4rem 0.6rem;
+      font-size: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.2rem;
+      transition: var(--transition-normal);
+    }
+    .fw-element svg {
+      width: 18px;
+      height: 18px;
+    }
+    .fw-barrier {
+      position: absolute;
+      width: 6px;
+      height: 120px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition-normal);
+    }
+    .fw-barrier::after {
+      content: "";
+      font-size: 0.65rem;
+      font-weight: bold;
+      writing-mode: vertical-rl;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .fw-barrier.nacl {
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      background: rgba(139, 92, 246, 0.1);
+      color: var(--color-accent);
+    }
+    .fw-barrier.nacl::after {
+      content: "NACL (Subred)";
+    }
+    .fw-barrier.sg {
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      background: rgba(6, 182, 212, 0.1);
+      color: var(--color-cyan);
+    }
+    .fw-barrier.sg::after {
+      content: "Security Group";
+    }
+    .fw-packet {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: none;
+      z-index: 20;
+      transition: left 0.8s linear, top 0.8s linear;
+    }
+    .fw-packet.request {
+      background: var(--color-cyan);
+      box-shadow: 0 0 10px var(--color-cyan);
+    }
+    .fw-packet.response {
+      background: var(--color-pink);
+      box-shadow: 0 0 10px var(--color-pink);
+    }
+    
+    /* NAT Gateway Simulator overrides */
+    .nat-visualizer-box {
+      background: #050409;
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      height: 250px;
+      position: relative;
+      overflow: hidden;
+      margin-top: 1rem;
+    }
+    .nat-ip-tag {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.7rem;
+      background: rgba(0,0,0,0.6);
+      border: 1px solid var(--glass-border);
+      padding: 0.1rem 0.3rem;
+      border-radius: 4px;
+      margin-top: 0.15rem;
+    }
+
+    /* Multi-AZ disaster simulator */
+    .az-simulator-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-top: 1rem;
+    }
+    @media (max-width: 768px) {
+      .az-simulator-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .az-box {
+      background: rgba(255,255,255,0.01);
+      border: 2px dashed rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 1.5rem;
+      min-height: 180px;
+      transition: var(--transition-normal);
+      position: relative;
+    }
+    .az-box.active {
+      border-color: rgba(6, 182, 212, 0.3);
+      background: rgba(6, 182, 212, 0.02);
+    }
+    .az-box.offline {
+      border-color: rgba(239, 68, 68, 0.3);
+      background: rgba(239, 68, 68, 0.03);
+    }
+    .az-box.offline .az-status-label {
+      color: #f87171;
+    }
+    .az-title {
+      font-weight: bold;
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+    }
+    .az-status-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      font-weight: bold;
+      color: var(--color-cyan);
+      margin-bottom: 1rem;
+    }
+    .disaster-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(239, 68, 68, 0.15);
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--transition-normal);
+      font-size: 2.5rem;
+    }
+    .az-box.offline .disaster-overlay {
+      opacity: 1;
+    }
+    .health-display-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+      margin-top: 1.5rem;
+    }
+    .health-status {
+      font-size: 1.8rem;
+      font-weight: 800;
+      margin: 0.5rem 0;
+      color: var(--color-teacher);
+      text-shadow: 0 0 10px rgba(16,185,129,0.3);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <a href="index.html" class="nav-brand">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17.5 19A3.5 3.5 0 0 0 21 15.5c0-2.79-2.54-4.5-5-4.5-.42 0-.83.04-1.24.12A6.5 6.5 0 0 0 3 13.5A3.5 3.5 0 0 0 6.5 17H12" />
+        <path d="M12 12V21" />
+        <path d="m9 18 3 3 3-3" />
+      </svg>
+      <span>Cloud Foundations</span>
+    </a>
+    
+    <div class="nav-links">
+      <a href="index.html" class="nav-link">Dashboard</a>
+      
+      <!-- Teacher Mode Switcher -->
+      <div class="teacher-toggle-container">
+        <span class="teacher-toggle-label">Modo Profesor</span>
+        <label class="switch">
+          <input type="checkbox" id="teacherModeToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content Container -->
+  <main class="container">
+    
+    <!-- Back button -->
+    <a href="index.html" class="back-link">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+      </svg>
+      Volver al Dashboard
+    </a>
+
+    <!-- Class Header -->
+    <header class="class-header">
+      <span class="class-number" style="margin-bottom: 0.5rem; display: inline-block;">Clase 2</span>
+      <h1>Seguridad y Resiliencia en la Nube</h1>
+      <p style="color: var(--text-secondary); font-size: 1.1rem; max-width: 800px;">
+        Aprende a proteger tus recursos virtuales usando múltiples capas lógicas de seguridad (NACL y Security Groups) y a diseñar arquitecturas que toleren fallos mediante Zonas de Disponibilidad.
+      </p>
+    </header>
+
+    <!-- Content with Slides Container -->
+    <div class="class-content-wrapper">
+      
+      <!-- Slides Container -->
+      <div class="main-content-flow slides-container" id="slidesContainer">
+        
+        <!-- SLIDE 1: INTRODUCTION -->
+        <section class="slide" id="slide-intro" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">2.1</span>
+            Defensa en Profundidad y Mínimo Privilegio
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: La Fortaleza de la Nube (5 min)</h4>
+            <p><strong>Meta:</strong> Explicar que la seguridad no depende de una sola reja, sino de capas sucesivas.</p>
+            <ul>
+              <li><strong>Concepto 1: Defensa en Profundidad.</strong> Si un atacante vulnera tu primera línea de defensa, debe haber otra esperando. No confíes todo a una contraseña o a una regla de puerto.</li>
+              <li><strong>Concepto 2: Principio de Mínimo Privilegio.</strong> Solo permite accesos estrictamente necesarios. Si un servidor web solo atiende HTTP, cierra el puerto de base de datos para internet.</li>
+              <li><strong>Analogía:</strong> Un banco seguro tiene guardias en la entrada principal (NACL), puertas blindadas en la bóveda (Security Groups) y cajas fuertes con llaves individuales dentro (Cifrado de datos).</li>
+            </ul>
+          </div>
+
+          <p>
+            La seguridad física tradicional depende de candados y muros de concreto. En la nube, dependemos de la **Defensa en Profundidad**: la práctica de colocar múltiples capas de control de seguridad a lo largo de toda nuestra infraestructura de TI.
+          </p>
+          <p style="margin-top: 1rem;">
+            En esta lección configuraremos las dos capas principales de protección de red en una VPC:
+          </p>
+
+          <div class="class-grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
+            <div class="card" style="margin-bottom:0; border-top: 4px solid var(--color-accent);">
+              <h3 style="color: var(--color-accent); font-size: 1.2rem; margin-bottom: 0.5rem;">Network ACL (NACL)</h3>
+              <p style="font-size: 0.95rem;">Un firewall virtual de **subred** que controla el tráfico entrante y saliente a nivel de pasaje. Es la primera reja perimetral de tu red.</p>
+            </div>
+            <div class="card" style="margin-bottom:0; border-top: 4px solid var(--color-cyan);">
+              <h3 style="color: var(--color-cyan); font-size: 1.2rem; margin-bottom: 0.5rem;">Security Groups (SG)</h3>
+              <p style="font-size: 0.95rem;">Un firewall virtual de **instancia** (servidor EC2) que actúa como un escudo pegado directamente a la puerta de tu servidor.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 2: STATEFUL VS STATELESS -->
+        <section class="slide" id="slide-firewall-theory" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">2.2</span>
+            Stateful vs Stateless: La Gran Diferencia
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: El Conserje con Memoria vs El Portero Desmemoriado (10 min)</h4>
+            <p>Este es el concepto más difícil de redes. Usa esta analogía clara:</p>
+            <ul>
+              <li><strong>Security Group es Stateful (Con Memoria):</strong>
+                Funciona como el bouncer de un VIP. Te revisa al entrar. Si te deja pasar (regla Inbound), recuerda tu cara. Cuando quieres salir a fumar, te deja salir automáticamente (no necesita regla Outbound para dejarte volver).
+              </li>
+              <li><strong>NACL es Stateless (Sin Memoria):</strong>
+                Funciona como el guardia del condominio. Tiene un checklist estricto en la caseta. Revisa tu nombre de entrada. Cuando quieres salir, no se acuerda de ti; vuelve a revisar su checklist de salida. Si no hay una regla Outbound que permita tu salida, quedas atrapado adentro para siempre.
+              </li>
+              <li><strong>Pregunta clave:</strong> <em>"Si mi servidor web recibe tráfico por puerto 80, ¿necesito configurar el puerto 80 de salida en el Security Group?"</em> (Respuesta: No, porque es Stateful. En la NACL sí es obligatorio).</li>
+            </ul>
+          </div>
+
+          <p>
+            Para administrar NACLs y Security Groups con éxito, debemos entender su comportamiento con respecto al estado de la conexión:
+          </p>
+
+          <div class="class-grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
+            <div class="card" style="margin-bottom:0;">
+              <h3 style="color: var(--color-cyan); font-size: 1.2rem; margin-bottom: 0.5rem;">Security Groups (Con Memoria)</h3>
+              <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom:0.5rem;"><strong>Comportamiento Stateful:</strong> Si configuras una regla de entrada que permite tráfico, el tráfico de salida de respuesta se permite automáticamente.</p>
+              <ul style="font-size: 0.85rem; color: var(--text-muted); margin-left: 1.25rem;">
+                <li>Solo tiene reglas de "Permitir" (todo lo demás se deniega).</li>
+                <li>Se aplica a nivel de interfaz de red (ENI) de la instancia.</li>
+              </ul>
+            </div>
+            <div class="card" style="margin-bottom:0;">
+              <h3 style="color: var(--color-accent); font-size: 1.2rem; margin-bottom: 0.5rem;">Network ACLs (Sin Memoria)</h3>
+              <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom:0.5rem;"><strong>Comportamiento Stateless:</strong> Las respuestas de red a conexiones permitidas deben ser autorizadas de manera explícita por una regla en sentido contrario.</p>
+              <ul style="font-size: 0.85rem; color: var(--text-muted); margin-left: 1.25rem;">
+                <li>Soporta reglas de "Permitir" y "Denegar".</li>
+                <li>Se procesa en orden numérico (ej. Regla 100, Regla 200).</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 3: INTERACTIVE FIREWALL SIMULATOR -->
+        <section class="slide" id="slide-firewall-sim" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">2.3</span>
+            Práctica: Simulador Stateful vs Stateless
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Ejecución del Simulador (15 min)</h4>
+            <p>Haz la prueba con los alumnos de dos formas:</p>
+            <ul>
+              <li><strong>Caso Fallido (Stateless Block):</strong> Deja la NACL Outbound desactivada. Envía el tráfico HTTP. El paquete cian (Request) pasará la NACL de Entrada, pasará el Security Group y llegará al servidor. Pero el paquete rosado (Response) de respuesta morirá al chocar contra la NACL. ¡Se quedaron atrapados!</li>
+              <li><strong>Caso Exitoso:</strong> Activa "Permitir HTTP de Salida (NACL Outbound)". Envía tráfico de nuevo. El paquete entrará y regresará con éxito.</li>
+            </ul>
+          </div>
+
+          <p style="font-size: 0.95rem;">
+            Configura las reglas de firewall a continuación y observa cómo viaja el paquete HTTP (puerto 80) de ida (Request) y vuelta (Response).
+          </p>
+
+          <div class="card" style="padding: 1.5rem; max-width: 950px;">
+            <div class="firewall-columns">
+              
+              <!-- Left side: Rules Configurator -->
+              <div>
+                <h3 style="font-size: 1.05rem; margin-bottom: 0.75rem; color: var(--color-accent);">1. Reglas de Network ACL (Stateless)</h3>
+                
+                <!-- NACL Inbound -->
+                <div class="form-group" style="margin-bottom: 1rem;">
+                  <label style="font-size: 0.8rem; font-weight: bold;">NACL Inbound (Tráfico de Entrada):</label>
+                  <table class="rule-table">
+                    <thead>
+                      <tr>
+                        <th>N°</th>
+                        <th>Puerto</th>
+                        <th>Origen</th>
+                        <th>Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>100</td>
+                        <td>80 (HTTP)</td>
+                        <td>0.0.0.0/0</td>
+                        <td>
+                          <select id="naclInboundSelect" class="form-control" style="font-size:0.75rem; padding: 0.2rem;">
+                            <option value="allow" selected>ALLOW</option>
+                            <option value="deny">DENY</option>
+                          </select>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- NACL Outbound -->
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                  <label style="font-size: 0.8rem; font-weight: bold;">NACL Outbound (Tráfico de Salida):</label>
+                  <table class="rule-table">
+                    <thead>
+                      <tr>
+                        <th>N°</th>
+                        <th>Puerto</th>
+                        <th>Destino</th>
+                        <th>Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>100</td>
+                        <td>80 (HTTP)</td>
+                        <td>0.0.0.0/0</td>
+                        <td>
+                          <select id="naclOutboundSelect" class="form-control" style="font-size:0.75rem; padding: 0.2rem;">
+                            <option value="deny" selected>DENY (Por Defecto)</option>
+                            <option value="allow">ALLOW</option>
+                          </select>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <h3 style="font-size: 1.05rem; margin-bottom: 0.5rem; color: var(--color-cyan);">2. Reglas de Security Group (Stateful)</h3>
+                <div style="background: rgba(6, 182, 212, 0.05); border: 1px solid rgba(6, 182, 212, 0.2); padding: 0.75rem; border-radius: 8px; font-size: 0.8rem;">
+                  <label style="display:flex; align-items:center; gap: 0.5rem; cursor:pointer;">
+                    <input type="checkbox" id="sgInboundCheck" checked> <strong>Permitir Puerto 80 Inbound</strong>
+                  </label>
+                  <p style="font-size:0.7rem; color: var(--text-muted); margin-top:0.25rem; margin-left:1.25rem;">
+                    *Nota: Como el SG es Stateful, no requiere configurar regla Outbound de salida.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Right side: Visual feedback -->
+              <div>
+                <h3 style="font-size: 1.05rem; margin-bottom: 0.5rem;">Simulación de Tráfico</h3>
+                <div class="fw-canvas-wrapper">
+                  <!-- NACL wall -->
+                  <div class="fw-barrier nacl" style="left: 120px; top: 80px;"></div>
+                  
+                  <!-- SG wall -->
+                  <div class="fw-barrier sg" style="left: 260px; top: 80px;"></div>
+
+                  <!-- Client -->
+                  <div class="fw-element" style="left: 15px; top: 110px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+                    </svg>
+                    <span>Cliente HTTP</span>
+                  </div>
+
+                  <!-- EC2 -->
+                  <div class="fw-element" style="left: 330px; top: 110px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
+                    </svg>
+                    <span>Servidor EC2</span>
+                  </div>
+
+                  <!-- Path SVG overlay -->
+                  <svg style="position:absolute; width:100%; height:100%; pointer-events:none;">
+                    <line x1="90" y1="140" x2="120" y2="140" stroke="rgba(255,255,255,0.05)" stroke-width="2" stroke-dasharray="4"/>
+                    <line x1="126" y1="140" x2="260" y2="140" stroke="rgba(255,255,255,0.05)" stroke-width="2" stroke-dasharray="4"/>
+                    <line x1="266" y1="140" x2="330" y2="140" stroke="rgba(255,255,255,0.05)" stroke-width="2" stroke-dasharray="4"/>
+                  </svg>
+
+                  <!-- Packet -->
+                  <div id="fwPacket" class="fw-packet"></div>
+                </div>
+
+                <button class="btn" id="btnTestFirewall" style="width:100%; justify-content:center; margin-top:1rem;">
+                  Enviar Petición HTTP (Port 80)
+                </button>
+
+                <div id="fwStatusAlert" class="status-alert" style="margin-top: 0.75rem;"></div>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 4: NAT GATEWAY -->
+        <section class="slide" id="slide-nat-gateway" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">2.4</span>
+            NAT Gateway: Puerta de Salida Segura
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Por qué usar NAT Gateway (10 min)</h4>
+            <p><strong>El problema:</strong> Tus bases de datos privadas no deben tener IP pública (sería un riesgo de seguridad de hackeo).</p>
+            <ul>
+              <li><strong>El conflicto:</strong> Pero las bases de datos necesitan conectarse a internet para descargar parches y actualizaciones de Linux. ¿Cómo lo hacen sin IP pública?</li>
+              <li><strong>La solución: NAT Gateway.</strong>
+                NAT = Network Address Translation.
+                * Funciona como una caseta postal central.
+                * El servidor privado envía la carta con su IP interna (`10.0.2.50`) al NAT.
+                * El NAT la cambia por su IP pública (`203.0.113.88`) y la manda a internet.
+                * Cuando internet responde, la manda de vuelta al servidor privado.
+              </li>
+              <li><strong>Regla de oro:</strong> El NAT Gateway **debe colocarse obligatoriamente en la Subred Pública** porque necesita comunicarse con el Internet Gateway para tener salida física.</li>
+            </ul>
+          </div>
+
+          <p>
+            Un **NAT Gateway** permite que las instancias en una **subred privada** se conecten a Internet, pero evita que los atacantes externos inicien conexiones directas con ellas.
+          </p>
+
+          <div class="card" style="padding: 1.5rem; max-width: 900px;">
+            <div class="nat-visualizer-box" id="natCanvas">
+              
+              <!-- Private Subnet Box -->
+              <div class="network-subnet private" style="top: 25px; left: 15px; width: 140px; height: 200px; border-color: rgba(236,72,153,0.3);">
+                <div class="subnet-label">Subred Privada</div>
+                <div class="fw-element active" style="position:static; margin-top: 1.5rem;" id="natEC2">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
+                  </svg>
+                  <span>DB Server</span>
+                  <div class="nat-ip-tag" id="natIpPrivate">10.0.2.50</div>
+                </div>
+              </div>
+
+              <!-- Public Subnet Box -->
+              <div class="network-subnet public" style="top: 25px; left: 175px; width: 140px; height: 200px; border-color: rgba(6,182,212,0.3);">
+                <div class="subnet-label">Subred Pública</div>
+                <div class="fw-element active" style="position:static; margin-top: 1.5rem; border-color: var(--color-accent); box-shadow: 0 0 10px rgba(139,92,246,0.2);" id="natGW">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M12 2v9"/>
+                  </svg>
+                  <span style="color:var(--color-accent); font-weight:bold;">NAT Gateway</span>
+                  <div class="nat-ip-tag" id="natIpPublic" style="color:var(--color-accent);">203.0.113.88</div>
+                </div>
+              </div>
+
+              <!-- Internet Server -->
+              <div class="fw-element internet-cloud" id="natInternet" style="right: 15px; top: 90px; position:absolute;">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2a6 6 0 0 1 5.06 9.24H18a4 4 0 0 1 1.62 7.66A5 5 0 0 1 10.5 19H6a4 4 0 0 1-1.62-7.66A5 5 0 0 1 9.4 6.1a6 6 0 0 1 2.6-4.1Z"/>
+                </svg>
+                <span>Repo Linux</span>
+                <div class="nat-ip-tag">93.184.216.34</div>
+              </div>
+
+              <!-- Packet dot -->
+              <div id="natPacket" class="fw-packet request" style="left:80px; top:115px;"></div>
+
+            </div>
+
+            <div style="display:flex; gap: 1rem; align-items:center; margin-top: 1rem;">
+              <button class="btn" id="btnTestNat" style="flex:1; justify-content:center;">
+                Simular Descarga de Parches
+              </button>
+              <div id="natIpSwapDisplay" style="font-family:'Fira Code', monospace; font-size:0.8rem; background:rgba(0,0,0,0.4); border: 1px solid var(--glass-border); padding: 0.5rem 1rem; border-radius: 8px; flex:1.5; text-align:center;">
+                IP Origen Paquete: <span id="natIpHeader" style="color:var(--color-cyan); font-weight:bold;">10.0.2.50</span>
+              </div>
+            </div>
+            <div id="natStatusAlert" class="status-alert" style="margin-top:0.75rem;"></div>
+          </div>
+        </section>
+
+        <!-- SLIDE 5: HIGH AVAILABILITY (MULTI-AZ) -->
+        <section class="slide" id="slide-multi-az" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">2.5</span>
+            Alta Disponibilidad y Zonas de Disponibilidad (Multi-AZ)
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Tolerancia a Desastres Físicos (10 min)</h4>
+            <p><strong>Meta:</strong> Mostrar por qué la nube no es solo lógica, sino física (centros de datos reales).</p>
+            <ul>
+              <li><strong>Availability Zone (AZ):</strong> Uno o más centros de datos físicos redundantes ubicados en la misma región geográfica, pero separados por kilómetros para evitar desastres comunes (terremotos, inundaciones).</li>
+              <li><strong>Estrategias de despliegue:</strong>
+                * **Single-AZ:** Todos tus servidores en el mismo datacenter (si se corta la luz, estás fuera del aire).
+                * **Multi-AZ:** Servidores duplicados en AZ-A y AZ-B. Si Zona A falla, Zona B sigue atendiendo las peticiones.
+              </li>
+              <li>Reta a un alumno a hacer la simulación de caída de Zona A y ver cómo la disponibilidad cae a 0% o se mantiene en 100% dependiendo de la opción elegida.</li>
+            </ul>
+          </div>
+
+          <p>
+            Las fallas de hardware, incendios y cortes de energía ocurren en el mundo real. Para evitar caídas del servicio, AWS nos permite desplegar infraestructura de forma distribuida en múltiples **Zonas de Disponibilidad (AZs)**.
+          </p>
+
+          <div class="card" style="padding:1.5rem; max-width: 900px;">
+            <div style="display:flex; justify-content:center; gap: 1.5rem; margin-bottom: 1rem; font-size: 0.9rem;">
+              <label style="cursor:pointer; display:flex; align-items:center; gap:0.5rem;">
+                <input type="radio" name="azStrategy" value="single" checked> Despliegue Single-AZ (Zona A solamente)
+              </label>
+              <label style="cursor:pointer; display:flex; align-items:center; gap:0.5rem;">
+                <input type="radio" name="azStrategy" value="multi"> Despliegue Multi-AZ (Zonas A y B duplicadas)
+              </label>
+            </div>
+
+            <div class="az-simulator-grid">
+              
+              <!-- AZ-A box -->
+              <div class="az-box active" id="azBoxA">
+                <div class="az-title">Zona de Disponibilidad A (AZ-A)</div>
+                <div class="az-status-label" id="azStatusA">ONLINE</div>
+                <div class="fw-element active" style="position:static; display:inline-flex;">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                  </svg>
+                  <span>Web Server A</span>
+                </div>
+                <div class="disaster-overlay">⚡🔥</div>
+              </div>
+
+              <!-- AZ-B box -->
+              <div class="az-box" id="azBoxB">
+                <div class="az-title">Zona de Disponibilidad B (AZ-B)</div>
+                <div class="az-status-label" id="azStatusB" style="color:var(--text-muted);">INACTIVA</div>
+                <div class="fw-element" id="azServerB" style="position:static; display:inline-flex; opacity: 0.3;">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                  </svg>
+                  <span>Web Server B</span>
+                </div>
+                <div class="disaster-overlay">⚡🔥</div>
+              </div>
+
+            </div>
+
+            <div class="health-display-card">
+              <div>Estado del Sitio Web del Cliente</div>
+              <div class="health-status" id="healthStatus">ONLINE</div>
+              <div style="font-size: 0.85rem; color:var(--text-secondary);" id="healthStatusDesc">Tu servidor A está procesando el 100% de las visitas.</div>
+              
+              <button class="btn btn-teacher" id="btnTriggerDisaster" style="margin-top: 1rem; background:#ef4444; box-shadow:0 4px 15px rgba(239,68,68,0.3);">
+                💥 Provocar Falla Eléctrica en Zona A
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 6: LABORATORY DRAW.IO -->
+        <section class="slide" id="laboratorio" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">2.6</span>
+            Laboratorio: Diseña tu Red Segura en Draw.io
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: El Laboratorio de Diseño (15 min)</h4>
+            <p>Explícales que antes de construir en la consola, un arquitecto debe diseñar el plano de la red.</p>
+            <ul>
+              <li>Indícales que ingresen a <a href="https://app.diagrams.net/" target="_blank" style="color:var(--color-teacher); font-weight:bold;">Draw.io</a>.</li>
+              <li>Pídeles que sigan los pasos para cargar la librería oficial de iconos de AWS (AWS19).</li>
+              <li><strong>El reto a evaluar:</strong> Dibujar un diagrama que contenga:
+                <ul>
+                  <li>1 VPC (`10.0.0.0/16`).</li>
+                  <li>2 Zonas de Disponibilidad.</li>
+                  <li>En cada zona: 1 Subred Pública y 1 Subred Privada (Multi-AZ).</li>
+                  <li>1 Internet Gateway conectado a la VPC.</li>
+                  <li>1 NAT Gateway ubicado en la Subred Pública.</li>
+                  <li>Un Security Group y una NACL dibujados protegiendo sus respectivos recursos.</li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+
+          <p>
+            Para finalizar la unidad, los arquitectos de nube documentan y planifican las arquitecturas antes de crearlas. Utilizaremos la herramienta gratuita de diseño **Draw.io**.
+          </p>
+
+          <h3 style="margin: 1.5rem 0 0.5rem 0; font-size: 1.2rem; text-align:left;">Instrucciones del Diagramado:</h3>
+          <ul style="text-align: left; font-size: 0.95rem; margin-left: 1.5rem; display:flex; flex-direction:column; gap:0.4rem;">
+            <li><strong>Paso 1:</strong> Ingresa a <a href="https://app.diagrams.net/" target="_blank" style="color: var(--color-cyan); font-weight:bold; text-decoration:underline;">https://app.diagrams.net/</a>.</li>
+            <li><strong>Paso 2:</strong> Ve al menú inferior izquierdo en "Más Figuras", marca la casilla de **AWS 19 / Amazon Web Services** y dale a Aplicar. Tendrás todos los iconos de servidores, VPCs, bases de datos y candados oficiales.</li>
+            <li><strong>Paso 3:</strong> Dibuja la infraestructura descrita por el profesor. Asegúrate de representar las rutas de tráfico con flechas (ej: cómo la base de datos privada sale a internet a través del NAT Gateway).</li>
+          </ul>
+
+          <div class="analogy-box" style="border-color: rgba(139, 92, 246, 0.3); background: rgba(139, 92, 246, 0.02); margin-top:1.5rem;">
+            <h4>¿Por qué planificar en papel/diagrama primero?</h4>
+            <p style="font-size:0.95rem; color:var(--text-secondary);">
+              En la nube, cambiar el direccionamiento de red (CIDR) una vez que los servidores están desplegados es muy difícil y requiere destruir y volver a crear los recursos. Diagramar te permite verificar que no haya colisiones de IPs ni cuellos de botella de seguridad antes de gastar dinero.
+            </p>
+          </div>
+        </section>
+
+        <!-- SLIDE 7: METACOGNITION -->
+        <section class="slide" id="metacognicion" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">2.7</span>
+            Cierre: Metacognición y Autoevaluación
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Preguntas del Cierre (10 min)</h4>
+            <p>Evalúa el aprendizaje final pidiendo que analicen y argumenten en base a lo visto en los simuladores:</p>
+            <ul>
+              <li><strong>Pregunta 1:</strong> Conecta directamente con la simulación Stateful vs Stateless.</li>
+              <li><strong>Pregunta 2:</strong> Enfatiza el error común de poner el NAT en la subred privada.</li>
+              <li><strong>Pregunta 3:</strong> Fija el propósito de la separación física de AZs.</li>
+            </ul>
+          </div>
+
+          <div class="quiz-container">
+            
+            <!-- Question 1 -->
+            <div class="quiz-question-card" id="q2_1">
+              <h4>1. Si envías un paquete HTTP (puerto 80) a un servidor, este es procesado correctamente, pero la respuesta no llega de vuelta al cliente. ¿Cuál de los siguientes problemas de red causaría esto?</h4>
+              <div class="quiz-options">
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">A</div>
+                  <span>El Security Group no tiene una regla Outbound que permita la respuesta.</span>
+                </div>
+                <div class="quiz-option" data-correct="true">
+                  <div class="quiz-option-marker">B</div>
+                  <span>La NACL de la subred es Stateless y no tiene configurada la regla Outbound (salida) para la respuesta de red.</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">C</div>
+                  <span>El Internet Gateway se apagó automáticamente al recibir la petición.</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">D</div>
+                  <span>Las subredes privadas bloquean automáticamente todo tráfico entrante y saliente por hardware.</span>
+                </div>
+              </div>
+              <div class="quiz-explanation">
+                <strong>Correcto:</strong> Como las NACLs son Stateless (sin memoria), no recuerdan que el paquete entrante ya fue permitido. Requieren obligatoriamente de una regla de salida (Outbound) explícita para que el paquete de respuesta pueda abandonar la subred.
+              </div>
+            </div>
+
+            <!-- Question 2 -->
+            <div class="quiz-question-card" id="q2_2">
+              <h4>2. Para que las instancias de base de datos en una subred privada se actualicen en internet de forma segura mediante un NAT Gateway, ¿dónde debe colocarse este NAT Gateway?</h4>
+              <div class="quiz-options">
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">A</div>
+                  <span>En la subred privada junto a las bases de datos.</span>
+                </div>
+                <div class="quiz-option" data-correct="true">
+                  <div class="quiz-option-marker">B</div>
+                  <span>En la subred pública, ya que requiere de una IP pública y salida a internet mediante el Internet Gateway.</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">C</div>
+                  <span>Fuera de la VPC de AWS en nuestra oficina física local.</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">D</div>
+                  <span>Directamente asociado al Security Group de la instancia.</span>
+                </div>
+              </div>
+              <div class="quiz-explanation">
+                <strong>Correcto:</strong> El NAT Gateway necesita comunicarse directamente con el exterior para traducir direcciones, por lo que debe ubicarse en una subred pública y poseer una dirección IP elástica (EIP) pública asociada.
+              </div>
+            </div>
+
+            <!-- Question 3 -->
+            <div class="quiz-question-card" id="q2_3">
+              <h4>3. ¿Cuál es la principal ventaja operativa de realizar un despliegue Multi-AZ en nuestra arquitectura en la nube?</h4>
+              <div class="quiz-options">
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">A</div>
+                  <span>Aumentar la velocidad de descarga de archivos estáticos.</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">B</div>
+                  <span>Obtener almacenamiento en bloque 100% gratuito.</span>
+                </div>
+                <div class="quiz-option" data-correct="true">
+                  <div class="quiz-option-marker">C</div>
+                  <span>Resiliencia ante fallos físicos: si un centro de datos entero se cae, otros centros de datos activos siguen operando el sitio web.</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">D</div>
+                  <span>Hacer que el enrutamiento de red sea siempre stateless.</span>
+                </div>
+              </div>
+              <div class="quiz-explanation">
+                <strong>Correcto:</strong> Las Zonas de Disponibilidad (AZs) están ubicadas en ubicaciones físicas independientes. Desplegar en más de una zona garantiza que tu sitio siga en línea incluso si ocurre un corte eléctrico catastrófico en un datacenter.
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Sticky Sidebar Navigation (Normal View) -->
+      <aside class="sidebar-navigation">
+        <h4>Contenido de la Clase</h4>
+        <ul class="sidebar-links">
+          <li><a href="#slide-intro" class="active">2.1 Capas de Seguridad</a></li>
+          <li><a href="#slide-firewall-theory">2.2 Stateful vs Stateless</a></li>
+          <li><a href="#slide-firewall-sim">2.3 Simulador Firewall</a></li>
+          <li><a href="#slide-nat-gateway">2.4 NAT Gateway</a></li>
+          <li><a href="#slide-multi-az">2.5 Resiliencia Multi-AZ</a></li>
+          <li><a href="#laboratorio">2.6 Laboratorio Draw.io</a></li>
+          <li><a href="#metacognicion">2.7 Autoevaluación</a></li>
+        </ul>
+      </aside>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>© 2026 Portal de Cloud Computing - Diseñado para una docencia ágil e interactiva.</p>
+    <p style="margin-top: 0.5rem;"><a href="index.html">← Volver al Dashboard Principal</a></p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="script.js"></script>
+  
+  <!-- Interactive script logic for Clase 2 -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initFirewallSimulator();
+      initNatSimulator();
+      initAzSimulator();
+      initQuiz();
+      initSidebarScrollSpy();
+    });
+
+    // -------------------------------------------------------------
+    // 1. Stateful vs Stateless Firewall Simulator
+    // -------------------------------------------------------------
+    function initFirewallSimulator() {
+      const btnTest = document.getElementById('btnTestFirewall');
+      const fwPacket = document.getElementById('fwPacket');
+      const statusAlert = document.getElementById('fwStatusAlert');
+      const selectInbound = document.getElementById('naclInboundSelect');
+      const selectOutbound = document.getElementById('naclOutboundSelect');
+      const checkSgInbound = document.getElementById('sgInboundCheck');
+
+      if (!btnTest) return;
+
+      const resetSim = () => {
+        fwPacket.style.display = 'none';
+        fwPacket.className = 'fw-packet request';
+        statusAlert.style.display = 'none';
+      };
+
+      selectInbound.addEventListener('change', resetSim);
+      selectOutbound.addEventListener('change', resetSim);
+      checkSgInbound.addEventListener('change', resetSim);
+
+      btnTest.addEventListener('click', () => {
+        btnTest.disabled = true;
+        statusAlert.style.display = 'none';
+
+        // Configurations
+        const naclInboundAllow = selectInbound.value === 'allow';
+        const naclOutboundAllow = selectOutbound.value === 'allow';
+        const sgInboundAllow = checkSgInbound.checked;
+
+        // Reset packet position
+        fwPacket.className = 'fw-packet request';
+        fwPacket.style.left = '45px';
+        fwPacket.style.top = '130px';
+        fwPacket.style.display = 'block';
+
+        // Coordinates
+        const clientX = 45;
+        const naclX = 120;
+        const sgX = 260;
+        const ec2X = 330;
+        const centerY = 130;
+
+        // Step 1: Client to NACL
+        setTimeout(() => {
+          fwPacket.style.left = `${naclX}px`;
+
+          setTimeout(() => {
+            if (!naclInboundAllow) {
+              fwPacket.style.background = '#ef4444';
+              fwPacket.style.boxShadow = '0 0 10px #ef4444';
+              btnTest.disabled = false;
+              showStatus('error', '❌ <strong>Bloqueado en NACL de entrada:</strong> La regla número 100 de la NACL está en DENY para el Puerto 80. El tráfico HTTP entrante es descartado antes de entrar a la subred.');
+              return;
+            }
+
+            // Step 2: NACL to SG
+            fwPacket.style.left = `${sgX}px`;
+
+            setTimeout(() => {
+              if (!sgInboundAllow) {
+                fwPacket.style.background = '#ef4444';
+                fwPacket.style.boxShadow = '0 0 10px #ef4444';
+                btnTest.disabled = false;
+                showStatus('error', '❌ <strong>Bloqueado en Security Group:</strong> El Security Group de la instancia EC2 no tiene una regla Inbound que permita el Puerto 80. La petición es descartada justo al golpear el servidor.');
+                return;
+              }
+
+              // Step 3: SG to EC2 Server (Processes Request)
+              fwPacket.style.left = `${ec2X}px`;
+
+              setTimeout(() => {
+                // Change packet to response
+                fwPacket.className = 'fw-packet response';
+                fwPacket.style.left = `${ec2X}px`;
+
+                // Step 4: EC2 to SG (Stateful Check - Passes automatically!)
+                setTimeout(() => {
+                  fwPacket.style.left = `${sgX}px`;
+
+                  setTimeout(() => {
+                    // Step 5: SG to NACL (Stateless check)
+                    fwPacket.style.left = `${naclX}px`;
+
+                    setTimeout(() => {
+                      if (!naclOutboundAllow) {
+                        // Fails because NACL is stateless and lacks outbound rule
+                        fwPacket.style.background = '#ef4444';
+                        fwPacket.style.boxShadow = '0 0 10px #ef4444';
+                        btnTest.disabled = false;
+                        showStatus('error', '❌ <strong>Fallo de Retorno (Stateless Block):</strong> El paquete llegó al servidor y este respondió. El Security Group (Stateful) dejó salir el paquete sin problemas, pero **la NACL de salida bloqueó el paquete** porque no tiene una regla Outbound que permita puerto 80. ¡Tu cliente se quedó esperando la carga de la página!');
+                        return;
+                      }
+
+                      // Step 6: NACL to Client (Success!)
+                      fwPacket.style.left = `${clientX}px`;
+
+                      setTimeout(() => {
+                        fwPacket.style.background = 'var(--color-teacher)';
+                        fwPacket.style.boxShadow = '0 0 10px var(--color-teacher)';
+                        btnTest.disabled = false;
+                        showStatus('success', '✨ <strong>¡Conectividad Exitosa!</strong> El tráfico HTTP entró por la NACL y el Security Group, el servidor EC2 respondió, el Security Group dejó salir la respuesta (Stateful) y la NACL Outbound la autorizó (Stateless).');
+                      }, 800);
+
+                    }, 800);
+
+                  }, 800);
+
+                }, 400);
+
+              }, 800);
+
+            }, 800);
+
+          }, 800);
+
+        }, 50);
+      });
+
+      function showStatus(type, html) {
+        statusAlert.className = `status-alert ${type}`;
+        statusAlert.innerHTML = html;
+        statusAlert.style.display = 'block';
+      }
+    }
+
+    // -------------------------------------------------------------
+    // 2. NAT Gateway Simulator
+    // -------------------------------------------------------------
+    function initNatSimulator() {
+      const btnTest = document.getElementById('btnTestNat');
+      const natPacket = document.getElementById('natPacket');
+      const statusAlert = document.getElementById('natStatusAlert');
+      const ipHeader = document.getElementById('natIpHeader');
+
+      if (!btnTest) return;
+
+      btnTest.addEventListener('click', () => {
+        btnTest.disabled = true;
+        statusAlert.style.display = 'none';
+
+        // Reset positions
+        natPacket.className = 'fw-packet request';
+        natPacket.style.left = '75px';
+        natPacket.style.top = '115px';
+        natPacket.style.display = 'block';
+        ipHeader.textContent = '10.0.2.50';
+        ipHeader.style.color = 'var(--color-cyan)';
+
+        const ec2X = 75;
+        const natX = 230;
+        const internetX = 350;
+
+        // Step 1: EC2 Private -> NAT Gateway
+        setTimeout(() => {
+          natPacket.style.left = `${natX}px`;
+
+          setTimeout(() => {
+            // Swap IP address representation at NAT Gateway!
+            ipHeader.textContent = '203.0.113.88';
+            ipHeader.style.color = 'var(--color-accent)';
+            natPacket.style.background = 'var(--color-accent)';
+            natPacket.style.boxShadow = '0 0 10px var(--color-accent)';
+
+            // Step 2: NAT -> Internet Repo
+            natPacket.style.left = `${internetX}px`;
+
+            setTimeout(() => {
+              // Internet Server responds, packet changes color to response
+              natPacket.className = 'fw-packet response';
+              natPacket.style.background = 'var(--color-pink)';
+              natPacket.style.boxShadow = '0 0 10px var(--color-pink)';
+              
+              // Step 3: Internet -> NAT Gateway
+              natPacket.style.left = `${natX}px`;
+
+              setTimeout(() => {
+                // NAT swaps IP back to private
+                ipHeader.textContent = '10.0.2.50';
+                ipHeader.style.color = 'var(--color-cyan)';
+                natPacket.style.background = 'var(--color-cyan)';
+                natPacket.style.boxShadow = '0 0 10px var(--color-cyan)';
+
+                // Step 4: NAT -> Private EC2
+                natPacket.style.left = `${ec2X}px`;
+
+                setTimeout(() => {
+                  natPacket.style.background = 'var(--color-teacher)';
+                  natPacket.style.boxShadow = '0 0 10px var(--color-teacher)';
+                  btnTest.disabled = false;
+                  
+                  statusAlert.className = 'status-alert success';
+                  statusAlert.innerHTML = '✨ <strong>¡Actualización Exitosa!</strong> El servidor de Base de Datos privada (10.0.2.50) solicitó parches. El NAT Gateway tradujo la IP origen a su IP pública (203.0.113.88). El repositorio respondió y el NAT tradujo de vuelta a la IP privada. <strong>¡El servidor privado nunca expuso su dirección IP interna a internet!</strong>';
+                  statusAlert.style.display = 'block';
+                }, 800);
+
+              }, 800);
+
+            }, 800);
+
+          }, 800);
+
+        }, 50);
+      });
+    }
+
+    // -------------------------------------------------------------
+    // 3. Multi-AZ Disaster Simulator
+    // -------------------------------------------------------------
+    function initAzSimulator() {
+      const radios = document.getElementsByName('azStrategy');
+      const azBoxA = document.getElementById('azBoxA');
+      const azBoxB = document.getElementById('azBoxB');
+      const azStatusA = document.getElementById('azStatusA');
+      const azStatusB = document.getElementById('azStatusB');
+      const azServerB = document.getElementById('azServerB');
+      
+      const healthStatus = document.getElementById('healthStatus');
+      const healthDesc = document.getElementById('healthStatusDesc');
+      const btnDisaster = document.getElementById('btnTriggerDisaster');
+
+      let disasterActive = false;
+
+      const updateDeploymentVisuals = () => {
+        const isMulti = document.querySelector('input[name="azStrategy"]:checked').value === 'multi';
+        disasterActive = false;
+        
+        // Reset states
+        azBoxA.className = 'az-box active';
+        azStatusA.textContent = 'ONLINE';
+        azStatusA.style.color = 'var(--color-cyan)';
+
+        if (isMulti) {
+          azBoxB.className = 'az-box active';
+          azStatusB.textContent = 'ONLINE';
+          azStatusB.style.color = 'var(--color-cyan)';
+          azServerB.className = 'fw-element active';
+          azServerB.style.opacity = '1';
+          
+          healthStatus.textContent = 'ONLINE (100% de disponibilidad)';
+          healthStatus.style.color = 'var(--color-teacher)';
+          healthStatus.style.textShadow = '0 0 10px rgba(16,185,129,0.3)';
+          healthDesc.textContent = 'El balanceo de carga está repartiendo las visitas entre el Servidor A y el Servidor B.';
+        } else {
+          azBoxB.className = 'az-box';
+          azStatusB.textContent = 'INACTIVA';
+          azStatusB.style.color = 'var(--text-muted)';
+          azServerB.className = 'fw-element';
+          azServerB.style.opacity = '0.3';
+          
+          healthStatus.textContent = 'ONLINE (100% de disponibilidad)';
+          healthStatus.style.color = 'var(--color-teacher)';
+          healthStatus.style.textShadow = '0 0 10px rgba(16,185,129,0.3)';
+          healthDesc.textContent = 'Tu Servidor A en la Zona A atiende todas las peticiones del sitio.';
+        }
+
+        btnDisaster.textContent = '💥 Provocar Falla Eléctrica en Zona A';
+        btnDisaster.style.background = '#ef4444';
+      };
+
+      Array.from(radios).forEach(r => r.addEventListener('change', updateDeploymentVisuals));
+
+      btnDisaster.addEventListener('click', () => {
+        const isMulti = document.querySelector('input[name="azStrategy"]:checked').value === 'multi';
+
+        if (!disasterActive) {
+          // Trigger disaster
+          disasterActive = true;
+          azBoxA.className = 'az-box offline';
+          azStatusA.textContent = 'OFFLINE (Corte de Energía)';
+          azStatusA.style.color = '#ef4444';
+
+          btnDisaster.textContent = '🔄 Restaurar Energía en Zona A';
+          btnDisaster.style.background = 'var(--color-accent)';
+
+          if (isMulti) {
+            // Multi-AZ survives
+            healthStatus.textContent = 'ONLINE (100% de disponibilidad)';
+            healthStatus.style.color = 'var(--color-teacher)';
+            healthStatus.style.textShadow = '0 0 10px rgba(16,185,129,0.3)';
+            healthDesc.innerHTML = '⚡ <strong>¡Falla mitigada!</strong> La Zona A está caída, pero el tráfico fue redirigido automáticamente a la Zona B. Tu aplicación sigue funcionando sin interrupción.';
+          } else {
+            // Single-AZ fails
+            healthStatus.textContent = 'OFFLINE (0% de disponibilidad)';
+            healthStatus.style.color = '#ef4444';
+            healthStatus.style.textShadow = '0 0 10px rgba(239,68,68,0.3)';
+            healthDesc.innerHTML = '❌ <strong>¡Catástrofe de infraestructura!</strong> Tu único servidor web estaba en la Zona A. El sitio web está caído y tus clientes no pueden ingresar.';
+          }
+        } else {
+          // Restore energy
+          updateDeploymentVisuals();
+        }
+      });
+
+      // Init
+      updateDeploymentVisuals();
+    }
+
+    // -------------------------------------------------------------
+    // 4. Quiz Initialization
+    // -------------------------------------------------------------
+    function initQuiz() {
+      const quizCards = document.querySelectorAll('.quiz-question-card');
+      quizCards.forEach(card => {
+        const options = card.querySelectorAll('.quiz-option');
+        const explanation = card.querySelector('.quiz-explanation');
+        let answered = false;
+
+        options.forEach(opt => {
+          opt.addEventListener('click', () => {
+            if (answered) return;
+            answered = true;
+
+            const isCorrect = opt.getAttribute('data-correct') === 'true';
+            
+            if (isCorrect) {
+              opt.classList.add('correct');
+            } else {
+              opt.classList.add('incorrect');
+              options.forEach(o => {
+                if (o.getAttribute('data-correct') === 'true') {
+                  o.classList.add('correct');
+                }
+              });
+            }
+            explanation.style.display = 'block';
+          });
+        });
+      });
+    }
+
+    // -------------------------------------------------------------
+    // 5. Scroll Sync for Sidebar
+    // -------------------------------------------------------------
+    function initSidebarScrollSpy() {
+      const sidebarLinks = document.querySelectorAll('.sidebar-links a');
+      const slidesList = document.querySelectorAll('.slide');
+
+      const onScroll = () => {
+        if (document.body.classList.contains('presentation-mode')) return;
+        
+        let currentSlideId = '';
+        const scrollPosition = window.scrollY + 200;
+
+        slidesList.forEach(slide => {
+          const top = slide.offsetTop;
+          const height = slide.offsetHeight;
+          if (scrollPosition >= top && scrollPosition < top + height) {
+            currentSlideId = slide.getAttribute('id');
+          }
+        });
+
+        if (currentSlideId) {
+          sidebarLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href') === `#${currentSlideId}`) {
+              link.classList.add('active');
+            }
+          });
+        }
+      };
+
+      window.addEventListener('scroll', onScroll);
+    }
+  </script>
+</body>
+</html>

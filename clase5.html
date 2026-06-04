@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clase 5: Identidad y Accesos (IAM) | Cloud Computing</title>
+  <meta name="description" content="Aprende sobre usuarios, roles y permisos en la nube. Escribe y evalúa políticas JSON en tiempo real con nuestro simulador IAM.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <a href="index.html" class="nav-brand">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17.5 19A3.5 3.5 0 0 0 21 15.5c0-2.79-2.54-4.5-5-4.5-.42 0-.83.04-1.24.12A6.5 6.5 0 0 0 3 13.5A3.5 3.5 0 0 0 6.5 17H12" />
+        <path d="M12 12V21" />
+        <path d="m9 18 3 3 3-3" />
+      </svg>
+      <span>Cloud Foundations</span>
+    </a>
+    
+    <div class="nav-links">
+      <a href="index.html" class="nav-link">Dashboard</a>
+      <div class="teacher-toggle-container">
+        <span class="teacher-toggle-label">Modo Profesor</span>
+        <label class="switch">
+          <input type="checkbox" id="teacherModeToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="container">
+    <a href="index.html" class="back-link">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+      </svg>
+      Volver al Dashboard
+    </a>
+
+    <header class="class-header">
+      <span class="class-number" style="margin-bottom: 0.5rem; display: inline-block;">Clase 5</span>
+      <h1>Identidad y Accesos (IAM)</h1>
+      <p style="color: var(--text-secondary); font-size: 1.1rem; max-width: 800px;">
+        Entiende cómo la nube controla quién puede hacer qué. Aprende sobre el principio de mínimo privilegio y escribe tus primeras políticas JSON para proteger tus recursos.
+      </p>
+    </header>
+
+    <div class="class-content-wrapper">
+      <div class="main-content-flow slides-container" id="slidesContainer">
+        
+        <!-- SLIDE 1: THEORY -->
+        <section class="slide" id="slide-intro" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">5.1</span>
+            El Portero de la Nube: Principio de Mínimo Privilegio
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: La Llave Maestra vs La Llave de la Habitación (5 min)</h4>
+            <p><strong>Meta:</strong> Explicar que usar el usuario "Root" es como darle la llave maestra del hotel a un huésped.</p>
+            <ul>
+              <li><strong>Identidad (Autenticación):</strong> ¿Quién eres? (Usuario y contraseña).</li>
+              <li><strong>Acceso (Autorización):</strong> ¿Qué puedes hacer? (Políticas).</li>
+              <li><strong>El Principio de Mínimo Privilegio:</strong> Dale a cada trabajador SÓLO los permisos estrictamente necesarios para hacer su trabajo. Si un desarrollador solo necesita leer archivos de S3, no le des acceso para borrar servidores EC2.</li>
+              <li>Enfatiza que en AWS todo está <strong>Denegado por defecto</strong>. Tienes que conceder permisos explícitamente usando código (JSON).</li>
+            </ul>
+          </div>
+
+          <p>
+            AWS Identity and Access Management (IAM) es el servicio que te permite controlar el acceso a los servicios y recursos de AWS de forma segura. IAM te permite crear <strong>Usuarios</strong> (personas) y <strong>Roles</strong> (máquinas), y asignarles <strong>Políticas</strong>.
+          </p>
+
+          <div class="class-grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
+            <div class="card" style="margin-bottom:0;">
+              <h3 style="color: var(--color-cyan); font-size: 1.2rem; margin-bottom: 0.5rem;">Usuarios y Roles</h3>
+              <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom:0.5rem;">Las entidades que intentan hacer cosas.</p>
+              <ul style="font-size: 0.85rem; color: var(--text-muted); margin-left: 1.25rem;">
+                <li><strong>Usuarios IAM:</strong> Personas reales que inician sesión.</li>
+                <li><strong>Roles IAM:</strong> Sombreros temporales que las máquinas (ej. un EC2) se ponen para poder hablar con otros servicios (ej. S3) sin usar contraseñas.</li>
+              </ul>
+            </div>
+            <div class="card" style="margin-bottom:0;">
+              <h3 style="color: var(--color-accent); font-size: 1.2rem; margin-bottom: 0.5rem;">Políticas (Policies)</h3>
+              <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom:0.5rem;">Los documentos que definen los permisos.</p>
+              <ul style="font-size: 0.85rem; color: var(--text-muted); margin-left: 1.25rem;">
+                <li>Están escritas en lenguaje <strong>JSON</strong>.</li>
+                <li>Por defecto todo es "Deny" (Denegado).</li>
+                <li>Un "Deny" explícito siempre gana sobre un "Allow".</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 2: INTERACTIVE JSON SIMULATOR -->
+        <section class="slide" id="slide-iam-sim" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">5.2</span>
+            Práctica: Simulador Evaluador de Políticas JSON
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Escribiendo JSON (10 min)</h4>
+            <p>El código a continuación es el "Policy Document" de IAM. Ayuda a los alumnos a modificarlo:</p>
+            <ul>
+              <li><strong>El Reto:</strong> Tienen que poder "Descargar un archivo de S3". La acción para eso es <code>"s3:GetObject"</code>.</li>
+              <li>Actualmente el código tiene <code>"Effect": "Deny"</code>. Pídeles que apreten el botón rojo para que vean que falla.</li>
+              <li>Pídeles que modifiquen "Deny" por "Allow" y lo vuelvan a intentar.</li>
+              <li>Pregunta Extra: ¿Qué pasa si cambian "s3:GetObject" por "s3:PutObject"? (Fallará de nuevo, porque PutObject es para subir, no para descargar).</li>
+            </ul>
+          </div>
+
+          <p>
+            Modifica la política JSON a continuación para concederle a un usuario el permiso para <strong>Descargar archivos</strong> (GetObject) de S3.
+          </p>
+
+          <div class="card" style="padding: 1.5rem; margin-top:1.5rem;">
+            
+            <div class="json-editor-container">
+              <!-- Left side: JSON Editor -->
+              <div>
+                <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--color-cyan);">Documento de Política (JSON)</h3>
+                <textarea id="jsonEditor" class="json-editor" spellcheck="false">
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Deny",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::mi-bucket-secreto/*"
+    }
+  ]
+}</textarea>
+              </div>
+
+              <!-- Right side: Evaluator -->
+              <div style="display:flex; flex-direction:column; justify-content:center;">
+                <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Simulación de Acción de Usuario</h3>
+                <div style="background:rgba(255,255,255,0.03); border:1px solid var(--glass-border); border-radius:8px; padding:1rem; margin-bottom:1rem; font-size:0.85rem;">
+                  <strong>Usuario Intenta:</strong> Descargar un archivo (<code>s3:GetObject</code>).<br>
+                  <strong>Recurso Destino:</strong> <code>arn:aws:s3:::mi-bucket-secreto/foto.jpg</code>
+                </div>
+                
+                <button class="btn" id="btnTestPolicy" style="justify-content:center; width:100%;">Evaluar Permiso</button>
+                
+                <div id="policyStatusAlert" class="status-alert" style="margin-top: 1rem;"></div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- SLIDE 3: METACOGNITION -->
+        <section class="slide" id="metacognicion" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">5.3</span>
+            Cierre: Metacognición y Autoevaluación
+          </h2>
+
+          <div class="quiz-container">
+            <div class="quiz-question-card">
+              <h4>1. ¿Por qué es mala práctica utilizar el Usuario Root (el correo con el que te registraste en AWS) para tareas diarias?</h4>
+              <div class="quiz-options">
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">A</div>
+                  <span>Porque AWS cobra tarifas adicionales por iniciar sesión con Root.</span>
+                </div>
+                <div class="quiz-option" data-correct="true">
+                  <div class="quiz-option-marker">B</div>
+                  <span>Porque tiene acceso irrestricto y permanente a todo (incluida facturación). Si la contraseña es robada, el daño es total.</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">C</div>
+                  <span>Porque el usuario Root no puede usar la consola web, solo la terminal.</span>
+                </div>
+              </div>
+              <div class="quiz-explanation">
+                <strong>Correcto:</strong> El usuario Root es como la llave de administrador del edificio completo. La buena práctica dicta crear un usuario IAM administrador, guardar la contraseña Root de forma segura (con MFA) y no usarlo jamás a menos que sea estrictamente necesario.
+              </div>
+            </div>
+            
+            <div class="quiz-question-card">
+              <h4>2. Un usuario tiene dos políticas JSON aplicadas a su cuenta simultáneamente. La Política A le "Permite" (Allow) acceso a S3. La Política B le "Deniega" (Deny explícito) el acceso a S3. ¿Podrá acceder a S3?</h4>
+              <div class="quiz-options">
+                <div class="quiz-option" data-correct="true">
+                  <div class="quiz-option-marker">A</div>
+                  <span>No. Un "Deny" explícito siempre anula cualquier "Allow".</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">B</div>
+                  <span>Sí. Un "Allow" siempre es más fuerte porque es un permiso positivo.</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">C</div>
+                  <span>Depende de qué política fue creada primero en el tiempo.</span>
+                </div>
+              </div>
+              <div class="quiz-explanation">
+                <strong>Correcto:</strong> La regla de evaluación de IAM es estricta: Si hay un Deny explícito en cualquier parte de la cadena, la decisión final es Denegar, sin importar cuántos Allows existan.
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Sticky Sidebar -->
+      <aside class="sidebar-navigation">
+        <h4>Contenido de la Clase</h4>
+        <ul class="sidebar-links">
+          <li><a href="#slide-intro" class="active">5.1 Mínimo Privilegio</a></li>
+          <li><a href="#slide-iam-sim">5.2 Evaluador JSON</a></li>
+          <li><a href="#metacognicion">5.3 Autoevaluación</a></li>
+        </ul>
+      </aside>
+
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>© 2026 Portal de Cloud Computing - Diseñado para una docencia ágil e interactiva.</p>
+    <p style="margin-top: 0.5rem;"><a href="index.html">← Volver al Dashboard Principal</a></p>
+  </footer>
+
+  <script src="script.js"></script>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initIamSimulator();
+      initQuiz();
+      initSidebarScrollSpy();
+    });
+
+    // -------------------------------------------------------------
+    // IAM Policy JSON Evaluator
+    // -------------------------------------------------------------
+    function initIamSimulator() {
+      const btnTest = document.getElementById('btnTestPolicy');
+      const editor = document.getElementById('jsonEditor');
+      const statusAlert = document.getElementById('policyStatusAlert');
+
+      if (!btnTest || !editor) return;
+
+      btnTest.addEventListener('click', () => {
+        statusAlert.style.display = 'none';
+        
+        try {
+          const policy = JSON.parse(editor.value);
+          let isAllowed = false;
+          let hasExplicitDeny = false;
+          let isValidAction = false;
+
+          // Target action we are testing
+          const targetAction = "s3:GetObject";
+
+          if (policy.Statement && Array.isArray(policy.Statement)) {
+            policy.Statement.forEach(stmt => {
+              // Check Action matches
+              let actionMatches = false;
+              if (Array.isArray(stmt.Action)) {
+                if (stmt.Action.includes(targetAction) || stmt.Action.includes("s3:*") || stmt.Action.includes("*")) {
+                  actionMatches = true;
+                }
+              } else if (typeof stmt.Action === 'string') {
+                if (stmt.Action === targetAction || stmt.Action === "s3:*" || stmt.Action === "*") {
+                  actionMatches = true;
+                }
+              }
+
+              if (actionMatches) {
+                isValidAction = true;
+                if (stmt.Effect === "Deny") {
+                  hasExplicitDeny = true;
+                } else if (stmt.Effect === "Allow") {
+                  isAllowed = true;
+                }
+              }
+            });
+          }
+
+          if (hasExplicitDeny) {
+            showStatus('error', '❌ <strong>Access Denied (403):</strong> La política tiene un "Deny" explícito para esta acción. AWS bloquea inmediatamente la petición.');
+          } else if (isAllowed && isValidAction) {
+            showStatus('success', '✅ <strong>Acceso Concedido:</strong> AWS validó que existe un "Allow" explícito para la acción <code>s3:GetObject</code>. ¡El archivo fue descargado con éxito!');
+          } else if (!isAllowed && isValidAction) {
+             showStatus('error', '❌ <strong>Access Denied (403):</strong> La acción es correcta, pero el Efecto no es "Allow". Recuerda que todo está denegado por defecto en AWS.');
+          } else {
+            showStatus('error', '❌ <strong>Access Denied (403):</strong> AWS aplicó "Denegación por Defecto" (Implicit Deny). Ninguna declaración en tu política otorgó explícitamente un "Allow" para la acción <code>s3:GetObject</code>.');
+          }
+
+        } catch (e) {
+          showStatus('error', '⚠️ <strong>Error de Sintaxis JSON:</strong> Revisa las comillas, las comas y las llaves. JSON requiere comillas dobles estrictas para claves y valores.');
+        }
+      });
+
+      function showStatus(type, html) {
+        statusAlert.className = `status-alert ${type}`;
+        statusAlert.innerHTML = html;
+        statusAlert.style.display = 'block';
+      }
+    }
+
+    // -------------------------------------------------------------
+    // Quiz & Sidebar
+    // -------------------------------------------------------------
+    function initQuiz() {
+      const quizCards = document.querySelectorAll('.quiz-question-card');
+      quizCards.forEach(card => {
+        const options = card.querySelectorAll('.quiz-option');
+        const explanation = card.querySelector('.quiz-explanation');
+        let answered = false;
+        options.forEach(opt => {
+          opt.addEventListener('click', () => {
+            if (answered) return;
+            answered = true;
+            if (opt.getAttribute('data-correct') === 'true') {
+              opt.classList.add('correct');
+            } else {
+              opt.classList.add('incorrect');
+              options.forEach(o => {
+                if (o.getAttribute('data-correct') === 'true') o.classList.add('correct');
+              });
+            }
+            explanation.style.display = 'block';
+          });
+        });
+      });
+    }
+
+    function initSidebarScrollSpy() {
+      const sidebarLinks = document.querySelectorAll('.sidebar-links a');
+      const slidesList = document.querySelectorAll('.slide');
+      const onScroll = () => {
+        if (document.body.classList.contains('presentation-mode')) return;
+        let currentSlideId = '';
+        const scrollPosition = window.scrollY + 200;
+        slidesList.forEach(slide => {
+          const top = slide.offsetTop;
+          const height = slide.offsetHeight;
+          if (scrollPosition >= top && scrollPosition < top + height) {
+            currentSlideId = slide.getAttribute('id');
+          }
+        });
+        if (currentSlideId) {
+          sidebarLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href') === `#${currentSlideId}`) link.classList.add('active');
+          });
+        }
+      };
+      window.addEventListener('scroll', onScroll);
+    }
+  </script>
+</body>
+</html>

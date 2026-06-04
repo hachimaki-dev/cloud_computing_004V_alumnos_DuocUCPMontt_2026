@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clase 1: Redes Virtuales y VPC | Cloud Computing</title>
+  <meta name="description" content="Aprende los fundamentos de redes en la nube: VPC, subredes públicas y privadas, enrutamiento, direccionamiento IP y notación CIDR con simuladores interactivos.">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Specific class page overrides */
+    .sim-canvas {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+    .vpc-boundary {
+      position: absolute;
+      top: 35px;
+      left: 15px;
+      width: 320px;
+      height: 250px;
+      border: 2px dashed rgba(139, 92, 246, 0.4);
+      background: rgba(139, 92, 246, 0.02);
+      border-radius: 12px;
+    }
+    .vpc-title {
+      position: absolute;
+      top: -20px;
+      left: 10px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--color-accent);
+      background: #06050a;
+      padding: 0 5px;
+      text-transform: uppercase;
+    }
+    .internet-cloud {
+      position: absolute;
+      top: 110px;
+      right: 25px;
+      z-index: 5;
+    }
+    .packet {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      background: var(--color-cyan);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--color-cyan);
+      display: none;
+      z-index: 10;
+      transition: left 0.8s linear, top 0.8s linear;
+    }
+    .status-alert {
+      padding: 0.75rem;
+      border-radius: 8px;
+      margin-top: 1rem;
+      font-size: 0.85rem;
+      display: none;
+      animation: fadeIn 0.3s forwards;
+    }
+    .status-alert.error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+    }
+    .status-alert.success {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <a href="index.html" class="nav-brand">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17.5 19A3.5 3.5 0 0 0 21 15.5c0-2.79-2.54-4.5-5-4.5-.42 0-.83.04-1.24.12A6.5 6.5 0 0 0 3 13.5A3.5 3.5 0 0 0 6.5 17H12" />
+        <path d="M12 12V21" />
+        <path d="m9 18 3 3 3-3" />
+      </svg>
+      <span>Cloud Foundations</span>
+    </a>
+    
+    <div class="nav-links">
+      <a href="index.html" class="nav-link">Dashboard</a>
+      
+      <!-- Teacher Mode Switcher -->
+      <div class="teacher-toggle-container">
+        <span class="teacher-toggle-label">Modo Profesor</span>
+        <label class="switch">
+          <input type="checkbox" id="teacherModeToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content Container -->
+  <main class="container">
+    
+    <!-- Back button -->
+    <a href="index.html" class="back-link">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+      </svg>
+      Volver al Dashboard
+    </a>
+
+    <!-- Class Header -->
+    <header class="class-header">
+      <span class="class-number" style="margin-bottom: 0.5rem; display: inline-block;">Clase 1</span>
+      <h1>Redes Virtuales y Virtual Private Cloud (VPC)</h1>
+      <p style="color: var(--text-secondary); font-size: 1.1rem; max-width: 800px;">
+        Aprende cómo aislar tus recursos lógicos en la nube y cómo diseñar direccionamientos IP flexibles sin depender de hardware físico ni consolas AWS complejas.
+      </p>
+    </header>
+
+    <!-- Content with Slides Container and Sidebar navigation -->
+    <div class="class-content-wrapper">
+      
+      <!-- Slides Container Flow -->
+      <div class="main-content-flow slides-container" id="slidesContainer">
+        
+        <!-- SLIDE 1: THEORY -->
+        <section class="slide" id="teoria" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">1.1</span>
+            Teoría: El Condominio de la Nube (VPC)
+          </h2>
+          
+          <!-- Teacher Note -->
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: La Analogía del Condominio (10 min)</h4>
+            <p><strong>Meta:</strong> Que entiendan que una VPC no es más que una red privada virtualizada en servidores gigantescos de Amazon.</p>
+            <ul>
+              <li><strong>La analogía:</strong> Compara la VPC con un condominio privado cerrado.
+                <ul>
+                  <li><strong>VPC:</strong> Todo el terreno del condominio (muro perimetral). Nadie entra a menos que esté invitado.</li>
+                  <li><strong>Subredes (Subnets):</strong> Los pasajes o condominios internos. Algunos dan a la calle principal (públicos) y otros están al fondo para mayor privacidad (privados).</li>
+                  <li><strong>EC2 (Servidores):</strong> Las casas dentro de los pasajes.</li>
+                  <li><strong>Internet Gateway (IGW):</strong> La portería/guardia del condominio. Si no hay portería, nadie puede entrar desde afuera ni salir.</li>
+                  <li><strong>Route Table:</strong> El mapa que tiene el cartero/guardia para saber por qué calles transitar.</li>
+                </ul>
+              </li>
+              <li><strong>Pregunta detonante:</strong> <em>"¿Qué pasa si construyo una casa en un condominio sin portero y sin calles pavimentadas? ¿Puedo recibir pizzas de Uber?"</em> (Respuesta: No, porque no hay Internet Gateway ni Route Tables).</li>
+            </ul>
+          </div>
+
+          <p>
+            En la computación tradicional, configurar una red segura requería comprar racks de routers físicos, firewalls de hardware y tender metros de cable. En la nube, todo esto se hace mediante **software**.
+          </p>
+          <p style="margin-top: 1rem;">
+            Una **VPC (Virtual Private Cloud)** es tu propia porción aislada de la nube de AWS. Te permite definir un entorno de red lógica donde despliegas tus servidores (EC2) y bases de datos con total control del tráfico.
+          </p>
+
+          <div class="analogy-box">
+            <h4>La Analogía del Condominio</h4>
+            <p>
+              Imagina que compras un terreno grande y pones un gran muro perimetral. Ese terreno es tu <strong>VPC</strong>. 
+              Dentro del terreno, creas pasajes pavimentados (<strong>Subredes</strong>) y construyes casas (<strong>Servidores EC2</strong>). 
+              Para que las casas puedan pedir correspondencia al exterior, necesitas construir una portería que conecte con la autopista pública (<strong>Internet Gateway</strong>) y poner letreros con direcciones claras en los pasajes (<strong>Tablas de Rutas</strong>).
+            </p>
+          </div>
+
+          <h3 style="margin: 2rem 0 1rem 0; font-size: 1.5rem;">De la clase anterior: Direccionamiento IP en la nube</h3>
+          <p>
+            Vimos en la **Clase 0** que una IP tiene una porción de red (fija) y una porción de host (libre). En AWS, en lugar de usar máscaras largas tipo <code>255.255.255.0</code>, usamos la notación **CIDR** (ej: `/24` o `/16`), que abrevia cuántos bits están congelados de izquierda a derecha.
+          </p>
+        </section>
+
+        <!-- SLIDE 2: INTERACTIVE CIDR CALCULATOR -->
+        <section class="slide" id="calculadora" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">1.2</span>
+            Práctica: CIDR y Bloqueo de Subredes en AWS
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Dinámica de la Calculadora CIDR (15 min)</h4>
+            <p><strong>Meta:</strong> Ver de qué manera el valor del CIDR (/16, /24, /28) bloquea octetos y cuántas IPs nos deja libres.</p>
+            <ul>
+              <li><strong>Los Candados:</strong> Fíjate cómo al seleccionar la máscara de la subred, el visualizador bloquea con 🔒 los octetos fijos y deja libres con 🔓 los octetos que el profesor o alumno puede modificar.</li>
+              <li>Explícales que en AWS, una subred reserva **5 direcciones IP útiles** en lugar de las 2 estándar. ¡Esto es crucial!</li>
+              <li>Muéstrales en la tabla la lista de estas 5 IPs reservadas y para qué sirve cada una (DNS, Router de la VPC, etc.).</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="cidr-calculator">
+              <div class="input-row">
+                <div class="form-group" style="flex: 2;">
+                  <label for="ipInput">Dirección IP Base</label>
+                  <input type="text" id="ipInput" class="form-control" value="10.0.0.0" placeholder="Ej: 10.0.0.0">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                  <label for="cidrSelect">Máscara CIDR</label>
+                  <select id="cidrSelect" class="form-control">
+                    <option value="16">/16 (VPC Típica)</option>
+                    <option value="20">/20 (Subred Mediana)</option>
+                    <option value="24" selected>/24 (Subred Estándar)</option>
+                    <option value="28">/28 (Subred Mínima AWS)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Interactive IP locked display connecting back to Class 0 -->
+              <div style="text-align: center; margin: 1rem 0;">
+                <div class="binary-label">Bloqueo de Octetos de Red (Seguridad de Tráfico)</div>
+                <div class="ip-octets-visual" id="cidrLockVisual">
+                  <!-- Dynamic generation via JS -->
+                </div>
+              </div>
+
+              <!-- Calculations results -->
+              <table class="results-table">
+                <thead>
+                  <tr>
+                    <th>Métrica</th>
+                    <th>Valor Calculado</th>
+                    <th>Explicación</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Rango de Red Completo</td>
+                    <td><code id="resNetRange">10.0.0.0 - 10.0.0.255</code></td>
+                    <td>Primer y último bloque posible de IPs.</td>
+                  </tr>
+                  <tr>
+                    <td>Total de IPs Teóricas</td>
+                    <td id="resTotalIps" style="font-weight: 600;">256</td>
+                    <td>Calculado como 2<sup>(32 - Máscara)</sup>.</td>
+                  </tr>
+                  <tr>
+                    <td>IPs Útiles en Red Estándar</td>
+                    <td id="resStandardIps">254</td>
+                    <td>Se resta la dirección de Red y la de Broadcast.</td>
+                  </tr>
+                  <tr>
+                    <td>IPs Útiles en AWS <span class="aws-badge">AWS Reserved</span></td>
+                    <td id="resAwsIps" style="color: var(--color-cyan); font-weight: 700;">251</td>
+                    <td>AWS reserva 5 direcciones por motivos de arquitectura.</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <!-- AWS Specific Reservations Details -->
+              <div style="background: rgba(236, 72, 153, 0.05); border: 1px solid rgba(236, 72, 153, 0.2); padding: 1rem; border-radius: 8px;">
+                <h4 style="color: var(--color-pink); margin-bottom: 0.5rem; font-size: 0.95rem; font-weight: bold;">Las 5 IPs reservadas por AWS en cada subred:</h4>
+                <ul style="font-size: 0.85rem; margin-left: 1.25rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.25rem;" id="awsReservedList">
+                  <!-- Generated by JS -->
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 3: ROUTING SIMULATOR -->
+        <section class="slide" id="simulador" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">1.3</span>
+            Práctica: Enrutamiento y Conectividad Externa (IGW)
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Dinámica de Ruteo de Paquetes (15 min)</h4>
+            <p><strong>El problema real en AWS:</strong> Los alumnos crean subredes públicas y servidores, pero no se pueden conectar por HTTP porque olvidaron asociar el Internet Gateway o configurar la Route Table.</p>
+            <p>Usa este simulador para mostrarles que la red funciona por capas lógicas:</p>
+            <ul>
+              <li><strong>Paso 1:</strong> Intenta enviar el paquete tal como viene (por defecto, Subred Privada). Fallará. Explícales que la IP de la máquina es privada y no hay salida al exterior.</li>
+              <li><strong>Paso 2:</strong> Cambia a "Subred Pública". Pero ¡ojo! mantén el Internet Gateway desconectado o sin ruta. Envía de nuevo. Fallará de forma distinta.</li>
+              <li><strong>Paso 3:</strong> Activa todas las condiciones (Subred Pública, IGW Conectado, Ruta 0.0.0.0/0 activa). Ahora el paquete llegará. ¡Felicidades! Tienen una red pública funcional.</li>
+            </ul>
+          </div>
+
+          <p>
+            Una subred en una VPC es **privada por defecto**. Para hacerla **pública** (que pueda comunicarse con internet de ida y vuelta), se necesitan tres elementos configurados correctamente. Simúlalos a continuación:
+          </p>
+
+          <div class="routing-simulator-container">
+            
+            <!-- Graphical Viewport -->
+            <div class="sim-canvas-wrapper">
+              <div class="sim-canvas" id="simCanvas">
+                
+                <!-- Connections SVG Overlay -->
+                <svg class="svg-routes-overlay">
+                  <path id="routePath" class="sim-path" d="M 90,145 L 210,145 L 290,145 L 375,145" />
+                  <circle id="simPacket" class="sim-packet" r="7" cx="0" cy="0" />
+                </svg>
+
+                <!-- VPC Box -->
+                <div class="vpc-boundary">
+                  <div class="vpc-title">VPC (10.0.0.0/16)</div>
+                  
+                  <!-- Subnets boxes inside VPC -->
+                  <!-- Public Subnet -->
+                  <div class="network-subnet public" style="top: 25px; left: 15px; width: 140px; height: 200px;">
+                    <div class="subnet-label">Subred Pública</div>
+                    <span style="font-size: 0.7rem; color: var(--text-muted);">10.0.1.0/24</span>
+                  </div>
+
+                  <!-- Private Subnet -->
+                  <div class="network-subnet private" style="top: 25px; left: 165px; width: 140px; height: 200px;">
+                    <div class="subnet-label">Subred Privada</div>
+                    <span style="font-size: 0.7rem; color: var(--text-muted);">10.0.2.0/24</span>
+                  </div>
+
+                  <!-- EC2 Instance -->
+                  <div id="elEC2" class="network-element active" style="top: 100px; left: 40px; z-index: 2;">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
+                      <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
+                      <line x1="6" y1="6" x2="6.01" y2="6"/>
+                      <line x1="6" y1="18" x2="6.01" y2="18"/>
+                    </svg>
+                    <span>Servidor EC2</span>
+                    <span id="ec2IpLabel" style="font-size:0.65rem; color: var(--color-cyan);">10.0.1.10</span>
+                  </div>
+
+                  <!-- Route Table -->
+                  <div id="elRouter" class="network-element" style="top: 110px; left: 195px; z-index: 2;">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+                    </svg>
+                    <span>Route Table</span>
+                  </div>
+
+                  <!-- Internet Gateway (IGW) -->
+                  <div id="elIGW" class="network-element" style="top: 110px; left: 285px; z-index: 2; transform: translateX(-50%);">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                      <path d="M12 2v9"/>
+                      <path d="m8 5 4-3 4 3"/>
+                    </svg>
+                    <span>IGW</span>
+                  </div>
+
+                </div>
+
+                <!-- Internet Cloud (Outside VPC) -->
+                <div id="elInternet" class="network-element internet-cloud">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2a6 6 0 0 1 5.06 9.24H18a4 4 0 0 1 1.62 7.66A5 5 0 0 1 10.5 19H6a4 4 0 0 1-1.62-7.66A5 5 0 0 1 9.4 6.1a6 6 0 0 1 2.6-4.1Z"/>
+                  </svg>
+                  <span>Internet</span>
+                </div>
+
+                <!-- Live Packet -->
+                <div id="packetDot" class="packet"></div>
+
+              </div>
+            </div>
+
+            <!-- Configuration controls -->
+            <div class="sim-control-panel">
+              <h3 style="font-size: 1.10rem;">Panel de Configuración</h3>
+              
+              <div class="form-group">
+                <label>1. Ubicación del Servidor</label>
+                <div style="display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.85rem;">
+                  <label style="font-weight: normal; cursor: pointer;">
+                    <input type="radio" name="subnetSelect" value="public" checked> Subred Pública (10.0.1.10)
+                  </label>
+                  <label style="font-weight: normal; cursor: pointer;">
+                    <input type="radio" name="subnetSelect" value="private"> Subred Privada (10.0.2.10)
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>2. Asociación del Internet Gateway</label>
+                <label style="font-weight: normal; cursor: pointer; font-size: 0.85rem;">
+                  <input type="checkbox" id="igwAttached"> Asociar IGW a la VPC
+                </label>
+              </div>
+
+              <div class="form-group">
+                <label>3. Reglas de la Tabla de Rutas</label>
+                <div style="display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.85rem;">
+                  <label style="font-weight: normal; cursor: pointer;">
+                    <input type="radio" name="routeRule" value="local" checked> Solo Local (10.0.0.0/16 → Local)
+                  </label>
+                  <label style="font-weight: normal; cursor: pointer;">
+                    <input type="radio" name="routeRule" value="igw"> Internet Habilitada (0.0.0.0/0 → IGW)
+                  </label>
+                </div>
+              </div>
+
+              <button class="btn" id="btnSendPacket" style="width: 100%; justify-content: center; margin-top: 0.5rem;">
+                Enviar Paquete HTTP
+              </button>
+
+              <div id="simStatusAlert" class="sim-status status-alert">
+                <!-- Status text via JS -->
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- SLIDE 4: LOCAL HANDS-ON LAB -->
+        <section class="slide" id="laboratorio" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">1.4</span>
+            Laboratorio: Mi propio Servidor Privado Local
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: El Laboratorio Local Paso a Paso (15 min)</h4>
+            <p><strong>El truco pedagógico:</strong> Como no tenemos AWS, vamos a usar el propio computador del alumno para simular un servidor e IP privada.</p>
+            <ul>
+              <li>Indícales que abran la terminal (Mac: Terminal, Windows: PowerShell).</li>
+              <li>Haz que digiten el comando de Python para levantar un servidor web instantáneo.</li>
+              <li>Pídeles que abran el navegador en `http://localhost:8080` para comprobar el servicio. Explícales que `localhost` / `127.0.0.1` es la "IP de loopback" (la máquina hablándose a sí misma, aislada de la red).</li>
+              <li>**Reto grupal final:** Si están en la misma red Wi-Fi del laboratorio (que actúa como una VPC física compartida), haz que busquen su IP privada (ej: con `ipconfig` o `ifconfig`) y se la den a un compañero. El compañero podrá ver su servidor escribiendo `http://[IP-DEL-COMPAÑERO]:8080`. ¡Esto les vuela la cabeza porque demuestra el ruteo privado local!</li>
+            </ul>
+          </div>
+
+          <p>
+            No necesitas pagar en AWS para entender qué hace un servidor EC2 o cómo se accede a él mediante una IP privada. Vamos a simularlo usando la terminal de tu computador:
+          </p>
+
+          <h3 style="margin: 1.5rem 0 0.5rem 0; font-size: 1.2rem; text-align: left;">Paso 1: Levantar un Servidor Web Instantáneo</h3>
+          <p>
+            Abre la terminal o consola de tu sistema operativo y escribe el siguiente comando para iniciar un servidor web en el puerto `8080`:
+          </p>
+
+          <div class="terminal-window">
+            <div class="terminal-header">
+              <span class="terminal-dot red"></span>
+              <span class="terminal-dot yellow"></span>
+              <span class="terminal-dot green"></span>
+              <span class="terminal-title">Terminal / Consola</span>
+            </div>
+            <div class="terminal-body">
+              <span class="terminal-prompt">$</span><span class="terminal-cmd">python3 -m http.server 8080</span>
+              <div class="terminal-output">Serving HTTP on 0.0.0.0 port 8080 (http://0.0.0.0:8080/) ...
+Active connection from 127.0.0.1...</div>
+            </div>
+          </div>
+
+          <h3 style="margin: 1.5rem 0 0.5rem 0; font-size: 1.2rem; text-align: left;">Paso 2: Acceder al Servidor</h3>
+          <p>
+            Abre tu navegador de internet favorito y escribe la siguiente dirección en la barra de direcciones:
+          </p>
+          <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--glass-border); padding: 0.8rem; border-radius: 8px; font-family: monospace; display: inline-block; margin: 0.5rem 0;">
+            http://localhost:8080
+          </div>
+          <p>
+            Verás una lista de los archivos de tu carpeta local. La IP `127.0.0.1` (o su alias `localhost`) representa a tu propio computador. Es una dirección privada e inaccesible desde el exterior.
+          </p>
+
+          <div class="analogy-box" style="border-color: rgba(6, 182, 212, 0.3); background: rgba(6, 182, 212, 0.02);">
+            <h4 style="color: var(--color-cyan);">Reto Práctico en Parejas (VPC Física)</h4>
+            <p>
+              Busca tu IP local en la red Wi-Fi (escribe <code>ipconfig</code> en Windows o <code>ifconfig</code> en Mac). 
+              Suele empezar con <code>192.168.x.x</code> o <code>10.x.x.x</code>. 
+              Pídele a un compañero que esté conectado al mismo Wi-Fi que entre a tu servidor usando esa IP en su navegador (ej: <code>http://192.168.1.45:8080</code>).
+              ¡Verá tus archivos! Esto demuestra que están en la misma red local (como una subred compartida en AWS).
+            </p>
+          </div>
+        </section>
+
+        <!-- SLIDE 5: METACOGNITION -->
+        <section class="slide" id="metacognicion" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">1.5</span>
+            Cierre: Metacognición y Autoevaluación
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Cerrando la Clase (10 min)</h4>
+            <p>Usa estas preguntas para consolidar el aprendizaje antes de terminar la sesión. Pide a tres alumnos distintos que respondan y que expliquen en sus palabras **por qué** eligieron esa alternativa:</p>
+            <ul>
+              <li><strong>Pregunta 1:</strong> Apunta a recordar el número "mágico" de AWS (5 IPs reservadas).</li>
+              <li><strong>Pregunta 2:</strong> Enfoque en comprender la diferencia exacta entre subred pública y privada (no es magia, es una ruta en la Route Table).</li>
+              <li><strong>Pregunta 3:</strong> Retiene el concepto clave de VPC como aislamiento de red.</li>
+            </ul>
+          </div>
+
+          <div class="quiz-container">
+            
+            <!-- Question 1 -->
+            <div class="quiz-question-card" id="q1">
+              <h4>1. Si creas una subred en AWS VPC con el rango <code>10.0.0.0/24</code>, ¿cuántas direcciones IP útiles estarán disponibles para tus servidores EC2?</h4>
+              <div class="quiz-options">
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">A</div>
+                  <span>256 direcciones IP</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">B</div>
+                  <span>254 direcciones IP (se resta red y broadcast)</span>
+                </div>
+                <div class="quiz-option" data-correct="true">
+                  <div class="quiz-option-marker">C</div>
+                  <span>251 direcciones IP (AWS reserva 5 para su infraestructura)</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">D</div>
+                  <span>16 direcciones IP</span>
+                </div>
+              </div>
+              <div class="quiz-explanation">
+                <strong>Correcto:</strong> AWS reserva 5 direcciones IP por cada subred (las primeras cuatro: .0, .1, .2, .3; y la última: .255 en un bloque /24) para tareas internas del sistema, enrutamiento, DNS y broadcast virtual.
+              </div>
+            </div>
+
+            <!-- Question 2 -->
+            <div class="quiz-question-card" id="q2">
+              <h4>2. ¿Qué diferencia fundamental convierte a una subred en "Pública" dentro de una VPC en AWS?</h4>
+              <div class="quiz-options">
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">A</div>
+                  <span>Tiene servidores más potentes o instancias EC2 dedicadas.</span>
+                </div>
+                <div class="quiz-option" data-correct="true">
+                  <div class="quiz-option-marker">B</div>
+                  <span>Tiene una ruta en su Route Table que redirige el tráfico 0.0.0.0/0 hacia un Internet Gateway (IGW).</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">C</div>
+                  <span>No tiene políticas de firewall o Security Groups aplicadas.</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">D</div>
+                  <span>Utiliza la dirección de red local 127.0.0.1.</span>
+                </div>
+              </div>
+              <div class="quiz-explanation">
+                <strong>Correcto:</strong> Una subred es pública únicamente si posee una ruta explícita por defecto (0.0.0.0/0) en su Tabla de Rutas apuntando al Internet Gateway (IGW) de la VPC, permitiendo el ingreso y egreso de tráfico de internet.
+              </div>
+            </div>
+
+            <!-- Question 3 -->
+            <div class="quiz-question-card" id="q3">
+              <h4>3. ¿Cuál es la razón principal de crear una VPC antes de desplegar cualquier aplicación o base de datos en la nube?</h4>
+              <div class="quiz-options">
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">A</div>
+                  <span>Hacer que el almacenamiento de archivos sea ilimitado.</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">B</div>
+                  <span>Para que AWS configure automáticamente todos nuestros servidores web.</span>
+                </div>
+                <div class="quiz-option" data-correct="true">
+                  <div class="quiz-option-marker">C</div>
+                  <span>Para aislar lógicamente nuestros recursos y definir reglas precisas de tráfico y seguridad.</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">D</div>
+                  <span>Para poder usar una base de datos local 100% gratis.</span>
+                </div>
+              </div>
+              <div class="quiz-explanation">
+                <strong>Correcto:</strong> El aislamiento lógico garantiza la seguridad de tus datos. Al definir subredes privadas, proteges servidores críticos (como bases de datos) de accesos no autorizados directos desde el internet público.
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Sticky Sidebar Navigation (Normal View) -->
+      <aside class="sidebar-navigation">
+        <h4>Contenido de la Clase</h4>
+        <ul class="sidebar-links">
+          <li><a href="#teoria" class="active">1.1 El Condominio (Teoría)</a></li>
+          <li><a href="#calculadora">1.2 CIDR y Subredes</a></li>
+          <li><a href="#simulador">1.3 Simulador de Ruteo</a></li>
+          <li><a href="#laboratorio">1.4 Servidor Web Local</a></li>
+          <li><a href="#metacognicion">1.5 Autoevaluación</a></li>
+        </ul>
+      </aside>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>© 2026 Portal de Cloud Computing - Diseñado para una docencia ágil e interactiva.</p>
+    <p style="margin-top: 0.5rem;"><a href="index.html">← Volver al Dashboard Principal</a></p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="script.js"></script>
+  
+  <!-- Interactive elements Javascript logic -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Initialize calculators and simulators
+      initCidrCalculator();
+      initRoutingSimulator();
+      initQuiz();
+      
+      // Sidebar active links scroll sync
+      initSidebarScrollSpy();
+    });
+
+    // -------------------------------------------------------------
+    // 1. CIDR Calculator with padlock locks (connecting to Class 0)
+    // -------------------------------------------------------------
+    function initCidrCalculator() {
+      const ipInput = document.getElementById('ipInput');
+      const cidrSelect = document.getElementById('cidrSelect');
+      const lockVisual = document.getElementById('cidrLockVisual');
+      
+      if (!ipInput || !cidrSelect) return;
+
+      const updateCalculations = () => {
+        const ip = ipInput.value.trim();
+        const mask = parseInt(cidrSelect.value); // 16, 20, 24, 28
+
+        // Validate basic IP format
+        const ipPattern = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+        if (!ipPattern.test(ip)) {
+          ipInput.style.borderColor = '#ef4444';
+          return;
+        }
+        ipInput.style.borderColor = '';
+
+        const octets = ip.split('.').map(Number);
+        if (octets.some(o => o < 0 || o > 255)) {
+          ipInput.style.borderColor = '#ef4444';
+          return;
+        }
+
+        // Calculations
+        const totalIps = Math.pow(2, 32 - mask);
+        const standardUsable = Math.max(0, totalIps - 2);
+        const awsUsable = Math.max(0, totalIps - 5);
+
+        // Calculate Network and Broadcast
+        const ipNum = (octets[0] << 24) >>> 0 | (octets[1] << 16) | (octets[2] << 8) | octets[3];
+        const netMask = (0xffffffff << (32 - mask)) >>> 0;
+        const netNum = (ipNum & netMask) >>> 0;
+        const broadNum = (netNum | ~netMask) >>> 0;
+
+        const numToIp = (num) => {
+          return [
+            (num >>> 24) & 255,
+            (num >>> 16) & 255,
+            (num >>> 8) & 255,
+            num & 255
+          ].join('.');
+        };
+
+        const netIp = numToIp(netNum);
+        const broadIp = numToIp(broadNum);
+
+        // Update UI Text
+        document.getElementById('resNetRange').textContent = `${netIp} - ${broadIp}`;
+        document.getElementById('resTotalIps').textContent = totalIps.toLocaleString();
+        document.getElementById('resStandardIps').textContent = standardUsable.toLocaleString();
+        document.getElementById('resAwsIps').textContent = awsUsable.toLocaleString();
+
+        // AWS Reserved details
+        const netParts = netIp.split('.').map(Number);
+        const baseIpPart = `${netParts[0]}.${netParts[1]}.${netParts[2]}.`;
+        const lastPart = netParts[3];
+
+        const awsListHtml = `
+          <li><code>${baseIpPart}${lastPart}</code>: <strong>Dirección de red</strong> (identifica la subred).</li>
+          <li><code>${baseIpPart}${lastPart + 1}</code>: <strong>VPC Router</strong> (puerta de enlace predeterminada para el tráfico interno).</li>
+          <li><code>${baseIpPart}${lastPart + 2}</code>: <strong>Servidor DNS de AWS</strong> (Amazon DNS resolver).</li>
+          <li><code>${baseIpPart}${lastPart + 3}</code>: <strong>Reservado por AWS</strong> para compatibilidades futuras.</li>
+          <li><code>${baseIpPart}${broadIp.split('.')[3]}</code>: <strong>Broadcast de red</strong> (AWS no soporta difusión, pero reserva esta dirección final).</li>
+        `;
+        document.getElementById('awsReservedList').innerHTML = awsListHtml;
+
+        // Render octet padlock visual blocks based on mask value
+        // /16: 2 locked, 2 unlocked
+        // /20: 2 locked, 3rd partially locked (we'll count it as unlocked for simple UI input, or explain it), 4th unlocked
+        // /24: 3 locked, 1 unlocked
+        // /28: 3 locked, 4th partially locked (we'll draw it unlocked since host changes inside it)
+        lockVisual.innerHTML = '';
+        const lockedBytes = Math.floor(mask / 8);
+
+        for (let i = 0; i < 4; i++) {
+          const isLocked = i < lockedBytes;
+          const box = document.createElement('div');
+          box.className = `octet-box ${isLocked ? 'locked' : 'unlocked'}`;
+          box.style.width = '85px';
+          box.style.padding = '0.75rem 0.5rem';
+          
+          box.innerHTML = `
+            <div class="octet-box-title" style="font-size:0.55rem;">${isLocked ? 'Red' : 'Host'}</div>
+            <div style="font-family:'Fira Code', monospace; font-size:1.15rem; font-weight:bold;">${octets[i]}</div>
+            ${isLocked ? '<span class="lock-badge">🔒</span>' : '<span class="unlock-badge">🔓</span>'}
+          `;
+          
+          lockVisual.appendChild(box);
+
+          if (i < 3) {
+            const dot = document.createElement('span');
+            dot.className = 'dot-separator';
+            dot.textContent = '.';
+            dot.style.fontSize = '1.5rem';
+            dot.style.alignSelf = 'flex-end';
+            dot.style.marginBottom = '0.3rem';
+            lockVisual.appendChild(dot);
+          }
+        }
+      };
+
+      ipInput.addEventListener('input', updateCalculations);
+      cidrSelect.addEventListener('change', updateCalculations);
+      
+      // First run
+      updateCalculations();
+    }
+
+    // -------------------------------------------------------------
+    // 2. Packet Routing Simulator Logic
+    // -------------------------------------------------------------
+    function initRoutingSimulator() {
+      const btnSend = document.getElementById('btnSendPacket');
+      const packetDot = document.getElementById('packetDot');
+      const simStatus = document.getElementById('simStatusAlert');
+      const subnetRadios = document.getElementsByName('subnetSelect');
+      const igwCheckbox = document.getElementById('igwAttached');
+      const routeRadios = document.getElementsByName('routeRule');
+
+      // Visual components
+      const elEC2 = document.getElementById('elEC2');
+      const elRouter = document.getElementById('elRouter');
+      const elIGW = document.getElementById('elIGW');
+      const elInternet = document.getElementById('elInternet');
+      const ec2IpLabel = document.getElementById('ec2IpLabel');
+
+      if (!btnSend) return;
+
+      // Update positions based on subnet type
+      const updateSubnetVisuals = () => {
+        const isPublic = document.querySelector('input[name="subnetSelect"]:checked').value === 'public';
+        
+        if (isPublic) {
+          elEC2.style.left = '40px';
+          elEC2.style.top = '100px';
+          ec2IpLabel.textContent = '10.0.1.10';
+        } else {
+          elEC2.style.left = '190px';
+          elEC2.style.top = '100px';
+          ec2IpLabel.textContent = '10.0.2.10';
+        }
+        
+        // Reset colors
+        elEC2.className = 'network-element active';
+        elRouter.className = 'network-element';
+        elIGW.className = 'network-element';
+        elInternet.className = 'network-element internet-cloud';
+        simStatus.style.display = 'none';
+        packetDot.style.display = 'none';
+      };
+
+      Array.from(subnetRadios).forEach(r => r.addEventListener('change', updateSubnetVisuals));
+      igwCheckbox.addEventListener('change', updateSubnetVisuals);
+      Array.from(routeRadios).forEach(r => r.addEventListener('change', updateSubnetVisuals));
+
+      btnSend.addEventListener('click', () => {
+        // Disable button during animation
+        btnSend.disabled = true;
+        
+        // Read configuration state
+        const isPublic = document.querySelector('input[name="subnetSelect"]:checked').value === 'public';
+        const igwAttached = igwCheckbox.checked;
+        const routeRule = document.querySelector('input[name="routeRule"]:checked').value;
+
+        // Reset visual status
+        elEC2.className = 'network-element active';
+        elRouter.className = 'network-element';
+        elIGW.className = 'network-element';
+        elInternet.className = 'network-element internet-cloud';
+        simStatus.style.display = 'none';
+
+        // Coordinates configuration
+        const startX = isPublic ? 90 : 240;
+        const startY = 145;
+        const routerX = 240;
+        const routerY = 145;
+        const igwX = 320;
+        const igwY = 145;
+        const internetX = 410;
+        const internetY = 145;
+
+        // Initialize packet dot
+        packetDot.style.left = `${startX}px`;
+        packetDot.style.top = `${startY}px`;
+        packetDot.style.display = 'block';
+
+        // Step 1: Animate to Router (Route Table)
+        setTimeout(() => {
+          packetDot.style.left = `${routerX}px`;
+          packetDot.style.top = `${routerY}px`;
+          
+          setTimeout(() => {
+            elRouter.classList.add('active');
+            
+            // Check Route Table conditions
+            if (!isPublic) {
+              // Private subnet has no direct route table association to IGW by definition
+              packetDot.style.boxShadow = '0 0 15px #ef4444';
+              packetDot.style.background = '#ef4444';
+              elRouter.classList.add('error');
+              btnSend.disabled = false;
+              
+              showStatus('error', '❌ <strong>Fallo en la Tabla de Rutas:</strong> Tu servidor está en la Subred Privada. Esta subred solo posee una ruta local (10.0.0.0/16 → Local) y no tiene salida al Internet Gateway. ¡El paquete se descarta aquí!');
+              return;
+            }
+
+            if (routeRule === 'local') {
+              // Public subnet, but Route table is configured as local only
+              packetDot.style.boxShadow = '0 0 15px #ef4444';
+              packetDot.style.background = '#ef4444';
+              elRouter.classList.add('error');
+              btnSend.disabled = false;
+              
+              showStatus('error', '❌ <strong>Fallo en Enrutamiento:</strong> El servidor está en una subred con acceso físico, pero su Tabla de Rutas está en "Solo Local". No existe una regla por defecto (0.0.0.0/0) que indique enviar paquetes externos al Internet Gateway.');
+              return;
+            }
+
+            // Step 2: Animate to IGW
+            packetDot.style.left = `${igwX}px`;
+            packetDot.style.top = `${igwY}px`;
+
+            setTimeout(() => {
+              elIGW.classList.add('active');
+              
+              if (!igwAttached) {
+                // Route is configured to IGW, but IGW is detached
+                packetDot.style.boxShadow = '0 0 15px #ef4444';
+                packetDot.style.background = '#ef4444';
+                elIGW.classList.add('error');
+                btnSend.disabled = false;
+                
+                showStatus('error', '❌ <strong>Fallo de Infraestructura:</strong> La tabla de rutas envió el paquete al Internet Gateway (IGW), pero este Gateway está "Desasociado" de la VPC. Es como si el portero de tu condominio no tuviera la llave de la reja. El paquete no puede salir.');
+                return;
+              }
+
+              // Step 3: Animate to Internet (Success)
+              packetDot.style.left = `${internetX}px`;
+              packetDot.style.top = `${internetY}px`;
+
+              setTimeout(() => {
+                elInternet.classList.add('success');
+                packetDot.style.boxShadow = '0 0 15px var(--color-teacher)';
+                packetDot.style.background = 'var(--color-teacher)';
+                btnSend.disabled = false;
+                
+                showStatus('success', '✨ <strong>¡Éxito total! Conectividad establecida:</strong> El paquete salió de la VPC a través de la subred pública, fue enrutado por la regla 0.0.0.0/0 hacia el Internet Gateway asociado y llegó a Internet de forma exitosa.');
+              }, 800);
+
+            }, 800);
+
+          }, 800);
+
+        }, 50);
+      });
+
+      function showStatus(type, html) {
+        simStatus.className = `sim-status status-alert ${type}`;
+        simStatus.innerHTML = html;
+        simStatus.style.display = 'block';
+      }
+    }
+
+    // -------------------------------------------------------------
+    // 3. Metacognition Quiz Logic
+    // -------------------------------------------------------------
+    function initQuiz() {
+      const questions = document.querySelectorAll('.quiz-question-card');
+      
+      questions.forEach(qCard => {
+        const options = qCard.querySelectorAll('.quiz-option');
+        const explanation = qCard.querySelector('.quiz-explanation');
+        let answered = false;
+
+        options.forEach(opt => {
+          opt.addEventListener('click', () => {
+            if (answered) return;
+            answered = true;
+
+            const isCorrect = opt.getAttribute('data-correct') === 'true';
+            
+            // Mark selected option
+            if (isCorrect) {
+              opt.classList.add('correct');
+            } else {
+              opt.classList.add('incorrect');
+              
+              // Find and highlight correct answer
+              options.forEach(o => {
+                if (o.getAttribute('data-correct') === 'true') {
+                  o.classList.add('correct');
+                }
+              });
+            }
+
+            // Show explanation
+            explanation.style.display = 'block';
+          });
+        });
+      });
+    }
+
+    // -------------------------------------------------------------
+    // 4. Sidebar Scroll Spy Logic
+    // -------------------------------------------------------------
+    function initSidebarScrollSpy() {
+      const sidebarLinks = document.querySelectorAll('.sidebar-links a');
+      const slidesList = document.querySelectorAll('.slide');
+
+      const onScroll = () => {
+        if (document.body.classList.contains('presentation-mode')) return;
+
+        let currentSlideId = '';
+        const scrollPosition = window.scrollY + 200;
+
+        slidesList.forEach(slide => {
+          const top = slide.offsetTop;
+          const height = slide.offsetHeight;
+          if (scrollPosition >= top && scrollPosition < top + height) {
+            currentSlideId = slide.getAttribute('id');
+          }
+        });
+
+        if (currentSlideId) {
+          sidebarLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href') === `#${currentSlideId}`) {
+              link.classList.add('active');
+            }
+          });
+        }
+      };
+
+      window.addEventListener('scroll', onScroll);
+    }
+  </script>
+</body>
+</html>

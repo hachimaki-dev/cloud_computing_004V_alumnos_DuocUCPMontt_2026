@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clase 4: Almacenamiento S3 | Cloud Computing</title>
+  <meta name="description" content="Aprende sobre almacenamiento de objetos, Buckets S3 y permisos a través de un simulador web interactivo.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <a href="index.html" class="nav-brand">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17.5 19A3.5 3.5 0 0 0 21 15.5c0-2.79-2.54-4.5-5-4.5-.42 0-.83.04-1.24.12A6.5 6.5 0 0 0 3 13.5A3.5 3.5 0 0 0 6.5 17H12" />
+        <path d="M12 12V21" />
+        <path d="m9 18 3 3 3-3" />
+      </svg>
+      <span>Cloud Foundations</span>
+    </a>
+    
+    <div class="nav-links">
+      <a href="index.html" class="nav-link">Dashboard</a>
+      <div class="teacher-toggle-container">
+        <span class="teacher-toggle-label">Modo Profesor</span>
+        <label class="switch">
+          <input type="checkbox" id="teacherModeToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="container">
+    <a href="index.html" class="back-link">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+      </svg>
+      Volver al Dashboard
+    </a>
+
+    <header class="class-header">
+      <span class="class-number" style="margin-bottom: 0.5rem; display: inline-block;">Clase 4</span>
+      <h1>Almacenamiento de Objetos (S3)</h1>
+      <p style="color: var(--text-secondary); font-size: 1.1rem; max-width: 800px;">
+        Descubre cómo las aplicaciones modernas almacenan imágenes y videos de forma infinita, y practica subiendo archivos a nuestro simulador local de Bucket S3.
+      </p>
+    </header>
+
+    <div class="class-content-wrapper">
+      <div class="main-content-flow slides-container" id="slidesContainer">
+        
+        <!-- SLIDE 1 -->
+        <section class="slide" id="slide-intro" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">4.1</span>
+            El Problema del Disco Duro (Bloques vs Objetos)
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: El Estacionamiento Valet (5 min)</h4>
+            <p><strong>Meta:</strong> Explicar por qué S3 no es un disco duro como el de tu notebook.</p>
+            <ul>
+              <li><strong>Almacenamiento en Bloque (EBS / Disco local):</strong> Es como un estacionamiento donde tú manejas el auto. Sabes exactamente en qué sector y piso está. Tienes acceso rápido a cambiarle una rueda. <em>Útil para instalar Sistemas Operativos.</em></li>
+              <li><strong>Almacenamiento de Objetos (S3):</strong> Es como un "Valet Parking". Le entregas tu auto (archivo) al valet y él te da un ticket (URL única). No sabes dónde lo estacionó ni te importa, cuando quieres tu auto le das el ticket y te lo trae entero. <em>No puedes cambiarle una rueda ahí mismo, tienes que pedir el auto de vuelta, cambiarla y volver a entregarlo.</em></li>
+              <li>S3 es infinito. Nunca dirá "Disco lleno".</li>
+            </ul>
+          </div>
+
+          <p>
+            Cuando Netflix necesita almacenar millones de películas, no compra "discos duros más grandes". Utiliza el <strong>Almacenamiento de Objetos</strong>. En AWS, el servicio estrella para esto se llama <strong>Amazon S3 (Simple Storage Service)</strong>.
+          </p>
+
+          <div class="class-grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
+            <div class="card" style="margin-bottom:0;">
+              <h3 style="color: var(--color-cyan); font-size: 1.2rem; margin-bottom: 0.5rem;">Almacenamiento de Bloques</h3>
+              <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom:0.5rem;">Es el disco duro clásico conectado a un servidor (EC2).</p>
+              <ul style="font-size: 0.85rem; color: var(--text-muted); margin-left: 1.25rem;">
+                <li>Permite modificaciones parciales rápidas.</li>
+                <li>Limitado en tamaño (ej. 500GB max).</li>
+                <li>No accesible por Internet directamente.</li>
+              </ul>
+            </div>
+            <div class="card" style="margin-bottom:0;">
+              <h3 style="color: var(--color-accent); font-size: 1.2rem; margin-bottom: 0.5rem;">Amazon S3 (Objetos)</h3>
+              <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom:0.5rem;">Archivos guardados en contenedores llamados <strong>Buckets</strong>.</p>
+              <ul style="font-size: 0.85rem; color: var(--text-muted); margin-left: 1.25rem;">
+                <li>Espacio infinito (Auto-escalable).</li>
+                <li>Cada archivo tiene una URL única vía HTTP.</li>
+                <li>Inmutable: Para cambiarlo, debes resubirlo entero.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 2 -->
+        <section class="slide" id="slide-s3-sim" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">4.2</span>
+            Práctica: Simulador de Bucket S3
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Simulador de Bucket (10 min)</h4>
+            <p>Haz que los alumnos suban cualquier imagen a este Bucket simulado y experimenten con los permisos:</p>
+            <ul>
+              <li><strong>Permiso Privado (por defecto):</strong> Si suben el archivo y le hacen clic al enlace, simulará un error "403 Access Denied". Esto enseña que S3 es seguro por defecto.</li>
+              <li><strong>Permiso Público:</strong> Pídeles que cambien el selector a "Público", suban una imagen nueva, y vean cómo al hacer clic se abre exitosamente.</li>
+            </ul>
+          </div>
+
+          <p>
+            Sube archivos a tu Bucket simulado (estos no se enviarán a internet, se guardan en tu navegador local). Observa cómo se genera una URL única de S3 y cómo afectan los permisos de acceso.
+          </p>
+
+          <div class="card" style="padding: 1.5rem; margin-top:1.5rem;">
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem;">
+              <h3 style="color:var(--color-accent); font-size:1.1rem;">Bucket: my-simulated-cloud-bucket</h3>
+              
+              <div style="background: rgba(0,0,0,0.4); padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid var(--glass-border);">
+                <label style="font-size:0.8rem; font-weight:bold; margin-right: 0.5rem;">Permiso de subida (ACL):</label>
+                <select id="s3AclSelect" style="background:transparent; color:white; border:none; outline:none; cursor:pointer;">
+                  <option value="private">🔒 Privado (Access Denied)</option>
+                  <option value="public-read">🌐 Público (Lectura URL)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Dropzone -->
+            <div class="bucket-dropzone" id="dropzone">
+              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--color-cyan);">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              <div>
+                <p style="font-weight:bold; margin-bottom:0.25rem;">Arrastra archivos aquí o haz clic para subir</p>
+                <p style="font-size:0.85rem; color:var(--text-muted);">Soporta JPG, PNG, TXT (Max 2MB)</p>
+              </div>
+              <input type="file" id="fileInput" style="display:none;" />
+            </div>
+
+            <div class="bucket-file-list" id="fileList">
+              <!-- Files will be injected here -->
+            </div>
+
+          </div>
+        </section>
+
+        <!-- SLIDE 3 -->
+        <section class="slide" id="metacognicion" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">4.3</span>
+            Cierre: Metacognición y Autoevaluación
+          </h2>
+
+          <div class="quiz-container">
+            <div class="quiz-question-card">
+              <h4>1. Almacenaste la foto de perfil de un usuario en Amazon S3. El usuario cambia su foto. ¿Qué ocurre técnicamente en S3?</h4>
+              <div class="quiz-options">
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">A</div>
+                  <span>S3 modifica los píxeles de la foto original para ahorrar espacio.</span>
+                </div>
+                <div class="quiz-option" data-correct="true">
+                  <div class="quiz-option-marker">B</div>
+                  <span>S3 sobreescribe el objeto completo con la nueva versión de la foto subida. Los objetos son inmutables.</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">C</div>
+                  <span>S3 bloquea el archivo porque no soporta imágenes.</span>
+                </div>
+              </div>
+              <div class="quiz-explanation">
+                <strong>Correcto:</strong> Los objetos en S3 son inmutables. Para "editar" un archivo en S3, realmente lo estás reemplazando por un objeto completamente nuevo bajo la misma llave (nombre de archivo).
+              </div>
+            </div>
+            
+            <div class="quiz-question-card">
+              <h4>2. Al crear un Bucket S3, por defecto, ¿quién puede ver los archivos subidos mediante sus URLs de Internet?</h4>
+              <div class="quiz-options">
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">A</div>
+                  <span>Cualquiera en Internet (Acceso público global).</span>
+                </div>
+                <div class="quiz-option" data-correct="true">
+                  <div class="quiz-option-marker">B</div>
+                  <span>Nadie. S3 es "Privado por defecto" (Access Denied).</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">C</div>
+                  <span>Solo personas que tengan el link, aunque no sean administradores.</span>
+                </div>
+              </div>
+              <div class="quiz-explanation">
+                <strong>Correcto:</strong> S3 bloquea el acceso público por defecto para proteger los datos de la empresa de filtraciones de seguridad. Debes autorizarlo explícitamente a través de ACLs o Políticas de Bucket.
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Sticky Sidebar -->
+      <aside class="sidebar-navigation">
+        <h4>Contenido de la Clase</h4>
+        <ul class="sidebar-links">
+          <li><a href="#slide-intro" class="active">4.1 Teoría S3</a></li>
+          <li><a href="#slide-s3-sim">4.2 Simulador Bucket</a></li>
+          <li><a href="#metacognicion">4.3 Autoevaluación</a></li>
+        </ul>
+      </aside>
+
+    </div>
+  </main>
+
+  <!-- Modal for S3 preview -->
+  <div id="s3Modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:999; justify-content:center; align-items:center;">
+    <div style="background:var(--bg-primary); border: 1px solid var(--glass-border); padding:2rem; border-radius:12px; max-width:600px; width:90%; position:relative;">
+      <button id="s3ModalClose" style="position:absolute; top:1rem; right:1rem; background:transparent; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button>
+      <h3 id="s3ModalTitle" style="margin-bottom:1rem; word-break:break-all;"></h3>
+      <div id="s3ModalContent" style="text-align:center;"></div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>© 2026 Portal de Cloud Computing - Diseñado para una docencia ágil e interactiva.</p>
+    <p style="margin-top: 0.5rem;"><a href="index.html">← Volver al Dashboard Principal</a></p>
+  </footer>
+
+  <script src="script.js"></script>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initS3Simulator();
+      initQuiz();
+      initSidebarScrollSpy();
+    });
+
+    // -------------------------------------------------------------
+    // S3 Simulator (Local storage based)
+    // -------------------------------------------------------------
+    function initS3Simulator() {
+      const dropzone = document.getElementById('dropzone');
+      const fileInput = document.getElementById('fileInput');
+      const fileList = document.getElementById('fileList');
+      const aclSelect = document.getElementById('s3AclSelect');
+      const modal = document.getElementById('s3Modal');
+      const modalClose = document.getElementById('s3ModalClose');
+      const modalTitle = document.getElementById('s3ModalTitle');
+      const modalContent = document.getElementById('s3ModalContent');
+
+      // State
+      let bucketFiles = [];
+
+      dropzone.addEventListener('click', () => fileInput.click());
+
+      dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.classList.add('dragover');
+      });
+
+      dropzone.addEventListener('dragleave', () => {
+        dropzone.classList.remove('dragover');
+      });
+
+      dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        if (e.dataTransfer.files.length) {
+          handleFile(e.dataTransfer.files[0]);
+        }
+      });
+
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length) {
+          handleFile(e.target.files[0]);
+        }
+      });
+
+      function handleFile(file) {
+        if (file.size > 2 * 1024 * 1024) {
+          alert("El archivo es muy grande. Usa un archivo menor a 2MB para esta simulación local.");
+          return;
+        }
+
+        const isPublic = aclSelect.value === 'public-read';
+        const fileKey = Date.now() + "_" + file.name.replace(/\s+/g, '-');
+        const s3Url = `https://my-simulated-cloud-bucket.s3.amazonaws.com/${fileKey}`;
+
+        // Read file as base64
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const fileData = {
+            name: file.name,
+            key: fileKey,
+            url: s3Url,
+            size: (file.size / 1024).toFixed(1) + ' KB',
+            isPublic: isPublic,
+            data: e.target.result,
+            type: file.type
+          };
+          
+          bucketFiles.push(fileData);
+          renderFiles();
+        };
+        reader.readAsDataURL(file);
+      }
+
+      function renderFiles() {
+        fileList.innerHTML = '';
+        bucketFiles.forEach((file, index) => {
+          const div = document.createElement('div');
+          div.className = 'bucket-file-item';
+          
+          const icon = file.isPublic ? '🌐 Público' : '🔒 Privado';
+          
+          div.innerHTML = `
+            <div>
+              <div style="font-weight:600; font-size:0.9rem;">${file.name} <span style="font-size:0.7rem; color:var(--text-muted);">${file.size}</span></div>
+              <a href="#" class="s3-link" data-index="${index}" style="font-family:'Fira Code', monospace; font-size:0.75rem;">${file.url}</a>
+            </div>
+            <div style="font-size:0.8rem; background:rgba(255,255,255,0.1); padding:0.2rem 0.5rem; border-radius:4px;">
+              ${icon}
+            </div>
+          `;
+          fileList.appendChild(div);
+        });
+
+        // Add event listeners to links
+        document.querySelectorAll('.s3-link').forEach(link => {
+          link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const idx = e.target.getAttribute('data-index');
+            openModal(bucketFiles[idx]);
+          });
+        });
+      }
+
+      function openModal(file) {
+        modalTitle.textContent = file.url;
+        modal.style.display = 'flex';
+        
+        if (!file.isPublic) {
+          modalContent.innerHTML = `
+            <div style="color:#ef4444; font-size:4rem; margin-bottom:1rem;">⚠️</div>
+            <h2 style="color:#ef4444; margin-bottom:1rem;">403 Access Denied</h2>
+            <p style="color:var(--text-secondary);">El objeto es privado. Tienes el link, pero AWS ha bloqueado tu solicitud porque no tienes permisos públicos configurados.</p>
+          `;
+        } else {
+          if (file.type.startsWith('image/')) {
+            modalContent.innerHTML = `<img src="${file.data}" style="max-width:100%; max-height:400px; border-radius:8px;" />`;
+          } else {
+            modalContent.innerHTML = `<p style="color:var(--color-teacher);">✅ Archivo descargado exitosamente.</p>`;
+          }
+        }
+      }
+
+      modalClose.addEventListener('click', () => {
+        modal.style.display = 'none';
+      });
+    }
+
+    function initQuiz() {
+      const quizCards = document.querySelectorAll('.quiz-question-card');
+      quizCards.forEach(card => {
+        const options = card.querySelectorAll('.quiz-option');
+        const explanation = card.querySelector('.quiz-explanation');
+        let answered = false;
+        options.forEach(opt => {
+          opt.addEventListener('click', () => {
+            if (answered) return;
+            answered = true;
+            if (opt.getAttribute('data-correct') === 'true') {
+              opt.classList.add('correct');
+            } else {
+              opt.classList.add('incorrect');
+              options.forEach(o => {
+                if (o.getAttribute('data-correct') === 'true') o.classList.add('correct');
+              });
+            }
+            explanation.style.display = 'block';
+          });
+        });
+      });
+    }
+
+    function initSidebarScrollSpy() {
+      const sidebarLinks = document.querySelectorAll('.sidebar-links a');
+      const slidesList = document.querySelectorAll('.slide');
+      const onScroll = () => {
+        if (document.body.classList.contains('presentation-mode')) return;
+        let currentSlideId = '';
+        const scrollPosition = window.scrollY + 200;
+        slidesList.forEach(slide => {
+          const top = slide.offsetTop;
+          const height = slide.offsetHeight;
+          if (scrollPosition >= top && scrollPosition < top + height) {
+            currentSlideId = slide.getAttribute('id');
+          }
+        });
+        if (currentSlideId) {
+          sidebarLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href') === `#${currentSlideId}`) link.classList.add('active');
+          });
+        }
+      };
+      window.addEventListener('scroll', onScroll);
+    }
+  </script>
+</body>
+</html>
