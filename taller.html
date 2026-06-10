@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Taller Práctico: EC2 + EFS desde Cero | Cloud Computing</title>
+  <meta name="description" content="Taller práctico paso a paso para crear una instancia EC2, gestionar usuarios Linux, crear un EFS y montarlo con persistencia automática en AWS.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <a href="index.html" class="nav-brand">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17.5 19A3.5 3.5 0 0 0 21 15.5c0-2.79-2.54-4.5-5-4.5-.42 0-.83.04-1.24.12A6.5 6.5 0 0 0 3 13.5A3.5 3.5 0 0 0 6.5 17H12" />
+        <path d="M12 12V21" />
+        <path d="m9 18 3 3 3-3" />
+      </svg>
+      <span>Cloud Foundations</span>
+    </a>
+    
+    <div class="nav-links">
+      <a href="index.html" class="nav-link">Dashboard</a>
+      
+      <!-- Teacher Mode Switcher -->
+      <div class="teacher-toggle-container">
+        <span class="teacher-toggle-label">Modo Profesor</span>
+        <label class="switch">
+          <input type="checkbox" id="teacherModeToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content Container -->
+  <main class="container">
+    
+    <!-- Back button -->
+    <a href="index.html" class="back-link">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+      </svg>
+      Volver al Dashboard
+    </a>
+
+    <!-- Class Header -->
+    <header class="class-header">
+      <span class="class-number" style="margin-bottom: 0.5rem; display: inline-block; background: rgba(245,158,11,0.15); color: #f59e0b; border-color: rgba(245,158,11,0.3);">🔧 Taller Práctico</span>
+      <h1>Amazon EC2 + EFS desde Cero</h1>
+      <p style="color: var(--text-secondary); font-size: 1.1rem; max-width: 800px;">
+        Para estudiantes que nunca (o casi nunca) han trabajado con la nube. Aquí vas a entender cada paso antes de ejecutarlo. Sin apuro.
+      </p>
+    </header>
+
+    <!-- Module Progress Bar -->
+    <div class="taller-progress-bar" id="tallerProgressBar">
+      <div class="progress-step active" data-target="slide-portada">Inicio</div>
+      <div class="progress-step" data-target="slide-conceptos">Conceptos</div>
+      <div class="progress-step" data-target="slide-arquitectura">Arquitectura</div>
+      <div class="progress-step" data-target="slide-mod1">Mod 1: EC2</div>
+      <div class="progress-step" data-target="slide-mod1b">Mod 1B: PuTTY</div>
+      <div class="progress-step" data-target="slide-mod2">Mod 2: Usuarios</div>
+      <div class="progress-step" data-target="slide-mod3">Mod 3: EFS</div>
+      <div class="progress-step" data-target="slide-mod4">Mod 4: Montar</div>
+      <div class="progress-step" data-target="slide-mod5">Mod 5: fstab</div>
+      <div class="progress-step" data-target="slide-ejercicios">Ejercicios</div>
+      <div class="progress-step" data-target="slide-referencia">Referencia</div>
+    </div>
+
+    <!-- Content with Slides Container -->
+    <div class="class-content-wrapper">
+      
+      <!-- Slides Container -->
+      <div class="main-content-flow slides-container" id="slidesContainer">
+        
+        <!-- ============================================================ -->
+        <!-- SLIDE 0: PORTADA + OBJETIVOS -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-portada" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.0</span>
+            ¿Qué vas a aprender en este taller?
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Introducción al Taller (5 min)</h4>
+            <p><strong>Meta:</strong> Contextualizar que este taller es su primera experiencia <em>real</em> con la consola de AWS. Todo lo que hicieron en las clases anteriores con simuladores, ahora lo van a hacer de verdad.</p>
+            <ul>
+              <li><strong>Motivación:</strong> "Hoy van a crear su propio servidor en la nube. Cuando terminen, van a tener una máquina virtual funcionando en Virginia, EE.UU., a la que se conectan desde su notebook."</li>
+              <li><strong>Tiempo estimado total:</strong> 90-120 minutos</li>
+              <li><strong>Requisito:</strong> Cada alumno necesita acceso a una cuenta AWS (AWS Academy, Learner Lab, o cuenta personal con capa gratuita)</li>
+            </ul>
+          </div>
+
+          <p>Al terminar este taller serás capaz de hacer todo esto por tu cuenta, sin ayuda:</p>
+
+          <div class="objectives-grid">
+            <div class="objective-card">
+              <div class="objective-num">1</div>
+              <p><strong>Crear una máquina virtual (EC2)</strong> en Amazon Web Services desde la consola</p>
+            </div>
+            <div class="objective-card">
+              <div class="objective-num">2</div>
+              <p><strong>Conectarte por SSH</strong> desde tu computador usando PuTTY y claves .pem/.ppk</p>
+            </div>
+            <div class="objective-card">
+              <div class="objective-num">3</div>
+              <p><strong>Gestionar usuarios y contraseñas</strong> dentro de Linux (root, useradd, passwd)</p>
+            </div>
+            <div class="objective-card">
+              <div class="objective-num">4</div>
+              <p><strong>Crear un sistema de archivos compartido</strong> en la nube con Amazon EFS</p>
+            </div>
+            <div class="objective-card">
+              <div class="objective-num">5</div>
+              <p><strong>Montar el EFS</strong> en tu máquina virtual y verificar que funciona</p>
+            </div>
+            <div class="objective-card">
+              <div class="objective-num">6</div>
+              <p><strong>Hacer el montaje persistente</strong> para que sobreviva reinicios del servidor (fstab)</p>
+            </div>
+          </div>
+
+          <div class="warning-callout">
+            <strong>⚠️ Importante antes de empezar:</strong> Este taller trabaja con la <strong>consola real de AWS</strong>. Cada paso que ejecutes tiene un costo potencial (aunque mínimo con la capa gratuita). Asegúrate de <strong>terminar (eliminar) tus recursos al finalizar</strong> para no generar cargos inesperados.
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 1: CONCEPTOS CLAVE (FLIP CARDS) -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-conceptos" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.1</span>
+            Conceptos Clave — No te saltes esta sección
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Glosario Interactivo (10 min)</h4>
+            <p>Pide a los alumnos que hagan clic en cada tarjeta antes de avanzar. Pregunta en voz alta: "¿Alguien puede explicar con sus palabras qué es una AMI?" para verificar comprensión.</p>
+            <ul>
+              <li><strong>Analogía clave del día:</strong> EC2 = Airbnb de computadores. En lugar de comprar casa (servidor físico), arriendas por noches (horas de uso).</li>
+              <li><strong>Tiempo:</strong> 5-8 min máximo. Si dominan estos conceptos, el resto fluye solo.</li>
+            </ul>
+          </div>
+
+          <p style="margin-bottom: 0.5rem;">Haz clic en cada tarjeta para ver la explicación. Si entiendes estos conceptos, el resto del taller fluye solo.</p>
+
+          <div class="concept-cards-grid">
+            <!-- Card 1: La Nube -->
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+              <div class="flip-card-inner">
+                <div class="flip-card-front">
+                  <span class="flip-icon">☁️</span>
+                  <h4>¿Qué es la Nube?</h4>
+                  <span class="flip-hint">Clic para ver →</span>
+                </div>
+                <div class="flip-card-back">
+                  <p>Es simplemente <strong>el computador de otra persona</strong>. Amazon tiene miles de computadores en sus centros de datos. Tú los "alquilas" por horas o minutos. Cuando creas una EC2, estás reservando uno de esos computadores para ti.</p>
+                </div>
+              </div>
+            </div>
+            <!-- Card 2: EC2 -->
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+              <div class="flip-card-inner">
+                <div class="flip-card-front">
+                  <span class="flip-icon">🖥️</span>
+                  <h4>EC2</h4>
+                  <span class="flip-hint">Clic para ver →</span>
+                </div>
+                <div class="flip-card-back">
+                  <p><strong>Elastic Compute Cloud.</strong> Es el servicio de AWS para crear máquinas virtuales. Piénsalo como un computador sin pantalla que vive en internet. Tú te conectas a él de forma remota.</p>
+                </div>
+              </div>
+            </div>
+            <!-- Card 3: Instancia -->
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+              <div class="flip-card-inner">
+                <div class="flip-card-front">
+                  <span class="flip-icon">📦</span>
+                  <h4>Instancia</h4>
+                  <span class="flip-hint">Clic para ver →</span>
+                </div>
+                <div class="flip-card-back">
+                  <p>Es una máquina virtual <strong>específica</strong> que tú creaste. Como abrir una aplicación: el programa es EC2, tu instancia es <strong>tu</strong> ventana abierta.</p>
+                </div>
+              </div>
+            </div>
+            <!-- Card 4: AMI -->
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+              <div class="flip-card-inner">
+                <div class="flip-card-front">
+                  <span class="flip-icon">💿</span>
+                  <h4>AMI</h4>
+                  <span class="flip-hint">Clic para ver →</span>
+                </div>
+                <div class="flip-card-back">
+                  <p><strong>Amazon Machine Image.</strong> Es la "foto" del sistema operativo. Es como elegir si instalas Windows o Linux antes de encender el computador.</p>
+                </div>
+              </div>
+            </div>
+            <!-- Card 5: t2.small -->
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+              <div class="flip-card-inner">
+                <div class="flip-card-front">
+                  <span class="flip-icon">⚙️</span>
+                  <h4>t2.small</h4>
+                  <span class="flip-hint">Clic para ver →</span>
+                </div>
+                <div class="flip-card-back">
+                  <p>Es el <strong>tamaño de la máquina</strong>: cuánta RAM y CPU tiene. <strong>t2.small</strong> = 1 CPU, 2 GB RAM. Perfecta para practicar sin gastar mucho.</p>
+                </div>
+              </div>
+            </div>
+            <!-- Card 6: Par de claves -->
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+              <div class="flip-card-inner">
+                <div class="flip-card-front">
+                  <span class="flip-icon">🔑</span>
+                  <h4>Par de Claves (.pem)</h4>
+                  <span class="flip-hint">Clic para ver →</span>
+                </div>
+                <div class="flip-card-back">
+                  <p>Como una <strong>llave y una cerradura</strong>. AWS guarda la cerradura, tú guardas la llave (archivo .pem). Sin esa llave no puedes entrar. <strong>Si la pierdes, no hay recuperación.</strong></p>
+                </div>
+              </div>
+            </div>
+            <!-- Card 7: EFS -->
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+              <div class="flip-card-inner">
+                <div class="flip-card-front">
+                  <span class="flip-icon">💾</span>
+                  <h4>EFS</h4>
+                  <span class="flip-hint">Clic para ver →</span>
+                </div>
+                <div class="flip-card-back">
+                  <p><strong>Elastic File System.</strong> Un disco duro en la nube, separado de tu EC2. Puedes conectar el mismo EFS a <strong>varias máquinas al mismo tiempo</strong>. Como una carpeta compartida en red, pero en AWS.</p>
+                </div>
+              </div>
+            </div>
+            <!-- Card 8: VPC + SG -->
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+              <div class="flip-card-inner">
+                <div class="flip-card-front">
+                  <span class="flip-icon">🛡️</span>
+                  <h4>VPC y Security Group</h4>
+                  <span class="flip-hint">Clic para ver →</span>
+                </div>
+                <div class="flip-card-back">
+                  <p><strong>VPC:</strong> Tu red privada en AWS. EC2 y EFS deben estar en la misma VPC para verse.<br><br><strong>Security Group:</strong> El firewall. Define qué tráfico entra y sale. Si no abres el puerto correcto, nada funciona.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 2: DIAGRAMA DE ARQUITECTURA -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-arquitectura" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.2</span>
+            Mapa del Taller: Lo que vamos a construir
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: El Mapa General (3 min)</h4>
+            <p>Muestra este diagrama <strong>antes de empezar</strong> para que los alumnos tengan el panorama completo. Vuelve a él después de cada módulo para marcar qué parte ya completaron.</p>
+            <ul>
+              <li><strong>Pregunta:</strong> "¿Qué componentes reconocen de las clases anteriores?"</li>
+              <li>Deben reconocer VPC (Clase 1), Security Group (Clase 2), EC2 (Clase 3)</li>
+            </ul>
+          </div>
+
+          <p>Este es el panorama completo de lo que vas a construir. Cada módulo te lleva un paso más cerca de tener esta arquitectura funcionando:</p>
+
+          <div class="arch-diagram">
+            <!-- Internet Layer -->
+            <div class="arch-row">
+              <div class="arch-node">
+                <span class="arch-icon">🌐</span>
+                <h5>Internet</h5>
+                <small>Tu computador</small>
+              </div>
+            </div>
+
+            <div class="arch-connector">↕️</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center;">SSH (Puerto 22) vía PuTTY</div>
+
+            <!-- VPC Boundary -->
+            <div class="arch-vpc-boundary">
+              <span class="arch-vpc-label">🔒 VPC (Red Privada en AWS)</span>
+              
+              <div class="arch-row" style="gap: 2rem; padding: 1rem 0;">
+                <!-- EC2 -->
+                <div class="arch-node highlight-ec2">
+                  <span class="arch-icon">🖥️</span>
+                  <h5>Instancia EC2</h5>
+                  <small>Amazon Linux 2023<br>t2.small (1 CPU, 2 GB)</small>
+                </div>
+
+                <div class="arch-connector">⟷</div>
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
+                  <small style="font-size: 0.75rem; color: var(--text-muted);">NFS (Puerto 2049)</small>
+                  <small style="font-size: 0.75rem; color: var(--text-muted);">mount -t efs</small>
+                </div>
+                <div class="arch-connector">⟷</div>
+
+                <!-- EFS -->
+                <div class="arch-node highlight-efs">
+                  <span class="arch-icon">💾</span>
+                  <h5>Amazon EFS</h5>
+                  <small>Disco compartido<br>Escala automática</small>
+                </div>
+              </div>
+
+              <!-- Security Group -->
+              <div style="text-align: center; margin-top: 0.75rem;">
+                <div class="arch-node highlight-sg" style="display: inline-block; padding: 0.6rem 1.25rem;">
+                  <span style="font-size: 1rem;">🛡️</span>
+                  <h5 style="font-size: 0.85rem;">Security Group</h5>
+                  <small>Puerto 22 (SSH) + Puerto 2049 (NFS)</small>
+                </div>
+              </div>
+            </div>
+
+            <!-- fstab -->
+            <div class="arch-connector">↕️</div>
+            <div class="arch-node" style="border-color: rgba(16, 185, 129, 0.3); box-shadow: 0 0 12px rgba(16, 185, 129, 0.1);">
+              <span class="arch-icon">📄</span>
+              <h5>/etc/fstab</h5>
+              <small>Montaje automático al reiniciar</small>
+            </div>
+          </div>
+
+          <div class="why-callout">
+            <strong>💡 ¿Por qué importa este diagrama?</strong> Cada vez que te pierdas durante el taller, vuelve aquí. Cada módulo construye una pieza de este puzzle. Al final, todo estará conectado.
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 3: MÓDULO 1 — CREAR EC2 -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-mod1" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.3</span>
+            Módulo 1 — Crear y configurar una instancia EC2
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Creación de EC2 (25 min)</h4>
+            <p><strong>Meta:</strong> Que cada alumno tenga una instancia EC2 corriendo al final de este módulo.</p>
+            <ul>
+              <li><strong>Riesgo principal:</strong> Que seleccionen la región equivocada. Asegúrate de que TODOS estén en <code>us-east-1</code> antes de crear nada.</li>
+              <li><strong>Tip docente:</strong> Proyecta tu pantalla y hazlo en vivo mientras ellos replican en sus cuentas.</li>
+              <li><strong>Tiempo por paso:</strong> Login (2 min), Buscar EC2 (1 min), Configurar (10 min), Esperar (2 min), Anotar datos (2 min)</li>
+              <li><strong>Error frecuente:</strong> Olvidar guardar el archivo .pem. Insiste 3 veces en que lo guarden.</li>
+            </ul>
+          </div>
+
+          <p>Sigue estos pasos en orden. Cada uno construye sobre el anterior. No te saltes ninguno.</p>
+
+          <div class="stepper-wizard">
+            <!-- Step 1.1 -->
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle">1</div>
+                <div class="stepper-line"></div>
+              </div>
+              <div class="stepper-content">
+                <h4>Ingresar a la consola de AWS</h4>
+                <ul>
+                  <li>Ve a <a href="https://console.aws.amazon.com" target="_blank" style="color: var(--color-cyan);">console.aws.amazon.com</a></li>
+                  <li>Inicia sesión con tu cuenta (o la cuenta de laboratorio)</li>
+                  <li>Verifica que la región diga <strong>US East (N. Virginia) — us-east-1</strong></li>
+                </ul>
+                <div class="why-callout" style="margin-top: 0.75rem;">
+                  <strong>💡 ¿Por qué importa la región?</strong> AWS tiene centros de datos en todo el mundo. Todo lo que crees en una región <strong>no existe</strong> en las otras. Si creas tu EC2 en Virginia y tu EFS en Irlanda, no se pueden ver.
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 1.2 -->
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle">2</div>
+                <div class="stepper-line"></div>
+              </div>
+              <div class="stepper-content">
+                <h4>Buscar el servicio EC2</h4>
+                <ul>
+                  <li>En la barra de búsqueda superior escribe <code>EC2</code></li>
+                  <li>Haz clic en el resultado <strong>EC2</strong> (máquinas virtuales en la nube)</li>
+                  <li>En el menú izquierdo, haz clic en <strong>Instancias</strong></li>
+                  <li>Luego en el botón naranja <strong>Lanzar instancias</strong></li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Step 1.3 -->
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle">3</div>
+                <div class="stepper-line"></div>
+              </div>
+              <div class="stepper-content">
+                <h4>Configurar la máquina virtual</h4>
+                <p>Vas a llenar un formulario. Aquí cada campo importa:</p>
+
+                <table class="comparison-table" style="margin-top: 1rem;">
+                  <thead>
+                    <tr><th>Campo</th><th>Valor</th><th>¿Por qué?</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td class="feature-col">Nombre</td><td><code>MiServidor-EC2</code></td><td>Nombre descriptivo para identificarla</td></tr>
+                    <tr><td class="feature-col">AMI</td><td><code>Amazon Linux 2023</code> kernel-6.18, 64 bits (x86)</td><td>Optimizado para AWS, incluye <code>amazon-efs-utils</code></td></tr>
+                    <tr><td class="feature-col">Tipo de instancia</td><td><code>t2.small</code> (1 vCPU, 2 GB RAM)</td><td>Suficiente para practicar sin gastar</td></tr>
+                    <tr><td class="feature-col">Par de claves</td><td>Crear nuevo → <code>ec2_tuNombre</code>, RSA, .pem</td><td>Tu "llave" para entrar al servidor</td></tr>
+                    <tr><td class="feature-col">Red</td><td>VPC predeterminada, IP pública: <strong>habilitado</strong></td><td>Necesitas IP pública para conectarte</td></tr>
+                    <tr><td class="feature-col">Firewall</td><td>Nuevo Security Group, ✅ SSH desde Anywhere</td><td>Abre el puerto 22 para PuTTY</td></tr>
+                    <tr><td class="feature-col">Almacenamiento</td><td>8 GiB (predeterminado)</td><td>Más que suficiente para el taller</td></tr>
+                    <tr><td class="feature-col">Instancias</td><td><code>1</code></td><td>Solo necesitamos una máquina</td></tr>
+                  </tbody>
+                </table>
+
+                <div class="warning-callout" style="margin-top: 1rem;">
+                  <strong>⚠️ CRÍTICO:</strong> Cuando descargues el archivo <code>.pem</code>, guárdalo en un lugar seguro. <strong>AWS no te lo va a dar de nuevo.</strong> Si lo pierdes, tendrás que crear un par de claves nuevo y relanzar la instancia.
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 1.4 -->
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle">4</div>
+              </div>
+              <div class="stepper-content">
+                <h4>Esperar que la instancia esté lista y anotar datos</h4>
+                <ul>
+                  <li>Haz clic en el ID de la instancia que aparece</li>
+                  <li>Espera que el <strong>Estado</strong> diga ✅ <code>En ejecución</code> (1-2 minutos)</li>
+                  <li>Espera que las <strong>Comprobaciones</strong> digan <code>2/2 superadas</code></li>
+                </ul>
+                <p style="margin-top: 0.75rem;"><strong>Anota estos datos (los necesitarás después):</strong></p>
+                <div class="code-copy-block" style="background: rgba(245,158,11,0.05); border-color: rgba(245,158,11,0.2); color: var(--text-primary);">
+                  📋 DNS Público: ec2-XX-XX-XX-XX.compute-1.amazonaws.com<br>
+                  📋 ID de VPC: vpc-XXXXXXXX
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mini checklist for this module -->
+          <div class="card" style="margin-top: 1rem; padding: 1.25rem;">
+            <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; color: var(--color-amber);">✅ Checklist del Módulo 1</h4>
+            <div class="checklist-container" data-group="mod1">
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Región configurada en us-east-1</span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">AMI: Amazon Linux 2023 kernel-6.18 seleccionada</span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Tipo de instancia: t2.small</span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Par de claves .pem creado y guardado</span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Instancia en estado "En ejecución"</span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">DNS público y VPC ID anotados</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 4: MÓDULO 1B — PUTTY -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-mod1b" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.4</span>
+            Módulo 1B — Conectarse con PuTTY
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Conexión PuTTY (10 min)</h4>
+            <p><strong>Este es donde más alumnos se pierden.</strong> El proceso .pem → .ppk confunde mucho.</p>
+            <ul>
+              <li><strong>Tip:</strong> Muestra el diagrama de flujo abajo y explica: "PuTTY habla un idioma (.ppk), AWS habla otro (.pem). PuTTYgen es el traductor."</li>
+              <li><strong>Error frecuente:</strong> No cambian el filtro a "All Files" al cargar el .pem en PuTTYgen.</li>
+              <li><strong>Error frecuente:</strong> Escriben solo la IP sin el usuario <code>ec2-user@</code> delante.</li>
+            </ul>
+          </div>
+
+          <p>PuTTY no entiende archivos <code>.pem</code> directamente. Necesitas convertirlo a <code>.ppk</code> usando <strong>PuTTYgen</strong>.</p>
+
+          <!-- Flow Diagram -->
+          <h4 style="font-size: 1rem; margin-top: 1.5rem; margin-bottom: 0.5rem; color: var(--text-muted);">Flujo de conversión:</h4>
+          <div class="flow-diagram">
+            <div class="flow-node">
+              <span class="flow-icon">📄</span>
+              <strong>archivo.pem</strong>
+              <small>Descargado de AWS</small>
+            </div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node">
+              <span class="flow-icon">🔧</span>
+              <strong>PuTTYgen</strong>
+              <small>Load → Save private key</small>
+            </div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node">
+              <span class="flow-icon">🔑</span>
+              <strong>archivo.ppk</strong>
+              <small>Formato PuTTY</small>
+            </div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node" style="border-color: rgba(16,185,129,0.3);">
+              <span class="flow-icon">🖥️</span>
+              <strong>PuTTY</strong>
+              <small>¡Conexión SSH!</small>
+            </div>
+          </div>
+
+          <!-- PuTTYgen steps -->
+          <div class="card" style="border-top: 3px solid var(--color-accent); margin-top: 1.5rem;">
+            <h3 style="font-size: 1.15rem; margin-bottom: 1rem;">Paso A: Convertir .pem → .ppk con PuTTYgen</h3>
+            <ol style="color: var(--text-secondary); font-size: 0.92rem; margin-left: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem;">
+              <li>Abre <strong>PuTTYgen</strong> (viene instalado con PuTTY)</li>
+              <li>Haz clic en <strong>Load</strong></li>
+              <li>⚠️ Cambia el filtro de archivos a <code>All Files (*.*)</code></li>
+              <li>Navega hasta tu archivo <code>.pem</code> y ábrelo</li>
+              <li>Verás un mensaje de éxito — haz clic en <strong>OK</strong></li>
+              <li>Haz clic en <strong>Save private key</strong></li>
+              <li>Te preguntará si quieres guardar sin frase — clic en <strong>Sí</strong></li>
+              <li>Guarda como <code>ec2_tuNombre.ppk</code></li>
+            </ol>
+          </div>
+
+          <!-- PuTTY connection steps -->
+          <div class="card" style="border-top: 3px solid var(--color-cyan); margin-top: 1rem;">
+            <h3 style="font-size: 1.15rem; margin-bottom: 1rem;">Paso B: Conectarse con PuTTY</h3>
+            
+            <table class="comparison-table" style="margin-bottom: 1rem;">
+              <thead><tr><th>Campo en PuTTY</th><th>Valor</th></tr></thead>
+              <tbody>
+                <tr><td class="feature-col">Host Name</td><td><code>ec2-user@TU_DNS_PUBLICO</code></td></tr>
+                <tr><td class="feature-col">Port</td><td><code>22</code></td></tr>
+                <tr><td class="feature-col">Connection → SSH → Auth → Credentials</td><td>Browse → selecciona tu <code>.ppk</code></td></tr>
+                <tr><td class="feature-col">Session → Saved Sessions</td><td>Escribe un nombre y clic en <strong>Save</strong></td></tr>
+              </tbody>
+            </table>
+
+            <p style="font-size: 0.92rem;">Haz clic en <strong>Open</strong>. Si aparece advertencia de seguridad, acepta. ✅ Si ves el logo de Amazon Linux con una <code>$</code> al final, <strong>¡estás dentro!</strong></p>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 5: MÓDULO 2 — GESTIÓN DE USUARIOS -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-mod2" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.5</span>
+            Módulo 2 — Gestión de usuarios en Linux
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Usuarios Linux (10 min)</h4>
+            <p><strong>Concepto clave:</strong> Jerarquía de permisos. <code>root</code> es Dios, <code>ec2-user</code> es un empleado, y <code>sudo</code> es la autorización temporal del jefe.</p>
+            <ul>
+              <li><strong>Analogía:</strong> En una empresa, el gerente general (root) puede hacer todo. Un empleado (ec2-user) necesita pedir permiso (sudo) para acciones sensibles.</li>
+              <li><strong>Nota:</strong> La contraseña <code>1234</code> es SOLO para el taller. En producción sería inaceptable.</li>
+              <li><strong>Pregunta para la clase:</strong> "¿Por qué Linux no muestra los caracteres cuando escribes la contraseña?" (Seguridad: que nadie mire por encima de tu hombro)</li>
+            </ul>
+          </div>
+
+          <p>Cuando entras por PuTTY, eres el usuario <code>ec2-user</code>. Tiene permisos limitados. Para cambios importantes necesitas <code>sudo</code>.</p>
+
+          <!-- User hierarchy diagram -->
+          <div class="card" style="text-align: center; padding: 1.5rem; margin: 1.5rem 0;">
+            <h4 style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem;">Jerarquía de permisos</h4>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+              <div style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); padding: 0.6rem 2rem; border-radius: 8px;">
+                <strong style="color: #f87171;">👑 root</strong><br><small style="color: var(--text-muted);">Administrador máximo — puede todo</small>
+              </div>
+              <span style="color: var(--text-muted);">↑ sudo</span>
+              <div style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); padding: 0.6rem 2rem; border-radius: 8px;">
+                <strong style="color: #fbbf24;">👤 ec2-user</strong><br><small style="color: var(--text-muted);">Tu usuario inicial con sudo</small>
+              </div>
+              <span style="color: var(--text-muted);">↓ useradd</span>
+              <div style="background: rgba(6,182,212,0.1); border: 1px solid rgba(6,182,212,0.3); padding: 0.6rem 2rem; border-radius: 8px;">
+                <strong style="color: #22d3ee;">👤 ADM_PICKET</strong><br><small style="color: var(--text-muted);">Nuevo usuario creado por ti</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Commands -->
+          <h4 style="margin-top: 1.5rem; margin-bottom: 0.75rem;">Paso 2.1 — Verifica quién eres</h4>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>whoami</code></div>
+          <p style="font-size: 0.9rem; color: var(--text-muted);">Debe decir: <code>ec2-user</code></p>
+
+          <h4 style="margin-top: 1.5rem; margin-bottom: 0.75rem;">Paso 2.2 — Cambiar la contraseña de root</h4>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo passwd root</code></div>
+          <p style="font-size: 0.9rem; color: var(--text-secondary);">Escribe <code>1234</code> cuando te pida la contraseña (dos veces). <em>Linux no muestra los caracteres — es normal.</em></p>
+
+          <div class="why-callout">
+            <strong>💡 ¿Por qué sudo?</strong> Solo root puede cambiar la contraseña de root. <code>sudo</code> te permite ejecutar ese comando <em>como si fueras root</em> de forma temporal.
+          </div>
+
+          <h4 style="margin-top: 1.5rem; margin-bottom: 0.75rem;">Paso 2.3 — Crear un nuevo usuario</h4>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo useradd ADM_PICKET</code></div>
+          
+          <h4 style="margin-top: 1rem; margin-bottom: 0.5rem;">Verificar que se creó:</h4>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>cat /etc/passwd | grep ADM_PICKET</code></div>
+
+          <h4 style="margin-top: 1.5rem; margin-bottom: 0.75rem;">Paso 2.4 — Asignar contraseña al nuevo usuario</h4>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo passwd ADM_PICKET</code></div>
+          <p style="font-size: 0.9rem; color: var(--text-secondary);">Escribe <code>Duoc_2025</code> cuando te lo pida (dos veces).</p>
+
+          <!-- Commands reference table -->
+          <table class="comparison-table" style="margin-top: 1.5rem;">
+            <thead><tr><th>Comando</th><th>¿Qué hace?</th><th>Ejemplo</th></tr></thead>
+            <tbody>
+              <tr><td class="feature-col"><code>whoami</code></td><td>Muestra tu usuario actual</td><td>→ <code>ec2-user</code></td></tr>
+              <tr><td class="feature-col"><code>sudo passwd X</code></td><td>Cambia la contraseña del usuario X</td><td><code>sudo passwd root</code></td></tr>
+              <tr><td class="feature-col"><code>sudo useradd X</code></td><td>Crea un nuevo usuario</td><td><code>sudo useradd ADM_PICKET</code></td></tr>
+              <tr><td class="feature-col"><code>cat /etc/passwd</code></td><td>Lista todos los usuarios del sistema</td><td>Busca tu usuario al final</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 6: MÓDULO 3 — CREAR EFS -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-mod3" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.6</span>
+            Módulo 3 — Crear y configurar Amazon EFS
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: EFS como "Pendrive en la nube" (15 min)</h4>
+            <p><strong>Analogía:</strong> EBS es como el disco duro interno de tu laptop — solo tú lo usas. EFS es como un Google Drive compartido — varias personas pueden leer y escribir al mismo tiempo.</p>
+            <ul>
+              <li><strong>Punto crítico:</strong> La VPC del EFS DEBE coincidir con la de la EC2. Es el error #1 de este módulo.</li>
+              <li><strong>Tip:</strong> Antes de que creen el EFS, haz que todos digan en voz alta su VPC ID.</li>
+              <li><strong>Pregunta:</strong> "¿Qué pasa si la EC2 está en la VPC-A y el EFS en la VPC-B?" (No se ven, como dos edificios separados sin conexión)</li>
+            </ul>
+          </div>
+
+          <!-- EBS vs EFS comparison -->
+          <h4 style="margin-bottom: 0.75rem;">¿Por qué EFS y no solo el disco de la EC2?</h4>
+          <table class="comparison-table">
+            <thead><tr><th>Característica</th><th>EBS (disco de EC2)</th><th>EFS (sistema de archivos compartido)</th></tr></thead>
+            <tbody>
+              <tr><td class="feature-col">Conexión simultánea</td><td>❌ Solo 1 instancia</td><td>✅ Múltiples instancias</td></tr>
+              <tr><td class="feature-col">Persistencia</td><td>⚠️ Se pierde al terminar instancia</td><td>✅ Persiste independientemente</td></tr>
+              <tr><td class="feature-col">Escalabilidad</td><td>❌ Tamaño fijo (ej. 8 GB)</td><td>✅ Escala automáticamente</td></tr>
+              <tr><td class="feature-col">Caso de uso</td><td>Sistema operativo, apps</td><td>Logs compartidos, archivos de config, web</td></tr>
+            </tbody>
+          </table>
+
+          <!-- Steps -->
+          <div class="stepper-wizard" style="margin-top: 2rem;">
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle">1</div>
+                <div class="stepper-line"></div>
+              </div>
+              <div class="stepper-content">
+                <h4>Crear el sistema de archivos EFS</h4>
+                <ul>
+                  <li>En la consola de AWS busca <code>EFS</code></li>
+                  <li>Haz clic en <strong>Crear sistema de archivos</strong></li>
+                  <li>Nombre: <code>DiscoEFSPrueba</code></li>
+                  <li><strong>VPC:</strong> selecciona la misma VPC donde está tu EC2</li>
+                  <li>Haz clic en <strong>Crear</strong></li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle">2</div>
+                <div class="stepper-line"></div>
+              </div>
+              <div class="stepper-content">
+                <h4>⚠️ Verificar que la VPC coincide (CRÍTICO)</h4>
+                <p>Este paso se pasa por alto frecuentemente y causa el 90% de los errores.</p>
+                <div class="warning-callout" style="margin-top: 0.75rem;">
+                  <strong>⚠️ Verifica en dos lugares:</strong><br>
+                  1. EC2 → Instancias → tu instancia → pestaña <strong>Redes</strong> → anota VPC ID y Zona de disponibilidad<br>
+                  2. EFS → tu sistema de archivos → pestaña <strong>Red</strong> → verifica que VPC ID y Zona coincidan<br><br>
+                  <strong>Si las VPC no coinciden:</strong> el EFS y la EC2 no pueden verse. Es como intentar compartir una carpeta entre dos redes completamente separadas.
+                </div>
+              </div>
+            </div>
+
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle">3</div>
+              </div>
+              <div class="stepper-content">
+                <h4>Verificar el grupo de seguridad (Puerto 2049)</h4>
+                <p>El EFS usa el protocolo NFS en el <strong>puerto 2049</strong>. Tu grupo de seguridad debe permitirlo.</p>
+                <ul style="margin-top: 0.75rem;">
+                  <li><strong>Opción A:</strong> En la configuración de red del EFS, selecciona el mismo grupo de seguridad de tu EC2</li>
+                  <li><strong>Opción B:</strong> Ve a EC2 → Grupos de seguridad → tu grupo → Reglas de entrada → Agrega: Tipo <code>NFS</code>, Puerto <code>2049</code>, Origen <code>0.0.0.0/0</code></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 7: MÓDULO 4 — MONTAR EFS -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-mod4" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.7</span>
+            Módulo 4 — Montar el EFS en la instancia EC2
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Montaje EFS (15 min)</h4>
+            <p><strong>Analogía:</strong> "Montar" un EFS es como enchufar un pendrive USB. La carpeta <code>efs</code> es el puerto USB, y el comando <code>mount</code> es el acto de enchufar.</p>
+            <ul>
+              <li><strong>Punto clave:</strong> Usa el diagrama de anatomía del comando para que entiendan <em>cada</em> parte.</li>
+              <li><strong>Error frecuente:</strong> Escribir <code>fs-XXXXXXXXX</code> literalmente en vez de reemplazarlo con su ID real.</li>
+              <li><strong>Verificación:</strong> Haz que TODOS ejecuten <code>df -h</code> y muestren el resultado antes de avanzar.</li>
+            </ul>
+          </div>
+
+          <!-- Step 4.1 -->
+          <h4 style="margin-bottom: 0.75rem;">Paso 4.1 — Instalar amazon-efs-utils</h4>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo yum update -y</code></div>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo yum install amazon-efs-utils -y</code></div>
+
+          <div class="why-callout">
+            <strong>💡 ¿Qué es yum?</strong> Es el gestor de paquetes de Amazon Linux (similar a una "tienda de aplicaciones" por consola). <code>yum install</code> = instalar programa. <code>-y</code> = confirmar automáticamente.
+          </div>
+
+          <!-- Step 4.2-4.3 -->
+          <h4 style="margin-top: 1.5rem; margin-bottom: 0.75rem;">Paso 4.2 — Obtener el ID del EFS</h4>
+          <p style="font-size: 0.92rem; color: var(--text-secondary);">Ve a la consola de AWS → EFS → copia el <strong>ID del sistema de archivos</strong>: algo como <code>fs-0a1b2c3d4e5f67890</code></p>
+
+          <h4 style="margin-top: 1.5rem; margin-bottom: 0.75rem;">Paso 4.3 — Crear el punto de montaje</h4>
+          <p style="font-size: 0.92rem; color: var(--text-secondary);">Un "punto de montaje" es simplemente una carpeta vacía. Es como el enchufe donde conectas el disco externo.</p>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>mkdir efs</code></div>
+
+          <!-- Step 4.4 with Command Anatomy -->
+          <h4 style="margin-top: 1.5rem; margin-bottom: 0.75rem;">Paso 4.4 — Montar el EFS</h4>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo mount -t efs -o tls fs-XXXXXXXXXXXXXXXXX:/ /home/ec2-user/efs</code></div>
+
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">⬆️ Reemplaza <code>fs-XXXXXXXXXXXXXXXXX</code> con tu ID real.</p>
+
+          <h4 style="font-size: 0.9rem; color: var(--text-muted); margin-top: 1.5rem; margin-bottom: 0.5rem;">Anatomía del comando — ¿Qué significa cada parte?</h4>
+          <div class="command-anatomy">
+            <div class="command-anatomy-code">
+              <span class="cmd-part cmd-sudo" title="Ejecutar como administrador">sudo</span>
+              <span class="cmd-part cmd-command" title="Comando para conectar un disco">mount</span>
+              <span class="cmd-part cmd-flag" title="Tipo de sistema de archivos: EFS">-t efs</span>
+              <span class="cmd-part cmd-flag" title="Usar cifrado en tránsito (TLS)">-o tls</span>
+              <span class="cmd-part cmd-arg" title="ID del EFS y la carpeta raíz dentro de él">fs-XXXX:/</span>
+              <span class="cmd-part cmd-path" title="Dónde lo vas a conectar en tu máquina">/home/ec2-user/efs</span>
+            </div>
+            <div class="command-anatomy-legend">
+              <div class="legend-item"><span class="legend-dot sudo"></span> Permisos (sudo)</div>
+              <div class="legend-item"><span class="legend-dot command"></span> Comando</div>
+              <div class="legend-item"><span class="legend-dot flag"></span> Opciones/Flags</div>
+              <div class="legend-item"><span class="legend-dot arg"></span> Argumento (ID del EFS)</div>
+              <div class="legend-item"><span class="legend-dot path"></span> Ruta destino</div>
+            </div>
+          </div>
+
+          <!-- Step 4.5 -->
+          <h4 style="margin-top: 1.5rem; margin-bottom: 0.75rem;">Paso 4.5 — Verificar que el montaje funcionó</h4>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>df -h</code></div>
+          <p style="font-size: 0.92rem; color: var(--text-secondary); margin-top: 0.5rem;">Busca una línea que termine en <code>/home/ec2-user/efs</code>. Verás algo como:</p>
+
+          <div class="terminal-window" style="margin-top: 0.75rem;">
+            <div class="terminal-header">
+              <span class="terminal-dot red"></span>
+              <span class="terminal-dot yellow"></span>
+              <span class="terminal-dot green"></span>
+              <span class="terminal-title">Resultado esperado de df -h</span>
+            </div>
+            <div class="terminal-body" style="font-size: 0.82rem;">
+Filesystem      Size  Used Avail Use% Mounted on
+devtmpfs        4.0M     0  4.0M   0% /dev
+tmpfs           979M     0  979M   0% /dev/shm
+/dev/xvda1      8.0G  1.5G  6.5G  19% /
+<span style="color: #34d399; font-weight: bold;">fs-XXXX:/       8.0E     0  8.0E   0% /home/ec2-user/efs</span>
+            </div>
+          </div>
+
+          <div class="why-callout" style="margin-top: 0.75rem;">
+            <strong>💡 ¿8.0E?</strong> Eso son 8 Exabytes. EFS no tiene límite de tamaño real — escala automáticamente. Por eso muestra ese número enorme.
+          </div>
+
+          <h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem;">Prueba escribir un archivo:</h4>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>echo "Hola desde EC2" > /home/ec2-user/efs/prueba.txt</code></div>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>cat /home/ec2-user/efs/prueba.txt</code></div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 8: MÓDULO 5 — PERSISTENCIA (FSTAB) -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-mod5" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.8</span>
+            Módulo 5 — Montaje automático (fstab)
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Persistencia (10 min)</h4>
+            <p><strong>Analogía:</strong> Sin fstab, es como si cada vez que apagas tu laptop tuvieras que volver a instalar el pendrive. Con fstab, Linux sabe que "al encender, conecta esto automáticamente".</p>
+            <ul>
+              <li><strong>Cuidado con nano:</strong> Muchos alumnos nunca han usado un editor de texto en terminal. Muestra Ctrl+O y Ctrl+X de forma explícita.</li>
+              <li><strong>Tip seguridad:</strong> Un error en fstab puede dejar el servidor sin arrancar. Por eso probamos con <code>mount -a</code> antes de reiniciar.</li>
+            </ul>
+          </div>
+
+          <!-- The Problem - visual flow -->
+          <h4 style="margin-bottom: 1rem;">El problema: sin fstab, el EFS desaparece al reiniciar</h4>
+          <div class="flow-diagram">
+            <div class="flow-node" style="border-color: rgba(16,185,129,0.3);">
+              <span class="flow-icon">✅</span>
+              <strong>Servidor encendido</strong>
+              <small>EFS montado</small>
+            </div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node" style="border-color: rgba(239,68,68,0.3);">
+              <span class="flow-icon">🔄</span>
+              <strong>sudo reboot</strong>
+              <small>Reinicio</small>
+            </div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node" style="border-color: rgba(239,68,68,0.3);">
+              <span class="flow-icon">❌</span>
+              <strong>EFS desmontado</strong>
+              <small>¡Hay que montarlo de nuevo!</small>
+            </div>
+          </div>
+
+          <div class="why-callout">
+            <strong>💡 ¿Qué es /etc/fstab?</strong> Es una lista de instrucciones que Linux lee al arrancar para saber qué discos montar automáticamente. Cada línea = un disco o sistema de archivos.
+          </div>
+
+          <!-- Step: View current fstab -->
+          <h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem;">Ver el contenido actual:</h4>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>cat /etc/fstab</code></div>
+
+          <!-- Step: Edit fstab -->
+          <h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem;">Editar fstab con nano:</h4>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo nano /etc/fstab</code></div>
+
+          <p style="font-size: 0.92rem; color: var(--text-secondary); margin: 0.75rem 0;">Agrega esta línea al <strong>final</strong> del archivo (sin borrar nada):</p>
+
+          <!-- Nano simulation -->
+          <div class="nano-editor-sim">
+            <div class="nano-title-bar">GNU nano — /etc/fstab</div>
+            <div class="nano-content">
+              <div style="color: #888;"># /etc/fstab</div>
+              <div style="color: #888;"># Created by anaconda on ...</div>
+              <div>UUID=xxxx-xxxx / xfs defaults,noatime 1 1</div>
+              <div>&nbsp;</div>
+              <div class="nano-highlight">fs-XXXXXXXXXXXXXXXXX:/ /home/ec2-user/efs efs defaults,_netdev,tls,iam,bysystemd,automount 0 0</div>
+            </div>
+            <div class="nano-footer-bar">
+              <span><span class="nano-shortcut">^O</span> Guardar</span>
+              <span><span class="nano-shortcut">^X</span> Salir</span>
+            </div>
+          </div>
+
+          <p style="font-size: 0.85rem; color: var(--text-muted);">⬆️ Reemplaza <code>fs-XXXXXXXXXXXXXXXXX</code> con tu ID real.</p>
+
+          <!-- fstab line anatomy -->
+          <h4 style="font-size: 0.9rem; color: var(--text-muted); margin-top: 1.5rem; margin-bottom: 0.5rem;">Anatomía de la línea de fstab:</h4>
+          <div class="command-anatomy">
+            <div class="command-anatomy-code" style="font-size: 0.85rem;">
+              <span class="cmd-part cmd-arg" title="ID del EFS + carpeta raíz">fs-XXXX:/</span>
+              <span class="cmd-part cmd-path" title="Punto de montaje en tu servidor">/home/ec2-user/efs</span>
+              <span class="cmd-part cmd-command" title="Tipo de sistema de archivos">efs</span>
+              <span class="cmd-part cmd-flag" title="Opciones de montaje">defaults,_netdev,tls,iam,bysystemd,automount</span>
+              <span class="cmd-part cmd-sudo" title="dump y fsck order">0 0</span>
+            </div>
+            <div class="command-anatomy-legend">
+              <div class="legend-item"><span class="legend-dot arg"></span> ID del EFS</div>
+              <div class="legend-item"><span class="legend-dot path"></span> Punto de montaje</div>
+              <div class="legend-item"><span class="legend-dot command"></span> Tipo</div>
+              <div class="legend-item"><span class="legend-dot flag"></span> Opciones (<code>_netdev</code> = espera red)</div>
+              <div class="legend-item"><span class="legend-dot sudo"></span> dump/fsck</div>
+            </div>
+          </div>
+
+          <!-- Test and verify -->
+          <h4 style="margin-top: 1.5rem; margin-bottom: 0.75rem;">Probar sin reiniciar:</h4>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo umount /home/ec2-user/efs</code></div>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo mount -a</code></div>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>df -h</code></div>
+          <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.5rem;"><code>mount -a</code> monta todo lo que está en fstab. Si no hay errores y ves el EFS en <code>df -h</code>, la configuración está bien.</p>
+
+          <h4 style="margin-top: 1.5rem; margin-bottom: 0.75rem;">Reiniciar y verificar:</h4>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo reboot</code></div>
+          <p style="font-size: 0.9rem; color: var(--text-secondary);">PuTTY se desconectará. Espera 1-2 minutos, vuelve a conectarte, y ejecuta <code>df -h</code>.</p>
+          <p style="font-size: 0.95rem; color: var(--color-teacher); margin-top: 0.5rem;"><strong>✅ Si el EFS aparece montado sin que hayas hecho nada, ¡lo lograste! El montaje es persistente.</strong></p>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 9: EJERCICIOS -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-ejercicios" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.9</span>
+            Ejercicios de práctica adicionales
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Ejercicios (15-20 min)</h4>
+            <p>Estos ejercicios son opcionales pero muy recomendados. Los de dificultad ⭐ deberían poder hacerlos todos. Los de ⭐⭐⭐ son un reto para los más avanzados.</p>
+            <ul>
+              <li><strong>Ejercicio 4</strong> es el más valioso: demuestra el poder real del EFS (compartir archivos entre instancias).</li>
+              <li><strong>Tip:</strong> Deja que intenten solos 5-10 minutos antes de dar pistas.</li>
+            </ul>
+          </div>
+
+          <p>Intenta resolverlos sin mirar la guía primero. Haz clic en cada ejercicio para ver los detalles.</p>
+
+          <!-- Exercise 1 -->
+          <div class="accordion-exercise">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+              <div class="accordion-header-left">
+                <span class="difficulty-stars">⭐</span>
+                <h4>Ejercicio 1 — Repetición base</h4>
+              </div>
+              <svg class="accordion-chevron" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="accordion-body">
+              <div class="accordion-body-content">
+                <p>Elimina tu instancia EC2 y créala de nuevo desde cero. Repite todos los pasos del Módulo 1.</p>
+                <p style="margin-top: 0.5rem;"><strong>Objetivo:</strong> Que el proceso se vuelva natural. La segunda vez debería tomarte menos de 5 minutos.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Exercise 2 -->
+          <div class="accordion-exercise">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+              <div class="accordion-header-left">
+                <span class="difficulty-stars">⭐</span>
+                <h4>Ejercicio 2 — Segundo usuario</h4>
+              </div>
+              <svg class="accordion-chevron" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="accordion-body">
+              <div class="accordion-body-content">
+                <p>Crea un usuario llamado <code>OPE_TORRES</code> con contraseña <code>Taller_2025</code>.</p>
+                <p style="margin-top: 0.5rem;">Verifica que aparezca en <code>/etc/passwd</code>.</p>
+                <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo useradd OPE_TORRES && sudo passwd OPE_TORRES</code></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Exercise 3 -->
+          <div class="accordion-exercise">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+              <div class="accordion-header-left">
+                <span class="difficulty-stars">⭐⭐</span>
+                <h4>Ejercicio 3 — Permisos de carpeta en EFS</h4>
+              </div>
+              <svg class="accordion-chevron" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="accordion-body">
+              <div class="accordion-body-content">
+                <p>Dentro del EFS, crea una carpeta llamada <code>compartido</code> y dale permisos de escritura a todos los usuarios:</p>
+                <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo mkdir /home/ec2-user/efs/compartido</code></div>
+                <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo chmod 777 /home/ec2-user/efs/compartido</code></div>
+                <p style="margin-top: 0.5rem;"><strong>Investiga:</strong> ¿Qué significa <code>777</code>? Cada dígito representa permisos para: dueño, grupo, y otros. 7 = leer + escribir + ejecutar.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Exercise 4 -->
+          <div class="accordion-exercise">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+              <div class="accordion-header-left">
+                <span class="difficulty-stars">⭐⭐⭐</span>
+                <h4>Ejercicio 4 — Dos instancias, un EFS</h4>
+              </div>
+              <svg class="accordion-chevron" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="accordion-body">
+              <div class="accordion-body-content">
+                <p>Crea una <strong>segunda instancia EC2</strong> en la misma VPC. Monta el mismo EFS en ella.</p>
+                <p style="margin-top: 0.5rem;">Crea un archivo desde la primera instancia y verifica que se ve desde la segunda. <strong>Este es el verdadero poder del EFS.</strong></p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Exercise 5 -->
+          <div class="accordion-exercise">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+              <div class="accordion-header-left">
+                <span class="difficulty-stars">⭐⭐</span>
+                <h4>Ejercicio 5 — Diagnóstico de errores</h4>
+              </div>
+              <svg class="accordion-chevron" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="accordion-body">
+              <div class="accordion-body-content">
+                <p>Desmonta el EFS intencionalmente:</p>
+                <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo umount /home/ec2-user/efs</code></div>
+                <p style="margin-top: 0.5rem;">Luego intenta montarlo con un ID de EFS <strong>incorrecto</strong>. ¿Qué error aparece? ¿Cómo lo interpretas?</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 10: REFERENCIA + CHECKLIST FINAL -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-referencia" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.10</span>
+            Referencia rápida y Checklist final
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Cierre del Taller (5 min)</h4>
+            <p>Haz que los alumnos completen el checklist en vivo. Si alguien tiene ítems sin marcar, ayúdalo a completarlos.</p>
+            <ul>
+              <li><strong>Recordatorio IMPORTANTE:</strong> Pide a todos que <strong>terminen (eliminen)</strong> sus instancias EC2 y EFS al finalizar si no los van a seguir usando. De lo contrario, podrían generar cargos.</li>
+              <li><strong>Pregunta de cierre:</strong> "¿Qué parte del taller les costó más? ¿Qué parte fue más fácil de lo esperado?"</li>
+            </ul>
+          </div>
+
+          <!-- Quick Reference -->
+          <h3 style="font-size: 1.2rem; margin-bottom: 1rem;">📋 Comandos de referencia rápida</h3>
+          <table class="comparison-table">
+            <thead><tr><th>Acción</th><th>Comando</th></tr></thead>
+            <tbody>
+              <tr><td class="feature-col">Ver qué usuario soy</td><td><code>whoami</code></td></tr>
+              <tr><td class="feature-col">Ver en qué carpeta estoy</td><td><code>pwd</code></td></tr>
+              <tr><td class="feature-col">Listar archivos</td><td><code>ls -la</code></td></tr>
+              <tr><td class="feature-col">Crear usuario</td><td><code>sudo useradd NOMBRE</code></td></tr>
+              <tr><td class="feature-col">Cambiar contraseña</td><td><code>sudo passwd NOMBRE</code></td></tr>
+              <tr><td class="feature-col">Ver usuarios del sistema</td><td><code>cat /etc/passwd</code></td></tr>
+              <tr><td class="feature-col">Ver discos montados</td><td><code>df -h</code></td></tr>
+              <tr><td class="feature-col">Montar EFS</td><td><code>sudo mount -t efs -o tls fs-XXXX:/ /punto/de/montaje</code></td></tr>
+              <tr><td class="feature-col">Desmontar EFS</td><td><code>sudo umount /punto/de/montaje</code></td></tr>
+              <tr><td class="feature-col">Montar todo de fstab</td><td><code>sudo mount -a</code></td></tr>
+              <tr><td class="feature-col">Editar fstab</td><td><code>sudo nano /etc/fstab</code></td></tr>
+              <tr><td class="feature-col">Reiniciar servidor</td><td><code>sudo reboot</code></td></tr>
+            </tbody>
+          </table>
+
+          <!-- Troubleshooting -->
+          <h3 style="font-size: 1.2rem; margin-top: 2.5rem; margin-bottom: 1rem;">🔧 Errores comunes y soluciones</h3>
+          <div class="troubleshooting-grid">
+            <div class="troubleshoot-row">
+              <div class="troubleshoot-error">mount: no such file or directory</div>
+              <div class="troubleshoot-cause">El directorio de montaje no existe</div>
+              <div class="troubleshoot-fix">✅ <code>sudo mkdir -p /home/ec2-user/efs</code></div>
+            </div>
+            <div class="troubleshoot-row">
+              <div class="troubleshoot-error">Connection timed out (mount)</div>
+              <div class="troubleshoot-cause">Puerto 2049 bloqueado o VPCs distintas</div>
+              <div class="troubleshoot-fix">✅ Verificar Security Group y VPC</div>
+            </div>
+            <div class="troubleshoot-row">
+              <div class="troubleshoot-error">PuTTY: Connection refused</div>
+              <div class="troubleshoot-cause">La instancia aún está iniciando</div>
+              <div class="troubleshoot-fix">✅ Esperar 2 minutos y reintentar</div>
+            </div>
+            <div class="troubleshoot-row">
+              <div class="troubleshoot-error">PuTTY: Server unexpectedly closed</div>
+              <div class="troubleshoot-cause">Clave .ppk incorrecta o usuario equivocado</div>
+              <div class="troubleshoot-fix">✅ Verificar <code>ec2-user</code> y clave correcta</div>
+            </div>
+            <div class="troubleshoot-row">
+              <div class="troubleshoot-error">Permission denied</div>
+              <div class="troubleshoot-cause">Falta <code>sudo</code></div>
+              <div class="troubleshoot-fix">✅ Agregar <code>sudo</code> al inicio del comando</div>
+            </div>
+            <div class="troubleshoot-row">
+              <div class="troubleshoot-error">EFS no aparece tras reboot</div>
+              <div class="troubleshoot-cause">Error en la línea de fstab</div>
+              <div class="troubleshoot-fix">✅ Revisar sintaxis con <code>sudo mount -a</code></div>
+            </div>
+          </div>
+
+          <!-- Final Checklist -->
+          <h3 style="font-size: 1.2rem; margin-top: 2.5rem; margin-bottom: 0.5rem;">🎯 Lista de verificación final</h3>
+          <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">Marca cada ítem conforme lo vayas completando:</p>
+          
+          <div class="checklist-progress-bar"><div class="checklist-progress-fill" id="finalProgressFill"></div></div>
+          <div class="checklist-progress-text" id="finalProgressText">0 / 16 completados</div>
+
+          <div class="checklist-container" id="finalChecklist" data-group="final">
+            <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Instancia EC2 creada con Amazon Linux 2023 kernel-6.18</span></div>
+            <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Tipo de instancia: t2.small</span></div>
+            <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Par de claves generado y archivo .pem guardado</span></div>
+            <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Conexión exitosa por PuTTY con usuario ec2-user</span></div>
+            <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Contraseña de root cambiada</span></div>
+            <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Usuario ADM_PICKET creado con contraseña</span></div>
+            <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">EFS creado en la misma VPC que la instancia</span></div>
+            <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">VPC del EFS y EC2 verificadas (coinciden)</span></div>
+            <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Zona de disponibilidad verificada</span></div>
+            <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Grupo de seguridad con puerto 2049 abierto</span></div>
+            <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">amazon-efs-utils instalado</span></div>
+            <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Punto de montaje creado (mkdir efs)</span></div>
+            <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">EFS montado correctamente (verificado con df -h)</span></div>
+            <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Archivo de prueba creado en el EFS</span></div>
+            <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Línea agregada a /etc/fstab</span></div>
+            <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Montaje automático verificado tras sudo reboot</span></div>
+          </div>
+
+          <div class="warning-callout" style="margin-top: 2rem;">
+            <strong>⚠️ No olvides limpiar tus recursos al finalizar:</strong> Si no vas a seguir usando tu instancia EC2 y tu EFS, <strong>termínalos (elimínalos)</strong> desde la consola de AWS para evitar cargos. EC2 → Instancias → Acciones → Terminar. EFS → Eliminar sistema de archivos.
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Sticky Sidebar Navigation -->
+      <aside class="sidebar-navigation">
+        <h4>Contenido del Taller</h4>
+        <ul class="sidebar-links">
+          <li><a href="#slide-portada" class="active">T.0 Objetivos</a></li>
+          <li><a href="#slide-conceptos">T.1 Conceptos clave</a></li>
+          <li><a href="#slide-arquitectura">T.2 Arquitectura</a></li>
+          <li><a href="#slide-mod1">T.3 Módulo 1: EC2</a></li>
+          <li><a href="#slide-mod1b">T.4 Módulo 1B: PuTTY</a></li>
+          <li><a href="#slide-mod2">T.5 Módulo 2: Usuarios</a></li>
+          <li><a href="#slide-mod3">T.6 Módulo 3: EFS</a></li>
+          <li><a href="#slide-mod4">T.7 Módulo 4: Montar</a></li>
+          <li><a href="#slide-mod5">T.8 Módulo 5: fstab</a></li>
+          <li><a href="#slide-ejercicios">T.9 Ejercicios</a></li>
+          <li><a href="#slide-referencia">T.10 Referencia</a></li>
+        </ul>
+      </aside>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>© 2026 Portal de Cloud Computing - Diseñado para una docencia ágil e interactiva.</p>
+    <p style="margin-top: 0.5rem;"><a href="index.html">← Volver al Dashboard Principal</a></p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="script.js"></script>
+  
+  <!-- Interactive script logic for Taller -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initCopyButtons();
+      initSidebarScrollSpy();
+      initProgressBarScrollSync();
+      initQuiz();
+    });
+
+    // -----------------------------------------------------------------
+    // 1. Copy to Clipboard
+    // -----------------------------------------------------------------
+    function initCopyButtons() {
+      // Already handled by inline onclick
+    }
+
+    function copyCode(btn) {
+      const codeBlock = btn.closest('.code-copy-block');
+      const codeEl = codeBlock.querySelector('code');
+      if (!codeEl) return;
+      
+      const text = codeEl.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = '✓ Copiado';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copiar';
+          btn.classList.remove('copied');
+        }, 2000);
+      }).catch(() => {
+        // Fallback
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        btn.textContent = '✓ Copiado';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copiar';
+          btn.classList.remove('copied');
+        }, 2000);
+      });
+    }
+
+    // -----------------------------------------------------------------
+    // 2. Checklist Toggle
+    // -----------------------------------------------------------------
+    function toggleCheck(item) {
+      item.classList.toggle('checked');
+      const box = item.querySelector('.checklist-box');
+      if (item.classList.contains('checked')) {
+        box.innerHTML = '✓';
+      } else {
+        box.innerHTML = '';
+      }
+      updateFinalProgress();
+    }
+
+    function updateFinalProgress() {
+      const container = document.getElementById('finalChecklist');
+      if (!container) return;
+      const items = container.querySelectorAll('.checklist-item');
+      const checked = container.querySelectorAll('.checklist-item.checked');
+      const total = items.length;
+      const done = checked.length;
+      const pct = total > 0 ? (done / total) * 100 : 0;
+      
+      const fill = document.getElementById('finalProgressFill');
+      const text = document.getElementById('finalProgressText');
+      if (fill) fill.style.width = pct + '%';
+      if (text) text.textContent = `${done} / ${total} completados`;
+    }
+
+    // -----------------------------------------------------------------
+    // 3. Accordion
+    // -----------------------------------------------------------------
+    function toggleAccordion(header) {
+      const exercise = header.closest('.accordion-exercise');
+      exercise.classList.toggle('open');
+    }
+
+    // -----------------------------------------------------------------
+    // 4. Sidebar Scroll Spy
+    // -----------------------------------------------------------------
+    function initSidebarScrollSpy() {
+      const sidebarLinks = document.querySelectorAll('.sidebar-links a');
+      const slidesList = document.querySelectorAll('.slide');
+
+      const onScroll = () => {
+        if (document.body.classList.contains('presentation-mode')) return;
+        
+        let currentSlideId = '';
+        const scrollPosition = window.scrollY + 200;
+
+        slidesList.forEach(slide => {
+          const top = slide.offsetTop;
+          const height = slide.offsetHeight;
+          if (scrollPosition >= top && scrollPosition < top + height) {
+            currentSlideId = slide.getAttribute('id');
+          }
+        });
+
+        if (currentSlideId) {
+          sidebarLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href') === `#${currentSlideId}`) {
+              link.classList.add('active');
+            }
+          });
+        }
+      };
+
+      window.addEventListener('scroll', onScroll);
+    }
+
+    // -----------------------------------------------------------------
+    // 5. Progress Bar Scroll Sync
+    // -----------------------------------------------------------------
+    function initProgressBarScrollSync() {
+      const progressSteps = document.querySelectorAll('.progress-step');
+      const slidesList = document.querySelectorAll('.slide');
+
+      // Click to scroll
+      progressSteps.forEach(step => {
+        step.addEventListener('click', () => {
+          const targetId = step.getAttribute('data-target');
+          const targetEl = document.getElementById(targetId);
+          if (targetEl) {
+            targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
+      });
+
+      // Scroll sync
+      const onScroll = () => {
+        if (document.body.classList.contains('presentation-mode')) return;
+        
+        let currentSlideId = '';
+        const scrollPosition = window.scrollY + 250;
+
+        slidesList.forEach(slide => {
+          const top = slide.offsetTop;
+          const height = slide.offsetHeight;
+          if (scrollPosition >= top && scrollPosition < top + height) {
+            currentSlideId = slide.getAttribute('id');
+          }
+        });
+
+        if (currentSlideId) {
+          progressSteps.forEach(step => {
+            step.classList.remove('active');
+            if (step.getAttribute('data-target') === currentSlideId) {
+              step.classList.add('active');
+            }
+          });
+        }
+      };
+
+      window.addEventListener('scroll', onScroll);
+    }
+
+    // -----------------------------------------------------------------
+    // 6. Quiz (reuse pattern from clase3)
+    // -----------------------------------------------------------------
+    function initQuiz() {
+      const quizCards = document.querySelectorAll('.quiz-question-card');
+      quizCards.forEach(card => {
+        const options = card.querySelectorAll('.quiz-option');
+        const explanation = card.querySelector('.quiz-explanation');
+        let answered = false;
+
+        options.forEach(opt => {
+          opt.addEventListener('click', () => {
+            if (answered) return;
+            answered = true;
+
+            const isCorrect = opt.getAttribute('data-correct') === 'true';
+            
+            if (isCorrect) {
+              opt.classList.add('correct');
+            } else {
+              opt.classList.add('incorrect');
+              options.forEach(o => {
+                if (o.getAttribute('data-correct') === 'true') {
+                  o.classList.add('correct');
+                }
+              });
+            }
+            if (explanation) explanation.style.display = 'block';
+          });
+        });
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clase 0B: Tu Primera Red Local | Cloud Computing</title>
+  <meta name="description" content="Construye tu primera red local usando el hotspot de un celular. Entiende IP privada, máscara de red como frontera de vecindad, y prepara el terreno para entender VPC.">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Class-specific styles */
+    .lab-step {
+      display: flex;
+      gap: 1.25rem;
+      align-items: flex-start;
+      margin-bottom: 1.5rem;
+    }
+    .lab-step-number {
+      flex-shrink: 0;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--color-accent), var(--color-cyan));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.1rem;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.35);
+    }
+    .lab-step-content {
+      flex: 1;
+    }
+    .lab-step-content h4 {
+      font-size: 1.05rem;
+      margin-bottom: 0.35rem;
+      color: var(--text-primary);
+    }
+    .lab-step-content p, .lab-step-content ul {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+    .diagram-box {
+      background: rgba(0,0,0,0.35);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 2rem 1.5rem;
+      text-align: center;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin: 1.5rem 0;
+      overflow-x: auto;
+    }
+    .diagram-device {
+      display: inline-block;
+      background: rgba(139, 92, 246, 0.15);
+      border: 1px solid rgba(139, 92, 246, 0.4);
+      border-radius: 8px;
+      padding: 0.6rem 1rem;
+      margin: 0.4rem;
+      font-size: 0.8rem;
+    }
+    .diagram-router {
+      display: inline-block;
+      background: rgba(6, 182, 212, 0.15);
+      border: 2px solid rgba(6, 182, 212, 0.5);
+      border-radius: 12px;
+      padding: 0.75rem 1.25rem;
+      margin: 0.5rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--color-cyan);
+    }
+    .neighbor-sim-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    @media (max-width: 768px) {
+      .neighbor-sim-grid { grid-template-columns: 1fr; }
+    }
+    .neighbor-device {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--glass-border);
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+      transition: var(--transition-normal);
+    }
+    .neighbor-device.same-net {
+      border-color: var(--color-teacher);
+      background: rgba(16, 185, 129, 0.08);
+    }
+    .neighbor-device.diff-net {
+      border-color: #ef4444;
+      background: rgba(239, 68, 68, 0.08);
+    }
+    .warning-box {
+      background: rgba(251, 191, 36, 0.08);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      border-radius: 8px;
+      padding: 1rem;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-top: 1rem;
+    }
+    .warning-box strong { color: #fbbf24; }
+    .cloud-bridge-table td, .cloud-bridge-table th {
+      padding: 0.6rem 0.75rem;
+    }
+    .cloud-bridge-table .local-col { color: var(--color-cyan); }
+    .cloud-bridge-table .cloud-col { color: var(--color-accent); }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <a href="index.html" class="nav-brand">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17.5 19A3.5 3.5 0 0 0 21 15.5c0-2.79-2.54-4.5-5-4.5-.42 0-.83.04-1.24.12A6.5 6.5 0 0 0 3 13.5A3.5 3.5 0 0 0 6.5 17H12" />
+        <path d="M12 12V21" />
+        <path d="m9 18 3 3 3-3" />
+      </svg>
+      <span>Cloud Foundations</span>
+    </a>
+    <div class="nav-links">
+      <a href="index.html" class="nav-link">Dashboard</a>
+      <div class="teacher-toggle-container">
+        <span class="teacher-toggle-label">Modo Profesor</span>
+        <label class="switch">
+          <input type="checkbox" id="teacherModeToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="container">
+
+    <a href="index.html" class="back-link">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+      </svg>
+      Volver al Dashboard
+    </a>
+
+    <header class="class-header">
+      <span class="class-number" style="margin-bottom: 0.5rem; display: inline-block;">Clase 0B</span>
+      <h1>Tu Primera Red Local: Del Celular a la Nube</h1>
+      <p style="color: var(--text-secondary); font-size: 1.1rem; max-width: 800px;">
+        Construye una red real con el hotspot de tu celular, levanta un servidor web con Python y descubre por qué la máscara de subred define quiénes son tus "vecinos" de red.
+      </p>
+    </header>
+
+    <div class="class-content-wrapper">
+      <div class="main-content-flow slides-container" id="slidesContainer">
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 1: THEORY — El Hotspot como Mini-Router -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-hotspot" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">0B.1</span>
+            El Celular como Mini-Router
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: El Departamento Compartido (5 min)</h4>
+            <p><strong>Meta:</strong> Que los alumnos entiendan que el hotspot del celular hace exactamente lo mismo que un router doméstico o, en la nube, lo que hace una VPC: crear una red privada y repartir direcciones IP.</p>
+            <ul>
+              <li><strong>Analogía:</strong> El celular es como un "arrendador" que tiene un edificio (la red). Cuando un dispositivo se conecta al Wi-Fi del hotspot, el celular le asigna un número de departamento (IP privada). Todos los que viven en ese edificio pueden visitarse entre sí tocando la puerta (hacer ping o pedir una página web).</li>
+              <li><strong>Pregunta para lanzar:</strong> "¿Cuántos de ustedes tienen un plan de datos en su celular? ¿Alguna vez activaron el hotspot para compartir Internet? Sin saberlo, <em>ya crearon una red local</em>."</li>
+              <li><strong>Conexión con la nube:</strong> Menciona que en AWS, cuando creamos una VPC, estamos haciendo exactamente lo mismo: definir un edificio privado con un rango de direcciones para nuestras máquinas.</li>
+            </ul>
+          </div>
+
+          <p>
+            Cuando activas el <strong>hotspot</strong> (zona Wi-Fi portátil) de tu celular, estás creando una <strong>red local privada</strong>. Tu teléfono asume tres roles fundamentales:
+          </p>
+
+          <div class="class-grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 1.25rem; margin-top: 1.5rem;">
+            <div class="card" style="margin-bottom:0; border-top: 3px solid var(--color-accent);">
+              <h3 style="color: var(--color-accent); font-size: 1.1rem; margin-bottom: 0.4rem;">📡 Router</h3>
+              <p style="font-size: 0.85rem; color: var(--text-secondary);">Crea la red Wi-Fi y decide las reglas de tráfico. Define un <strong>rango de IPs privadas</strong> que entregará a cada dispositivo que se conecte.</p>
+            </div>
+            <div class="card" style="margin-bottom:0; border-top: 3px solid var(--color-cyan);">
+              <h3 style="color: var(--color-cyan); font-size: 1.1rem; margin-bottom: 0.4rem;">🏷️ DHCP</h3>
+              <p style="font-size: 0.85rem; color: var(--text-secondary);">Reparte automáticamente una IP única a cada dispositivo conectado. Nadie tiene que configurar nada a mano.</p>
+            </div>
+            <div class="card" style="margin-bottom:0; border-top: 3px solid var(--color-teacher);">
+              <h3 style="color: var(--color-teacher); font-size: 1.1rem; margin-bottom: 0.4rem;">🌐 Gateway</h3>
+              <p style="font-size: 0.85rem; color: var(--text-secondary);">Es la puerta de salida a Internet. Si un dispositivo quiere ver YouTube, el celular traduce la petición y la envía al mundo exterior a través de los datos móviles.</p>
+            </div>
+          </div>
+
+          <!-- Visual Diagram -->
+          <div class="diagram-box">
+            <p style="color:var(--text-muted); margin-bottom: 1rem; font-family: inherit;">Diagrama de tu red local con Hotspot</p>
+            <div>
+              <div class="diagram-router">📱 Celular (Router + Gateway)<br><span style="font-size:0.75rem; color:var(--text-muted);">IP: 10.255.142.1 — Máscara: 255.255.255.0</span></div>
+            </div>
+            <div style="font-size: 1.5rem; color: var(--color-cyan); margin: 0.5rem 0;">│ Red Wi-Fi del Hotspot │</div>
+            <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 0.5rem;">
+              <div class="diagram-device">💻 Notebook A<br>10.255.142.157</div>
+              <div class="diagram-device">💻 Notebook B<br>10.255.142.203</div>
+              <div class="diagram-device">📱 Tablet<br>10.255.142.88</div>
+            </div>
+            <p style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-muted);">Todos comparten los primeros 3 octetos (10.255.142.___) → Están en la <strong>misma red</strong>.</p>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 2: THEORY — La Máscara como Frontera de Vecindad -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-mascara-vecinos" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">0B.2</span>
+            La Máscara Define Quiénes Son Tus Vecinos
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: El Código Postal (10 min)</h4>
+            <p><strong>Meta:</strong> Que entiendan que la máscara NO es decorativa. Es la regla que decide si dos dispositivos pueden comunicarse directamente o si necesitan un intermediario (router/gateway).</p>
+            <ul>
+              <li><strong>Analogía del código postal:</strong> Si yo vivo en <em>Calle Los Aromos 45, Puerto Montt</em> y tú vives en <em>Calle Los Aromos 78, Puerto Montt</em>, somos vecinos. Puedo caminar a tu casa y tocar la puerta. Pero si tú vives en <em>Calle Los Aromos 45, Santiago</em>, mismo nombre de calle, mismo número, pero distinta ciudad. Necesito tomar un avión (ir por el router/gateway) para llegar a ti.</li>
+              <li><strong>La máscara es la "ciudad":</strong> La parte fija (bloqueada por los 255 de la máscara) es la "ciudad". Si coincide entre dos IPs, son vecinos directos. Si no coincide, necesitan pasar por un gateway.</li>
+              <li><strong>Ejercicio rápido en voz alta:</strong> "Si la máscara es 255.255.255.0, ¿son vecinos 10.255.142.157 y 10.255.142.203?" (Sí, los primeros 3 octetos coinciden). "¿Y 10.255.142.157 y 10.255.143.157?" (No, el tercer octeto cambió de 142 a 143).</li>
+            </ul>
+          </div>
+
+          <p>
+            En la clase anterior aprendiste que la máscara bloquea octetos. Ahora viene la pregunta clave: <strong>¿para qué sirve eso en la práctica?</strong>
+          </p>
+
+          <div class="analogy-box" style="border-color: rgba(139, 92, 246, 0.3); background: rgba(139, 92, 246, 0.03); margin-top: 1.5rem;">
+            <h4 style="color: var(--color-accent);">🏘️ La Regla del Vecindario</h4>
+            <p style="font-size: 0.95rem; margin-top: 0.5rem;">
+              Dos dispositivos pueden hablarse directamente <strong>solo si comparten la misma porción de red</strong> (los octetos bloqueados por la máscara). Si no la comparten, el mensaje debe pasar por un intermediario: el <strong>Gateway</strong> (puerta de enlace).
+            </p>
+          </div>
+
+          <div class="class-grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
+            <div class="card" style="margin-bottom:0; border-left: 4px solid var(--color-teacher);">
+              <h3 style="color: var(--color-teacher); font-size: 1rem; margin-bottom: 0.4rem;">✅ Misma Red → Comunicación Directa</h3>
+              <div style="font-family: 'Fira Code', monospace; font-size: 0.85rem; margin: 0.5rem 0;">
+                <div>IP A: <strong>10.255.142</strong>.157</div>
+                <div>IP B: <strong>10.255.142</strong>.203</div>
+                <div style="color:var(--text-muted);">Máscara: 255.255.255.0</div>
+              </div>
+              <p style="font-size: 0.85rem; color: var(--text-secondary);">Los 3 octetos bloqueados son iguales (<code>10.255.142</code>). Son vecinos, el paquete viaja directo por Wi-Fi.</p>
+            </div>
+            <div class="card" style="margin-bottom:0; border-left: 4px solid #ef4444;">
+              <h3 style="color: #ef4444; font-size: 1rem; margin-bottom: 0.4rem;">❌ Red Distinta → Necesita Gateway</h3>
+              <div style="font-family: 'Fira Code', monospace; font-size: 0.85rem; margin: 0.5rem 0;">
+                <div>IP A: <strong>10.255.142</strong>.157</div>
+                <div>IP C: <strong>192.168.1</strong>.50</div>
+                <div style="color:var(--text-muted);">Máscara: 255.255.255.0</div>
+              </div>
+              <p style="font-size: 0.85rem; color: var(--text-secondary);">Los octetos bloqueados son completamente distintos. Necesitan un router que los conecte entre las dos redes.</p>
+            </div>
+          </div>
+
+          <!-- Interactive Neighbor Checker -->
+          <div class="card" style="margin-top: 2rem; padding: 1.5rem;">
+            <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--color-cyan);">🔍 Simulador: ¿Son Vecinos?</h3>
+            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem;">Ingresa dos IPs y una máscara para descubrir si están en la misma red o no.</p>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+              <div>
+                <label style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">IP Dispositivo A</label>
+                <input type="text" id="neighborIpA" class="form-control" value="10.255.142.157" style="font-family:'Fira Code', monospace; font-size: 0.9rem;">
+              </div>
+              <div>
+                <label style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">IP Dispositivo B</label>
+                <input type="text" id="neighborIpB" class="form-control" value="10.255.142.203" style="font-family:'Fira Code', monospace; font-size: 0.9rem;">
+              </div>
+              <div>
+                <label style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Máscara</label>
+                <select id="neighborMask" class="form-control" style="font-size: 0.9rem;">
+                  <option value="255.255.255.0" selected>255.255.255.0 (/24)</option>
+                  <option value="255.255.0.0">255.255.0.0 (/16)</option>
+                  <option value="255.0.0.0">255.0.0.0 (/8)</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn btn-primary" id="btnCheckNeighbor" style="width:100%; justify-content:center;">Verificar Vecindad</button>
+            <div id="neighborResult" class="status-alert" style="margin-top: 1rem; display:none;"></div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 3: PRACTICE — Lab Paso a Paso -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-lab" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">0B.3</span>
+            Laboratorio: Construye Tu Propia Red y Servidor Web
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Ejecución del Laboratorio (30 min)</h4>
+            <p><strong>Materiales:</strong> Un celular con datos, al menos 2 notebooks, Python instalado.</p>
+            <ul>
+              <li><strong>Paso previo (1 min):</strong> Pide a un alumno voluntario que active el hotspot de su celular. Que le ponga un nombre reconocible (ej. "RedDelCurso").</li>
+              <li><strong>Dinámica:</strong> Todos se conectan al mismo hotspot. Luego un alumno levanta el servidor Python y los demás intentan accederlo desde sus navegadores.</li>
+              <li><strong>Momento "¡Wow!":</strong> Cuando la página web aparezca en el navegador de otro computador, haz una pausa y di: "Acaban de hacer exactamente lo que pasa cuando un EC2 dentro de una VPC sirve una web. Un servidor con IP privada sirviendo contenido a los vecinos de su red."</li>
+              <li><strong>Si no hay suficientes computadores:</strong> Haz la demo tú al frente con proyector. Un alumno puede usar su celular (conectado al mismo hotspot) como segundo cliente.</li>
+              <li><strong>Errores comunes:</strong>
+                <ul>
+                  <li>Firewall de Windows bloquea Python → Pídeles que acepten el diálogo de "Permitir acceso".</li>
+                  <li>Usan 127.0.0.1 en lugar de la IP de la red → Explica la diferencia (Slide 0B.3, Paso 2).</li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+
+          <p style="font-size: 0.95rem; margin-bottom: 1.5rem;">
+            Vamos a construir una red local real, levantar un servidor web y ver cómo otro dispositivo puede acceder a él. Esta experiencia es <strong>idéntica</strong> a lo que ocurre dentro de una VPC en AWS.
+          </p>
+
+          <!-- Step 1 -->
+          <div class="lab-step">
+            <div class="lab-step-number">1</div>
+            <div class="lab-step-content">
+              <h4>Activar el Hotspot del Celular</h4>
+              <p>Busca en tu celular <strong>Ajustes → Zona Wi-Fi portátil</strong> (Android) o <strong>Configuración → Compartir Internet</strong> (iPhone). Actívalo y ponle un nombre fácil de reconocer, como <code>MiRedCloud</code>.</p>
+              <p style="margin-top: 0.4rem;"><strong>Todos los computadores del grupo</strong> deben conectarse a ese mismo Wi-Fi.</p>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="lab-step">
+            <div class="lab-step-number">2</div>
+            <div class="lab-step-content">
+              <h4>Identificar Tu IP Privada</h4>
+              <p>Abre la terminal en el computador que será el <strong>servidor</strong> y ejecuta el comando según tu sistema operativo:</p>
+
+              <div class="terminal-window" style="margin: 0.75rem 0;">
+                <div class="terminal-header">
+                  <span class="terminal-dot red"></span>
+                  <span class="terminal-dot yellow"></span>
+                  <span class="terminal-dot green"></span>
+                  <span class="terminal-title">Terminal</span>
+                </div>
+                <div class="terminal-body">
+                  <span class="terminal-prompt">$</span><span class="terminal-cmd">ipconfig  (Windows)  |  ifconfig  (Mac/Linux)</span>
+                </div>
+              </div>
+
+              <p>Busca la dirección <strong>IPv4</strong> que te asignó el hotspot. Generalmente empieza con <code>10.x.x.x</code> o <code>172.x.x.x</code> o <code>192.168.x.x</code>.</p>
+
+              <div class="warning-box">
+                <strong>⚠️ ¡No confundir!</strong> La dirección <code>127.0.0.1</code> (localhost) solo apunta a tu propia máquina. No sirve para que otros te vean. Necesitas la IP asignada por el hotspot.
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="lab-step">
+            <div class="lab-step-number">3</div>
+            <div class="lab-step-content">
+              <h4>Levantar el Servidor Web con Python</h4>
+              <p>Navega en la terminal hacia una carpeta que tenga algún archivo HTML (o simplemente cualquier carpeta) y ejecuta:</p>
+
+              <div class="terminal-window" style="margin: 0.75rem 0;">
+                <div class="terminal-header">
+                  <span class="terminal-dot red"></span>
+                  <span class="terminal-dot yellow"></span>
+                  <span class="terminal-dot green"></span>
+                  <span class="terminal-title">Terminal — Servidor</span>
+                </div>
+                <div class="terminal-body">
+                  <span class="terminal-prompt">$</span><span class="terminal-cmd">python -m http.server 8000 --bind 0.0.0.0</span>
+                  <div class="terminal-output">Serving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/) ...</div>
+                </div>
+              </div>
+
+              <p style="margin-top: 0.5rem;">El flag <code>--bind 0.0.0.0</code> le dice a Python: "Acepta conexiones de <em>cualquier</em> IP, no solo de mí mismo". Sin esto, otros dispositivos no podrán conectarse.</p>
+              <p style="margin-top: 0.3rem; font-size: 0.85rem; color: var(--text-muted);">Si usas Windows y aparece un cuadro de diálogo del Firewall, selecciona "Permitir acceso".</p>
+            </div>
+          </div>
+
+          <!-- Step 4 -->
+          <div class="lab-step">
+            <div class="lab-step-number">4</div>
+            <div class="lab-step-content">
+              <h4>Acceder Desde Otro Dispositivo</h4>
+              <p>Desde <strong>otro computador o el celular</strong> (conectado al mismo hotspot), abre el navegador y escribe la URL:</p>
+
+              <div style="text-align: center; font-family: 'Fira Code', monospace; font-size: 1.3rem; color: var(--color-cyan); background: rgba(6, 182, 212, 0.08); padding: 1rem; border-radius: 8px; border: 1px solid rgba(6, 182, 212, 0.25); margin: 0.75rem 0;">
+                http://<span style="color: var(--color-accent);">[IP del servidor]</span>:8000
+              </div>
+              <p style="font-size: 0.9rem;">Ejemplo: <code>http://10.255.142.157:8000</code></p>
+
+              <div class="analogy-box" style="border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.03); margin-top: 1rem;">
+                <h4 style="color: var(--color-teacher);">🎉 ¡Lo lograste!</h4>
+                <p style="font-size: 0.9rem;">Si ves la lista de archivos o tu página web, acabas de replicar lo que pasa dentro de una VPC de AWS: una instancia (tu notebook) con una IP privada, sirviendo contenido por un puerto, accesible por los demás miembros de la misma red privada.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 4: BRIDGE TO VPC -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-puente-vpc" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">0B.4</span>
+            Puente Conceptual: De tu Hotspot a una VPC de AWS
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: La Tabla Comparativa (5 min)</h4>
+            <p>Proyecta esta tabla y pregunta por cada fila: "¿Qué hicimos hoy que se parece a esto?"</p>
+            <ul>
+              <li>El celular → La VPC. Ambos crean una red aislada con reglas propias.</li>
+              <li>La IP privada del notebook → La IP privada de una instancia EC2.</li>
+              <li>El comando Python → Un proceso Apache o Nginx corriendo dentro de EC2.</li>
+              <li>Enfatiza: "Cuando la próxima semana hablemos de VPC, ya saben exactamente lo que hace porque <em>ya lo hicieron hoy</em>."</li>
+            </ul>
+          </div>
+
+          <p style="margin-bottom: 1.5rem;">
+            Todo lo que hiciste hoy tiene un paralelo directo con lo que verás en la próxima clase cuando hablemos de VPC en AWS:
+          </p>
+
+          <table class="results-table cloud-bridge-table" style="width: 100%; font-size: 0.9rem;">
+            <thead>
+              <tr>
+                <th>Concepto</th>
+                <th class="local-col">🏠 Lo que hicimos hoy (Local)</th>
+                <th class="cloud-col">☁️ Lo que veremos en AWS</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>La Red Privada</strong></td>
+                <td class="local-col">Hotspot del celular</td>
+                <td class="cloud-col">VPC (Virtual Private Cloud)</td>
+              </tr>
+              <tr>
+                <td><strong>Repartidor de IPs</strong></td>
+                <td class="local-col">DHCP del celular</td>
+                <td class="cloud-col">DHCP de la subred de AWS</td>
+              </tr>
+              <tr>
+                <td><strong>IP Privada</strong></td>
+                <td class="local-col">10.255.142.157</td>
+                <td class="cloud-col">10.0.1.45 (IP privada EC2)</td>
+              </tr>
+              <tr>
+                <td><strong>El Servidor</strong></td>
+                <td class="local-col">Tu notebook con Python</td>
+                <td class="cloud-col">Instancia EC2 con Apache</td>
+              </tr>
+              <tr>
+                <td><strong>Puerto de Servicio</strong></td>
+                <td class="local-col">:8000</td>
+                <td class="cloud-col">:80 (HTTP) o :443 (HTTPS)</td>
+              </tr>
+              <tr>
+                <td><strong>Puerta a Internet</strong></td>
+                <td class="local-col">Datos móviles del celular</td>
+                <td class="cloud-col">Internet Gateway (IGW)</td>
+              </tr>
+              <tr>
+                <td><strong>Máscara de Red</strong></td>
+                <td class="local-col">255.255.255.0 (/24)</td>
+                <td class="cloud-col">Rango CIDR de la VPC (ej. /16)</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="analogy-box" style="border-color: rgba(139, 92, 246, 0.3); background: rgba(139, 92, 246, 0.03); margin-top: 1.5rem;">
+            <h4 style="color: var(--color-accent);">💡 La Gran Idea</h4>
+            <p style="font-size: 0.95rem; margin-top: 0.5rem;">
+              Una <strong>VPC</strong> es básicamente un "hotspot gigante" administrado por Amazon, donde en vez de notebooks conectados a tu celular, tienes <strong>servidores virtuales (EC2)</strong> conectados a una red virtual en el datacenter de AWS. La lógica de IPs privadas, máscaras y puertas de enlace es <em>exactamente la misma</em> que acabas de experimentar.
+            </p>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 5: METACOGNITION -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-metacognicion" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">0B.5</span>
+            Cierre: Metacognición y Autoevaluación
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Cierre Reflexivo (10 min)</h4>
+            <p>Evalúa con estas 3 preguntas si la experiencia práctica se conectó con los conceptos:</p>
+            <ul>
+              <li><strong>Pregunta 1:</strong> Refuerza que la IP privada no es accesible desde Internet (concepto clave para VPC).</li>
+              <li><strong>Pregunta 2:</strong> Consolida el rol de la máscara como "filtro de vecindad".</li>
+              <li><strong>Pregunta 3:</strong> Conecta la experiencia del lab con el vocabulario de AWS para la próxima clase.</li>
+            </ul>
+          </div>
+
+          <div class="quiz-container">
+
+            <!-- Question 1 -->
+            <div class="quiz-question-card" id="q0b_1">
+              <h4>1. Levantaste un servidor web en tu notebook con IP <code>10.255.142.157:8000</code>. Tu amigo que está en su casa (otra red Wi-Fi) intenta abrir esa URL en su navegador. ¿Qué ocurre?</h4>
+              <div class="quiz-options">
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">A</div>
+                  <span>Ve tu página web normalmente porque la IP es universal.</span>
+                </div>
+                <div class="quiz-option" data-correct="true">
+                  <div class="quiz-option-marker">B</div>
+                  <span>No puede acceder. La IP <code>10.x.x.x</code> es privada y solo existe dentro de la red del hotspot. Desde afuera no es alcanzable.</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">C</div>
+                  <span>Ve la página pero con mucho retraso porque la IP es lenta.</span>
+                </div>
+              </div>
+              <div class="quiz-explanation">
+                <strong>Correcto:</strong> Las IPs que empiezan con <code>10.x.x.x</code>, <code>172.16-31.x.x</code> y <code>192.168.x.x</code> son <strong>rangos privados</strong> (RFC 1918). Solo existen dentro de tu red local. Para que alguien externo las vea, necesitarías una IP pública y un mecanismo como NAT o, en AWS, un Internet Gateway. Esto es exactamente lo que se configura en una VPC.
+              </div>
+            </div>
+
+            <!-- Question 2 -->
+            <div class="quiz-question-card" id="q0b_2">
+              <h4>2. Dos notebooks están conectados al mismo hotspot con máscara <code>255.255.255.0</code>. El notebook A tiene IP <code>10.255.142.157</code> y el notebook B tiene IP <code>10.255.143.20</code>. ¿Pueden comunicarse directamente?</h4>
+              <div class="quiz-options">
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">A</div>
+                  <span>Sí, porque ambos empiezan con <code>10.255</code> que son los octetos más importantes.</span>
+                </div>
+                <div class="quiz-option" data-correct="true">
+                  <div class="quiz-option-marker">B</div>
+                  <span>No directamente. La máscara /24 bloquea los 3 primeros octetos, y el tercer octeto es distinto (142 vs 143). Están en redes distintas.</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">C</div>
+                  <span>Sí, porque están en el mismo Wi-Fi físico y eso es suficiente.</span>
+                </div>
+              </div>
+              <div class="quiz-explanation">
+                <strong>Correcto:</strong> Aunque están en el mismo Wi-Fi físico, la máscara <code>255.255.255.0</code> determina que los primeros 3 octetos deben coincidir para ser "vecinos". Como <code>10.255.<strong>142</strong></code> ≠ <code>10.255.<strong>143</strong></code>, el sistema operativo los trata como redes distintas y necesitarían un router para hablar. La máscara es la ley, no el cable.
+              </div>
+            </div>
+
+            <!-- Question 3 -->
+            <div class="quiz-question-card" id="q0b_3">
+              <h4>3. En la experiencia de hoy, tu celular hizo el papel de tres cosas. ¿Cuál de estas opciones describe correctamente lo que harán esos mismos roles en AWS?</h4>
+              <div class="quiz-options">
+                <div class="quiz-option" data-correct="true">
+                  <div class="quiz-option-marker">A</div>
+                  <span>La <strong>VPC</strong> define la red, el <strong>DHCP de la subred</strong> reparte IPs, y el <strong>Internet Gateway</strong> conecta la red privada a Internet.</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">B</div>
+                  <span>El <strong>EC2</strong> define la red, el <strong>S3</strong> reparte IPs, y el <strong>IAM</strong> conecta a Internet.</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">C</div>
+                  <span>La <strong>Route 53</strong> crea la red, el <strong>CloudWatch</strong> asigna IPs, y el <strong>Lambda</strong> da acceso a Internet.</span>
+                </div>
+              </div>
+              <div class="quiz-explanation">
+                <strong>Correcto:</strong> El celular creó la red (VPC), repartió IPs automáticamente (DHCP de la subred) y dio salida a Internet a través de sus datos móviles (Internet Gateway). La próxima clase veremos estos componentes en detalle.
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="sidebar-navigation">
+        <h4>Contenido de la Clase</h4>
+        <ul class="sidebar-links">
+          <li><a href="#slide-hotspot" class="active">0B.1 El Celular como Router</a></li>
+          <li><a href="#slide-mascara-vecinos">0B.2 Máscara y Vecindad</a></li>
+          <li><a href="#slide-lab">0B.3 Laboratorio</a></li>
+          <li><a href="#slide-puente-vpc">0B.4 Puente a VPC</a></li>
+          <li><a href="#slide-metacognicion">0B.5 Autoevaluación</a></li>
+        </ul>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>© 2026 Portal de Cloud Computing - Diseñado para una docencia ágil e interactiva.</p>
+    <p style="margin-top: 0.5rem;"><a href="index.html">← Volver al Dashboard Principal</a></p>
+  </footer>
+
+  <script src="script.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initNeighborChecker();
+      initQuiz();
+      initSidebarScrollSpy();
+    });
+
+    // -----------------------------------------------------------------
+    // 1. Neighbor Checker Simulator
+    // -----------------------------------------------------------------
+    function initNeighborChecker() {
+      const btn = document.getElementById('btnCheckNeighbor');
+      const result = document.getElementById('neighborResult');
+      if (!btn) return;
+
+      btn.addEventListener('click', () => {
+        const ipA = document.getElementById('neighborIpA').value.trim();
+        const ipB = document.getElementById('neighborIpB').value.trim();
+        const mask = document.getElementById('neighborMask').value;
+
+        // Parse
+        const partsA = ipA.split('.').map(Number);
+        const partsB = ipB.split('.').map(Number);
+        const partsM = mask.split('.').map(Number);
+
+        // Validate
+        if (partsA.length !== 4 || partsB.length !== 4 || partsA.some(isNaN) || partsB.some(isNaN)) {
+          result.className = 'status-alert error';
+          result.innerHTML = '⚠️ <strong>Error:</strong> Asegúrate de escribir IPs válidas en formato X.X.X.X';
+          result.style.display = 'block';
+          return;
+        }
+
+        // Apply mask (AND operation)
+        const netA = partsA.map((o, i) => o & partsM[i]);
+        const netB = partsB.map((o, i) => o & partsM[i]);
+
+        const sameNet = netA.every((v, i) => v === netB[i]);
+
+        if (sameNet) {
+          result.className = 'status-alert success';
+          result.innerHTML = `
+            ✅ <strong>¡Son vecinos!</strong> Ambos dispositivos pertenecen a la red <code>${netA.join('.')}</code>.<br>
+            <span style="font-size:0.85rem;">Pueden comunicarse directamente sin necesidad de un Gateway. En AWS, estarían en la misma subred.</span>
+          `;
+        } else {
+          result.className = 'status-alert error';
+          result.innerHTML = `
+            ❌ <strong>No son vecinos.</strong> El dispositivo A está en la red <code>${netA.join('.')}</code> y el B en la red <code>${netB.join('.')}</code>.<br>
+            <span style="font-size:0.85rem;">Necesitan un router/gateway para comunicarse. En AWS, estarían en subredes diferentes.</span>
+          `;
+        }
+        result.style.display = 'block';
+      });
+    }
+
+    // -----------------------------------------------------------------
+    // 2. Quiz
+    // -----------------------------------------------------------------
+    function initQuiz() {
+      const quizCards = document.querySelectorAll('.quiz-question-card');
+      quizCards.forEach(card => {
+        const options = card.querySelectorAll('.quiz-option');
+        const explanation = card.querySelector('.quiz-explanation');
+        let answered = false;
+        options.forEach(opt => {
+          opt.addEventListener('click', () => {
+            if (answered) return;
+            answered = true;
+            if (opt.getAttribute('data-correct') === 'true') {
+              opt.classList.add('correct');
+            } else {
+              opt.classList.add('incorrect');
+              options.forEach(o => {
+                if (o.getAttribute('data-correct') === 'true') o.classList.add('correct');
+              });
+            }
+            explanation.style.display = 'block';
+          });
+        });
+      });
+    }
+
+    // -----------------------------------------------------------------
+    // 3. Scroll Spy
+    // -----------------------------------------------------------------
+    function initSidebarScrollSpy() {
+      const sidebarLinks = document.querySelectorAll('.sidebar-links a');
+      const slidesList = document.querySelectorAll('.slide');
+      const onScroll = () => {
+        if (document.body.classList.contains('presentation-mode')) return;
+        let currentSlideId = '';
+        const scrollPosition = window.scrollY + 200;
+        slidesList.forEach(slide => {
+          const top = slide.offsetTop;
+          const height = slide.offsetHeight;
+          if (scrollPosition >= top && scrollPosition < top + height) {
+            currentSlideId = slide.getAttribute('id');
+          }
+        });
+        if (currentSlideId) {
+          sidebarLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href') === `#${currentSlideId}`) link.classList.add('active');
+          });
+        }
+      };
+      window.addEventListener('scroll', onScroll);
+    }
+  </script>
+</body>
+</html>
