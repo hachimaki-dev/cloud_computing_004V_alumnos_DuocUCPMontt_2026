@@ -58,8 +58,8 @@
     .answer-row {
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
-      padding: 1.25rem;
+      gap: 0.75rem;
+      padding: 1.5rem;
       background: rgba(255, 255, 255, 0.01);
       border: 1px solid rgba(255, 255, 255, 0.03);
       border-radius: 8px;
@@ -280,7 +280,7 @@
           </div>
 
           <div class="warning-callout" style="border-left-color: var(--color-accent); margin-top: 2rem;">
-            <strong>⚠️ Registro de Entregable:</strong> En la pestaña <strong>Respuestas</strong> al final de este portal, deberás escribir en orden los comandos que ejecutaste para resolver el taller. Podrás descargar un reporte en `.txt` para enviárselo a tu profesor en AVA.
+            <strong>⚠️ Registro de Entregable:</strong> En la pestaña <strong>Respuestas</strong> al final de este portal, deberás escribir en orden los comandos y pegar sus salidas del terminal. Podrás descargar un reporte en `.txt` para enviárselo a tu profesor en AVA.
           </div>
         </section>
 
@@ -411,6 +411,23 @@
           <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>pwd</code></div>
           <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>uname -a</code></div>
 
+          <!-- Anatomía del comando SSH -->
+          <h4 style="font-size: 0.9rem; color: var(--text-muted); margin-top: 1.5rem; margin-bottom: 0.5rem;">🔍 Anatomía del Comando SSH:</h4>
+          <div class="command-anatomy">
+            <div class="command-anatomy-code" style="font-size: 0.85rem;">
+              <span class="cmd-part cmd-command" title="Secure Shell: El comando para iniciar la conexión remota">ssh</span>
+              <span class="cmd-part cmd-flag" title="Flag Identity: Especifica la clave privada de identidad que usaremos">-i</span>
+              <span class="cmd-part cmd-arg" title="Archivo de Llave: Ruta del archivo .pem (cerradura) descargado de AWS">&quot;llave.pem&quot;</span>
+              <span class="cmd-part cmd-path" title="Usuario predeterminado + IP Pública del Servidor">ubuntu@IP_DE_TU_INSTANCIA</span>
+            </div>
+            <div class="command-anatomy-legend">
+              <div class="legend-item"><span class="legend-dot command"></span> Comando SSH</div>
+              <div class="legend-item"><span class="legend-dot flag"></span> Bandera Identity (-i)</div>
+              <div class="legend-item"><span class="legend-dot arg"></span> Archivo Llave Privada</div>
+              <div class="legend-item"><span class="legend-dot path"></span> Usuario y Servidor Remoto</div>
+            </div>
+          </div>
+
           <!-- Wiki / Enciclopedia del Administrador -->
           <div class="card" style="border-top: 3px solid var(--color-cyan); margin-top: 2rem;">
             <h3 style="font-size: 1.15rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
@@ -492,7 +509,7 @@
             <h4>💡 Guía Docente: Explicando Privilegios y Sudo (10 min)</h4>
             <p>Compartir el usuario de administrador por defecto (<code>ubuntu</code>) es un grave fallo de seguridad. En producción, cada miembro del equipo debe poseer una cuenta individual.</p>
             <ul>
-              <li><strong>Concepto:</strong> <code>sudo</code> permite a un usuario autorizado ejecutar acciones como superusuario (root).</li>
+              <li><strong>Concepto:</strong> <code>sudo</code> permite a un usuario de Linux ejecutar acciones con privilegios de administrador (root).</li>
               <li>Explique a los alumnos que Linux no muestra caracteres al ingresar contraseñas por seguridad ante miradas indiscretas.</li>
             </ul>
           </div>
@@ -502,8 +519,31 @@
           <p style="font-size: 0.9rem; color: var(--text-muted);">Debería devolver: <code>root</code></p>
 
           <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">Crear el usuario de desarrollo</h3>
-          <p>Crea una nueva cuenta para el desarrollador frontend/backend llamada <code>dev_js</code> con su carpeta personal y bash como intérprete:</p>
+          <p>Crea una nueva cuenta para el desarrollador frontend/backend llamada <code>dev_js</code> con su carpeta personal y BASH como intérprete:</p>
           <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo useradd -m -s /bin/bash dev_js</code></div>
+
+          <!-- Anatomía del comando useradd -->
+          <h4 style="font-size: 0.9rem; color: var(--text-muted); margin-top: 1.5rem; margin-bottom: 0.5rem;">🔍 Anatomía de Creación de Usuario:</h4>
+          <div class="command-anatomy">
+            <div class="command-anatomy-code" style="font-size: 0.85rem;">
+              <span class="cmd-part cmd-sudo" title="Superuser Do: Ejecuta el comando con privilegios de Administrador (root)">sudo</span>
+              <span class="cmd-part cmd-command" title="User Add: Comando base para registrar una nueva cuenta de usuario">useradd</span>
+              <span class="cmd-part cmd-flag" title="Flag Create Home: Crea la carpeta home (/home/dev_js) de forma automática">-m</span>
+              <span class="cmd-part cmd-flag" title="Flag Shell: Indica el terminal (shell) de comandos a asignar al usuario">-s</span>
+              <span class="cmd-part cmd-arg" title="Bash Shell: El shell interactivo por excelencia (con colores, autocompletado y atajos)">/bin/bash</span>
+              <span class="cmd-part cmd-path" title="Nombre de usuario: El nombre del usuario a registrar en el sistema">dev_js</span>
+            </div>
+            <div class="command-anatomy-legend">
+              <div class="legend-item"><span class="legend-dot sudo"></span> Privilegios Root</div>
+              <div class="legend-item"><span class="legend-dot command"></span> Comando de Creación</div>
+              <div class="legend-item"><span class="legend-dot flag"></span> Banderas (Flags)</div>
+              <div class="legend-item"><span class="legend-dot arg"></span> Intérprete (Shell)</div>
+              <div class="legend-item"><span class="legend-dot path"></span> Nombre de Usuario</div>
+            </div>
+          </div>
+          <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1.5rem;">
+            💡 <strong>¿Por qué indicamos `/bin/bash`?</strong> Si omites esta bandera, el sistema podría asignarle una shell minimalista antigua como `/bin/sh`. BASH es el estándar moderno en la industria ya que proporciona autocompletado con tabulador y colores en la consola.
+          </p>
 
           <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">Asignar contraseña</h3>
           <p>Asigna una contraseña segura al usuario (escríbela dos veces; recuerda que no aparecerá nada en pantalla mientras escribes):</p>
@@ -539,7 +579,7 @@
                 <tr>
                   <td class="feature-col"><code>useradd</code></td>
                   <td><strong>User Add:</strong> Registra una nueva cuenta de usuario en el servidor.</td>
-                  <td><code>sudo useradd -m -s /bin/bash dev_js</code> (crea home y bash)</td>
+                  <td><code>sudo useradd -m -s /bin/bash dev_js</code> (crea home y BASH)</td>
                 </tr>
                 <tr>
                   <td class="feature-col"><code>passwd</code></td>
@@ -594,12 +634,27 @@
             <h4>💡 Guía Docente: Estructura y Touch (5 min)</h4>
             <p><strong>Propósito:</strong> Introducir el orden de directorios estándar de un backend y el comando <code>touch</code> para la creación rápida de archivos vacíos.</p>
             <ul>
-              <li><strong>Concepto:</strong> El flag <code>-p</code> es clave para crear directorios aninados sin que la terminal arroje errores si las carpetas padres aún no existen.</li>
+              <li><strong>Concepto:</strong> El flag <code>-p</code> es clave para crear directorios anidados sin que la terminal arroje errores si las carpetas padres aún no existen.</li>
             </ul>
           </div>
 
           <p>Es hora de crear la estructura base para la aplicación backend de desarrollo. Utiliza una sola línea para crear las carpetas del proyecto:</p>
           <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>mkdir -p ~/proyecto_backend/src ~/proyecto_backend/config ~/proyecto_backend/logs</code></div>
+
+          <!-- Anatomía del comando mkdir -p -->
+          <h4 style="font-size: 0.9rem; color: var(--text-muted); margin-top: 1.5rem; margin-bottom: 0.5rem;">🔍 Anatomía de mkdir recursivo:</h4>
+          <div class="command-anatomy">
+            <div class="command-anatomy-code" style="font-size: 0.85rem;">
+              <span class="cmd-part cmd-command" title="Make Directory: Comando para crear carpetas">mkdir</span>
+              <span class="cmd-part cmd-flag" title="Flag Parents: Crea carpetas padres de forma recursiva y no da error si la carpeta ya existe">-p</span>
+              <span class="cmd-part cmd-path" title="Rutas de directorios a crear, separadas por espacios. La tilde (~) es la abreviación de /home/ubuntu.">~/proyecto_backend/src ~/proyecto_backend/config ~/proyecto_backend/logs</span>
+            </div>
+            <div class="command-anatomy-legend">
+              <div class="legend-item"><span class="legend-dot command"></span> Comando Crear Carpetas</div>
+              <div class="legend-item"><span class="legend-dot flag"></span> Bandera Parents (-p)</div>
+              <div class="legend-item"><span class="legend-dot path"></span> Rutas Separadas por Espacios</div>
+            </div>
+          </div>
 
           <p style="margin-top: 1rem;">Verifica la estructura creada de manera recursiva:</p>
           <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>ls -R ~/proyecto_backend</code></div>
@@ -701,15 +756,51 @@
           <p>Actualmente el proyecto fue creado por `ubuntu` y le pertenece a él. Cambiaremos el propietario al usuario `dev_js` de forma recursiva:</p>
           <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo chown -R dev_js ~/proyecto_backend/</code></div>
 
+          <!-- Anatomía del comando chown -->
+          <h4 style="font-size: 0.9rem; color: var(--text-muted); margin-top: 1.5rem; margin-bottom: 0.5rem;">🔍 Anatomía del Cambio de Dueño:</h4>
+          <div class="command-anatomy">
+            <div class="command-anatomy-code" style="font-size: 0.85rem;">
+              <span class="cmd-part cmd-sudo" title="Superuser Do: Ejecuta con privilegios administrativos de Root">sudo</span>
+              <span class="cmd-part cmd-command" title="Change Owner: Modifica el dueño y grupo de un archivo/carpeta">chown</span>
+              <span class="cmd-part cmd-flag" title="Flag Recursive: Aplica el cambio a esta carpeta y a todo lo que está adentro">-R</span>
+              <span class="cmd-part cmd-arg" title="Nuevo Dueño: Nombre de usuario a asignar">dev_js</span>
+              <span class="cmd-part cmd-path" title="Ruta Objetivo: Directorio sobre el que aplicamos el cambio">~/proyecto_backend/</span>
+            </div>
+            <div class="command-anatomy-legend">
+              <div class="legend-item"><span class="legend-dot sudo"></span> Privilegios Root</div>
+              <div class="legend-item"><span class="legend-dot command"></span> Comando chown</div>
+              <div class="legend-item"><span class="legend-dot flag"></span> Bandera Recursivo (-R)</div>
+              <div class="legend-item"><span class="legend-dot arg"></span> Nuevo Propietario</div>
+              <div class="legend-item"><span class="legend-dot path"></span> Ruta Objetivo</div>
+            </div>
+          </div>
+
           <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">Asignar permisos a la carpeta principal</h3>
           <p>Configura permisos para que el propietario `dev_js` tenga acceso total (7), el grupo pueda entrar/leer (5) y el resto del mundo no tenga ningún acceso (0):</p>
           <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo chmod 750 ~/proyecto_backend/</code></div>
+
+          <!-- Anatomía del comando chmod 750 -->
+          <h4 style="font-size: 0.9rem; color: var(--text-muted); margin-top: 1.5rem; margin-bottom: 0.5rem;">🔍 Anatomía del Cambio de Permisos:</h4>
+          <div class="command-anatomy">
+            <div class="command-anatomy-code" style="font-size: 0.85rem;">
+              <span class="cmd-part cmd-sudo" title="Superuser Do: Privilegios de administrador">sudo</span>
+              <span class="cmd-part cmd-command" title="Change Mode: Cambia los bits de lectura, escritura y ejecución">chmod</span>
+              <span class="cmd-part cmd-arg" title="Modo Octal: 7 (rwx) para el Dueño, 5 (r-x) para el Grupo, 0 (---) para Otros">750</span>
+              <span class="cmd-part cmd-path" title="Ruta Objetivo: Directorio que recibirá los nuevos permisos">~/proyecto_backend/</span>
+            </div>
+            <div class="command-anatomy-legend">
+              <div class="legend-item"><span class="legend-dot sudo"></span> Privilegios Root</div>
+              <div class="legend-item"><span class="legend-dot command"></span> Comando chmod</div>
+              <div class="legend-item"><span class="legend-dot arg"></span> Notación Octal</div>
+              <div class="legend-item"><span class="legend-dot path"></span> Ruta Objetivo</div>
+            </div>
+          </div>
 
           <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">Asegurar archivos con credenciales (`db.conf`)</h3>
           <p>Dado que `db.conf` tendrá contraseñas de bases de datos, solo el propietario `dev_js` debe poder leerlo y escribir en él (6), bloqueando a todos los demás usuarios (00):</p>
           <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo chmod 600 ~/proyecto_backend/config/db.conf</code></div>
 
-          <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">Validar la seguridad asignada</h3>
+          <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">Verificar la seguridad asignada</h3>
           <p>Verifica los permisos reflejados en el sistema de archivos Linux (deben verse como `drwxr-x---` para la carpeta y `-rw-------` para el archivo):</p>
           <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>ls -l ~/ | grep proyecto_backend</code></div>
           <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>ls -l ~/proyecto_backend/config/db.conf</code></div>
@@ -791,9 +882,45 @@
           <p style="margin-top: 1.5rem; margin-bottom: 0.5rem;">Instala el programador de tareas (`cronie`) confirmando automáticamente con `-y`:</p>
           <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo apt install cronie -y</code></div>
 
+          <!-- Anatomía del comando apt install -->
+          <h4 style="font-size: 0.9rem; color: var(--text-muted); margin-top: 1.5rem; margin-bottom: 0.5rem;">🔍 Anatomía de la Instalación de Software:</h4>
+          <div class="command-anatomy">
+            <div class="command-anatomy-code" style="font-size: 0.85rem;">
+              <span class="cmd-part cmd-sudo" title="Superuser Do: Permisos de root (requeridos para instalar paquetes)">sudo</span>
+              <span class="cmd-part cmd-command" title="Advanced Package Tool: Gestor de paquetes oficial de Debian/Ubuntu">apt</span>
+              <span class="cmd-part cmd-command" title="Install: Subcomando que le indica a apt que instale un software nuevo">install</span>
+              <span class="cmd-part cmd-arg" title="Paquete: Nombre oficial del software en los repositorios de Ubuntu">cronie</span>
+              <span class="cmd-part cmd-flag" title="Flag Yes: Confirma sí automáticamente a todas las preguntas de instalación e impide pausas interactivas">-y</span>
+            </div>
+            <div class="command-anatomy-legend">
+              <div class="legend-item"><span class="legend-dot sudo"></span> Privilegios Root</div>
+              <div class="legend-item"><span class="legend-dot command"></span> Comando apt install</div>
+              <div class="legend-item"><span class="legend-dot arg"></span> Nombre del Paquete</div>
+              <div class="legend-item"><span class="legend-dot flag"></span> Bandera Confirmación (-y)</div>
+            </div>
+          </div>
+
           <p style="margin-top: 1.5rem; margin-bottom: 0.5rem;">Habilita el servicio para que se inicie automáticamente en cada reinicio del servidor y arráncalo inmediatamente:</p>
           <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo systemctl enable --now crond</code></div>
           <p style="font-size: 0.85rem; color: var(--text-muted);">*Nota: En algunos entornos Ubuntu el servicio puede llamarse simplemente <code>cron</code> en vez de <code>crond</code>.</p>
+
+          <!-- Anatomía del comando systemctl enable --now -->
+          <h4 style="font-size: 0.9rem; color: var(--text-muted); margin-top: 1.5rem; margin-bottom: 0.5rem;">🔍 Anatomía de Control de Servicios:</h4>
+          <div class="command-anatomy">
+            <div class="command-anatomy-code" style="font-size: 0.85rem;">
+              <span class="cmd-part cmd-sudo" title="Superuser Do: Permisos de administrador (root)">sudo</span>
+              <span class="cmd-part cmd-command" title="System Control: Herramienta de control para gestionar daemons y servicios del sistema">systemctl</span>
+              <span class="cmd-part cmd-command" title="Enable: Configura el inicio automático del daemon con el sistema operativo">enable</span>
+              <span class="cmd-part cmd-flag" title="Flag Now: Arranca de forma inmediata el servicio sin esperar a un reinicio del sistema">--now</span>
+              <span class="cmd-part cmd-arg" title="Servicio: Nombre del daemon programador (crond)">crond</span>
+            </div>
+            <div class="command-anatomy-legend">
+              <div class="legend-item"><span class="legend-dot sudo"></span> Privilegios Root</div>
+              <div class="legend-item"><span class="legend-dot command"></span> Comando systemctl</div>
+              <div class="legend-item"><span class="legend-dot flag"></span> Bandera Inicio Inmediato (--now)</div>
+              <div class="legend-item"><span class="legend-dot arg"></span> Nombre del Servicio</div>
+            </div>
+          </div>
 
           <p style="margin-top: 1.5rem; margin-bottom: 0.5rem;">Verifica que el servicio esté en estado activo (verde) y funcionando:</p>
           <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo systemctl status crond</code></div>
@@ -917,11 +1044,11 @@
 
           <div class="teacher-note">
             <h4>💡 Guía Docente: Exportar Respuestas (5 min)</h4>
-            <p>Los alumnos deben completar sus nombres, sección e ingresar los comandos exactos solicitados. La validación en vivo les avisará si hay errores obvios de sintaxis.</p>
+            <p>Los alumnos deben completar sus nombres, sección e ingresar los comandos exactos solicitados junto con las respuestas o salidas que les devolvió la terminal del servidor.</p>
             <p><strong>Meta:</strong> Exportar el archivo `.txt` y subirlo al AVA de la asignatura en un mensaje dirigido a ti.</p>
           </div>
 
-          <p>Escribe en orden los comandos que ejecutaste para completar cada paso del taller. Al finalizar, presiona el botón para exportar tu entrega en un archivo `.txt` que subirás a AVA.</p>
+          <p>Escribe en orden los comandos que ejecutaste y **pega las salidas o respuestas** del terminal en cada campo. Al finalizar, responde las preguntas de metacognición y presiona el botón para exportar tu entrega.</p>
 
           <div class="answers-container">
             <!-- Student Information -->
@@ -937,7 +1064,7 @@
             </div>
 
             <!-- Question Inputs -->
-            <div class="answers-list" style="display: flex; flex-direction: column; gap: 1.25rem;">
+            <div class="answers-list" style="display: flex; flex-direction: column; gap: 1.5rem;">
               <!-- Command 1 -->
               <div class="answer-row" data-id="q1">
                 <div class="answer-header">
@@ -946,6 +1073,10 @@
                 </div>
                 <div class="answer-input-container">
                   <input type="text" id="ans-1" placeholder="ssh -i ..." onblur="validateInput(this, 'q1')">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                  <label for="out-1" style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">Salida/Respuesta del terminal (puedes pegar varias líneas):</label>
+                  <textarea id="out-1" rows="3" placeholder="Pega aquí la salida de la terminal..." style="width: 100%; background: #000; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #10b981; font-family: 'Fira Code', monospace; font-size: 0.85rem; padding: 0.5rem; resize: vertical;"></textarea>
                 </div>
               </div>
 
@@ -958,6 +1089,10 @@
                 <div class="answer-input-container">
                   <input type="text" id="ans-2" placeholder="who..." onblur="validateInput(this, 'q2')">
                 </div>
+                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                  <label for="out-2" style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">Salida/Respuesta del terminal:</label>
+                  <textarea id="out-2" rows="3" placeholder="Pega aquí la salida de la terminal..." style="width: 100%; background: #000; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #10b981; font-family: 'Fira Code', monospace; font-size: 0.85rem; padding: 0.5rem; resize: vertical;"></textarea>
+                </div>
               </div>
 
               <!-- Command 3 -->
@@ -968,6 +1103,10 @@
                 </div>
                 <div class="answer-input-container">
                   <input type="text" id="ans-3" placeholder="pw..." onblur="validateInput(this, 'q3')">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                  <label for="out-3" style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">Salida/Respuesta del terminal:</label>
+                  <textarea id="out-3" rows="3" placeholder="Pega aquí la salida de la terminal..." style="width: 100%; background: #000; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #10b981; font-family: 'Fira Code', monospace; font-size: 0.85rem; padding: 0.5rem; resize: vertical;"></textarea>
                 </div>
               </div>
 
@@ -980,6 +1119,10 @@
                 <div class="answer-input-container">
                   <input type="text" id="ans-4" placeholder="una..." onblur="validateInput(this, 'q4')">
                 </div>
+                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                  <label for="out-4" style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">Salida/Respuesta del terminal:</label>
+                  <textarea id="out-4" rows="3" placeholder="Pega aquí la salida de la terminal..." style="width: 100%; background: #000; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #10b981; font-family: 'Fira Code', monospace; font-size: 0.85rem; padding: 0.5rem; resize: vertical;"></textarea>
+                </div>
               </div>
 
               <!-- Command 5 -->
@@ -990,6 +1133,10 @@
                 </div>
                 <div class="answer-input-container">
                   <input type="text" id="ans-5" placeholder="sudo ..." onblur="validateInput(this, 'q5')">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                  <label for="out-5" style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">Salida/Respuesta del terminal:</label>
+                  <textarea id="out-5" rows="3" placeholder="Pega aquí la salida de la terminal..." style="width: 100%; background: #000; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #10b981; font-family: 'Fira Code', monospace; font-size: 0.85rem; padding: 0.5rem; resize: vertical;"></textarea>
                 </div>
               </div>
 
@@ -1002,6 +1149,10 @@
                 <div class="answer-input-container">
                   <input type="text" id="ans-6" placeholder="sudo useradd ..." onblur="validateInput(this, 'q6')">
                 </div>
+                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                  <label for="out-6" style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">Salida/Respuesta del terminal:</label>
+                  <textarea id="out-6" rows="3" placeholder="Pega aquí la salida de la terminal..." style="width: 100%; background: #000; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #10b981; font-family: 'Fira Code', monospace; font-size: 0.85rem; padding: 0.5rem; resize: vertical;"></textarea>
+                </div>
               </div>
 
               <!-- Command 7 -->
@@ -1012,6 +1163,10 @@
                 </div>
                 <div class="answer-input-container">
                   <input type="text" id="ans-7" placeholder="sudo passwd ..." onblur="validateInput(this, 'q7')">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                  <label for="out-7" style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">Salida/Respuesta del terminal:</label>
+                  <textarea id="out-7" rows="3" placeholder="Pega aquí la salida de la terminal..." style="width: 100%; background: #000; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #10b981; font-family: 'Fira Code', monospace; font-size: 0.85rem; padding: 0.5rem; resize: vertical;"></textarea>
                 </div>
               </div>
 
@@ -1024,6 +1179,10 @@
                 <div class="answer-input-container">
                   <input type="text" id="ans-8" placeholder="mkdir -p ..." onblur="validateInput(this, 'q8')">
                 </div>
+                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                  <label for="out-8" style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">Salida/Respuesta del terminal:</label>
+                  <textarea id="out-8" rows="3" placeholder="Pega aquí la salida de la terminal..." style="width: 100%; background: #000; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #10b981; font-family: 'Fira Code', monospace; font-size: 0.85rem; padding: 0.5rem; resize: vertical;"></textarea>
+                </div>
               </div>
 
               <!-- Command 9 -->
@@ -1034,6 +1193,10 @@
                 </div>
                 <div class="answer-input-container">
                   <input type="text" id="ans-9" placeholder="touch ~/proyecto..." onblur="validateInput(this, 'q9')">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                  <label for="out-9" style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">Salida/Respuesta del terminal:</label>
+                  <textarea id="out-9" rows="3" placeholder="Pega aquí la salida de la terminal..." style="width: 100%; background: #000; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #10b981; font-family: 'Fira Code', monospace; font-size: 0.85rem; padding: 0.5rem; resize: vertical;"></textarea>
                 </div>
               </div>
 
@@ -1046,6 +1209,10 @@
                 <div class="answer-input-container">
                   <input type="text" id="ans-10" placeholder="touch ~/proyecto..." onblur="validateInput(this, 'q10')">
                 </div>
+                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                  <label for="out-10" style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">Salida/Respuesta del terminal:</label>
+                  <textarea id="out-10" rows="3" placeholder="Pega aquí la salida de la terminal..." style="width: 100%; background: #000; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #10b981; font-family: 'Fira Code', monospace; font-size: 0.85rem; padding: 0.5rem; resize: vertical;"></textarea>
+                </div>
               </div>
 
               <!-- Command 11 -->
@@ -1056,6 +1223,10 @@
                 </div>
                 <div class="answer-input-container">
                   <input type="text" id="ans-11" placeholder="sudo chown -R ..." onblur="validateInput(this, 'q11')">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                  <label for="out-11" style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">Salida/Respuesta del terminal:</label>
+                  <textarea id="out-11" rows="3" placeholder="Pega aquí la salida de la terminal..." style="width: 100%; background: #000; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #10b981; font-family: 'Fira Code', monospace; font-size: 0.85rem; padding: 0.5rem; resize: vertical;"></textarea>
                 </div>
               </div>
 
@@ -1068,6 +1239,10 @@
                 <div class="answer-input-container">
                   <input type="text" id="ans-12" placeholder="sudo chmod 750 ..." onblur="validateInput(this, 'q12')">
                 </div>
+                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                  <label for="out-12" style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">Salida/Respuesta del terminal:</label>
+                  <textarea id="out-12" rows="3" placeholder="Pega aquí la salida de la terminal..." style="width: 100%; background: #000; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #10b981; font-family: 'Fira Code', monospace; font-size: 0.85rem; padding: 0.5rem; resize: vertical;"></textarea>
+                </div>
               </div>
 
               <!-- Command 13 -->
@@ -1078,6 +1253,10 @@
                 </div>
                 <div class="answer-input-container">
                   <input type="text" id="ans-13" placeholder="sudo chmod 600 ..." onblur="validateInput(this, 'q13')">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                  <label for="out-13" style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">Salida/Respuesta del terminal:</label>
+                  <textarea id="out-13" rows="3" placeholder="Pega aquí la salida de la terminal..." style="width: 100%; background: #000; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #10b981; font-family: 'Fira Code', monospace; font-size: 0.85rem; padding: 0.5rem; resize: vertical;"></textarea>
                 </div>
               </div>
 
@@ -1090,6 +1269,10 @@
                 <div class="answer-input-container">
                   <input type="text" id="ans-14" placeholder="sudo apt ..." onblur="validateInput(this, 'q14')">
                 </div>
+                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                  <label for="out-14" style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">Salida/Respuesta del terminal:</label>
+                  <textarea id="out-14" rows="3" placeholder="Pega aquí la salida de la terminal..." style="width: 100%; background: #000; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #10b981; font-family: 'Fira Code', monospace; font-size: 0.85rem; padding: 0.5rem; resize: vertical;"></textarea>
+                </div>
               </div>
 
               <!-- Command 15 -->
@@ -1100,6 +1283,10 @@
                 </div>
                 <div class="answer-input-container">
                   <input type="text" id="ans-15" placeholder="sudo apt install ..." onblur="validateInput(this, 'q15')">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                  <label for="out-15" style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">Salida/Respuesta del terminal:</label>
+                  <textarea id="out-15" rows="3" placeholder="Pega aquí la salida de la terminal..." style="width: 100%; background: #000; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #10b981; font-family: 'Fira Code', monospace; font-size: 0.85rem; padding: 0.5rem; resize: vertical;"></textarea>
                 </div>
               </div>
 
@@ -1112,6 +1299,40 @@
                 <div class="answer-input-container">
                   <input type="text" id="ans-16" placeholder="sudo systemctl ..." onblur="validateInput(this, 'q16')">
                 </div>
+                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                  <label for="out-16" style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">Salida/Respuesta del terminal:</label>
+                  <textarea id="out-16" rows="3" placeholder="Pega aquí la salida de la terminal..." style="width: 100%; background: #000; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #10b981; font-family: 'Fira Code', monospace; font-size: 0.85rem; padding: 0.5rem; resize: vertical;"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- Open Metacognition Questions -->
+            <div style="margin-top: 2.5rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 2rem; display: flex; flex-direction: column; gap: 1.5rem;">
+              <h3 style="font-size: 1.25rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                <span>🎯</span> Preguntas Abiertas de Metacognición y Reflexión
+              </h3>
+              <p style="font-size: 0.9rem; color: var(--text-muted);">
+                Responde brevemente a las siguientes preguntas antes de exportar tus respuestas. Tus reflexiones serán enviadas directamente al profesor.
+              </p>
+              
+              <div class="field" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <label for="meta-1" style="font-weight: 600;">1. ¿Cuál fue el paso o concepto que te resultó más complejo de configurar en este taller y cómo lograste resolverlo?</label>
+                <textarea id="meta-1" rows="4" placeholder="Escribe tu respuesta aquí..." style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; font-size: 0.95rem; padding: 0.75rem; resize: vertical;"></textarea>
+              </div>
+
+              <div class="field" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <label for="meta-2" style="font-weight: 600;">2. ¿Qué diferencias principales percibiste al interactuar con una máquina virtual real de Ubuntu en AWS frente a las simulaciones realizadas en lecciones previas?</label>
+                <textarea id="meta-2" rows="4" placeholder="Escribe tu respuesta aquí..." style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; font-size: 0.95rem; padding: 0.75rem; resize: vertical;"></textarea>
+              </div>
+
+              <div class="field" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <label for="meta-3" style="font-weight: 600;">3. Si creas un archivo de credenciales y le asignas permisos <code>777</code> por comodidad, ¿qué riesgos reales de seguridad estás introduciendo en tu servidor de producción?</label>
+                <textarea id="meta-3" rows="4" placeholder="Escribe tu respuesta aquí..." style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; font-size: 0.95rem; padding: 0.75rem; resize: vertical;"></textarea>
+              </div>
+
+              <div class="field" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <label for="meta-4" style="font-weight: 600;">4. ¿De qué manera crees que el control de la terminal y la administración básica de servidores te ayuda en tu futuro profesional como desarrollador o ingeniero en la nube?</label>
+                <textarea id="meta-4" rows="4" placeholder="Escribe tu respuesta aquí..." style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; font-size: 0.95rem; padding: 0.75rem; resize: vertical;"></textarea>
               </div>
             </div>
 
@@ -1470,7 +1691,7 @@
 
       let fileContent = `===========================================================
 TALLER: PREPARANDO UN SERVIDOR LINUX EN AWS
-REPORTE DE RESPUESTAS DEL ESTUDIANTE
+REPORTE DE RESPUESTAS Y SALIDAS DEL ESTUDIANTE
 ===========================================================
 Estudiante          : ${studentName}
 Sección / RUT       : ${studentSection}
@@ -1498,17 +1719,38 @@ Fecha de Exportación: ${new Date().toLocaleString('es-CL')}
 
       questions.forEach((q, idx) => {
         const inputEl = document.getElementById(`ans-${idx + 1}`);
+        const outputEl = document.getElementById(`out-${idx + 1}`);
         const command = inputEl ? inputEl.value.trim() : '';
+        const output = outputEl ? outputEl.value.trim() : '';
         const badge = document.getElementById(`badge-${q.id}`);
         const status = badge ? badge.textContent : 'Pendiente';
 
         fileContent += `Pregunta ${q.num}: ${q.title}
 Comando Ingresado: ${command || '(Sin respuesta)'}
 Estado           : ${status}
+Salida Terminal  :
+${output ? output.split('\n').map(line => '  ' + line).join('\n') : '  (Sin salida registrada)'}
 -----------------------------------------------------------\n`;
       });
 
-      fileContent += `\nFin del reporte. Sube este archivo a la plataforma AVA según las indicaciones de tu docente.`;
+      fileContent += `\n🎯 PREGUNTAS ABIERTAS DE METACOGNICIÓN Y REFLEXIÓN\n`;
+      fileContent += `===========================================================\n\n`;
+      
+      const metaQuestions = [
+        { id: 'meta-1', title: '1. ¿Cuál fue el paso o concepto que te resultó más complejo de configurar en este taller y cómo lograste resolverlo?' },
+        { id: 'meta-2', title: '2. ¿Qué diferencias principales percibiste al interactuar con una máquina virtual real de Ubuntu en AWS frente a las simulaciones realizadas en lecciones previas?' },
+        { id: 'meta-3', title: '3. Si creas un archivo de credenciales y le asignas permisos 777 por comodidad, ¿qué riesgos reales de seguridad estás introduciendo en tu servidor de producción?' },
+        { id: 'meta-4', title: '4. ¿De qué manera crees que el control de la terminal y la administración básica de servidores te ayuda en tu futuro profesional como desarrollador o ingeniero en la nube?' }
+      ];
+
+      metaQuestions.forEach(mq => {
+        const textEl = document.getElementById(mq.id);
+        const ans = textEl ? textEl.value.trim() : '';
+        fileContent += `${mq.title}\nRespuesta:\n${ans ? ans.split('\n').map(line => '  ' + line).join('\n') : '  (Sin respuesta)'}\n\n`;
+      });
+
+      fileContent += `-----------------------------------------------------------\n`;
+      fileContent += `Fin del reporte. Sube este archivo a la plataforma AVA según las indicaciones de tu docente.`;
 
       // Trigger Download
       const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
