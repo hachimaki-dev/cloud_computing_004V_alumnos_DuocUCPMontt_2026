@@ -1,0 +1,1527 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Taller Práctico: Preparando un Servidor Linux en AWS | Cloud Computing</title>
+  <meta name="description" content="Taller práctico paso a paso para configurar un servidor Linux Ubuntu en AWS EC2, gestionar usuarios, permisos de archivos y automatizar tareas con cron.">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Custom style overrides/additions for Taller 2 */
+    .answers-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 1.75rem;
+    }
+    .student-info-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 1.5rem;
+    }
+    @media (min-width: 768px) {
+      .student-info-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    .student-info-grid .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .student-info-grid label, .answer-row label {
+      font-weight: 600;
+      color: var(--text-primary);
+      font-size: 0.95rem;
+    }
+    .student-info-grid input {
+      padding: 0.75rem 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.2);
+      color: #fff;
+      font-size: 0.95rem;
+      transition: all 0.3s;
+    }
+    .student-info-grid input:focus {
+      border-color: var(--color-accent);
+      outline: none;
+      box-shadow: 0 0 8px rgba(139, 92, 246, 0.2);
+    }
+    .answer-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      padding: 1.25rem;
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      position: relative;
+      transition: all 0.3s;
+    }
+    .answer-row:hover {
+      background: rgba(255, 255, 255, 0.02);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+    .answer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+    .answer-number {
+      font-weight: bold;
+      color: var(--color-accent);
+      font-family: monospace;
+    }
+    .answer-input-container {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      position: relative;
+      margin-top: 0.25rem;
+    }
+    .answer-row input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.2);
+      color: #fff;
+      font-family: 'Fira Code', 'Courier New', monospace;
+      font-size: 0.9rem;
+      transition: all 0.3s;
+    }
+    .answer-row input:focus {
+      border-color: var(--color-accent);
+      outline: none;
+      box-shadow: 0 0 8px rgba(139, 92, 246, 0.2);
+    }
+    .validation-badge {
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      transition: all 0.3s;
+      white-space: nowrap;
+      min-width: 110px;
+      justify-content: center;
+    }
+    .badge-neutral {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .badge-correct {
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .badge-pending {
+      background: rgba(245, 158, 11, 0.1);
+      color: #f59e0b;
+      border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+    .export-btn-container {
+      text-align: center;
+      margin-top: 2.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .export-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.9rem 2.2rem;
+      font-size: 1rem;
+      font-weight: bold;
+      background: var(--color-accent);
+      color: #fff;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+      transition: all 0.3s;
+      text-decoration: none;
+    }
+    .export-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6);
+      background: #7c3aed;
+    }
+    .export-btn:active {
+      transform: translateY(1px);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <a href="index.html" class="nav-brand">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17.5 19A3.5 3.5 0 0 0 21 15.5c0-2.79-2.54-4.5-5-4.5-.42 0-.83.04-1.24.12A6.5 6.5 0 0 0 3 13.5A3.5 3.5 0 0 0 6.5 17H12" />
+        <path d="M12 12V21" />
+        <path d="m9 18 3 3 3-3" />
+      </svg>
+      <span>Cloud Foundations</span>
+    </a>
+    
+    <div class="nav-links">
+      <a href="index.html" class="nav-link">Dashboard</a>
+      
+      <!-- Teacher Mode Switcher -->
+      <div class="teacher-toggle-container">
+        <span class="teacher-toggle-label">Modo Profesor</span>
+        <label class="switch">
+          <input type="checkbox" id="teacherModeToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content Container -->
+  <main class="container">
+    
+    <!-- Back button -->
+    <a href="index.html" class="back-link">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+      </svg>
+      Volver al Dashboard
+    </a>
+
+    <!-- Class Header -->
+    <header class="class-header">
+      <span class="class-number" style="margin-bottom: 0.5rem; display: inline-block; background: rgba(139,92,246,0.15); color: var(--color-accent); border-color: rgba(139,92,246,0.3);">🔧 Taller Práctico</span>
+      <h1>Preparando un Servidor Linux en AWS</h1>
+      <p style="color: var(--text-secondary); font-size: 1.1rem; max-width: 800px;">
+        Configura paso a paso una instancia virtual Ubuntu EC2 real en la nube, organiza sus proyectos con usuarios específicos, asegura sus credenciales y automatiza tareas programadas con cron.
+      </p>
+    </header>
+
+    <!-- Module Progress Bar -->
+    <div class="taller-progress-bar" id="tallerProgressBar">
+      <div class="progress-step active" data-target="slide-portada">Inicio</div>
+      <div class="progress-step" data-target="slide-mod0">Mod 0: AWS</div>
+      <div class="progress-step" data-target="slide-mod1">Mod 1: Conectarse</div>
+      <div class="progress-step" data-target="slide-mod2">Mod 2: Usuarios</div>
+      <div class="progress-step" data-target="slide-mod3">Mod 3: Archivos</div>
+      <div class="progress-step" data-target="slide-mod4">Mod 4: Proteger</div>
+      <div class="progress-step" data-target="slide-mod5">Mod 5: Cron</div>
+      <div class="progress-step" data-target="slide-quiz">Autoevaluación</div>
+      <div class="progress-step" data-target="slide-respuestas">Respuestas</div>
+      <div class="progress-step" data-target="slide-referencia">Referencia</div>
+    </div>
+
+    <!-- Content with Slides Container -->
+    <div class="class-content-wrapper">
+      
+      <!-- Slides Container -->
+      <div class="main-content-flow slides-container" id="slidesContainer">
+        
+        <!-- ============================================================ -->
+        <!-- SLIDE 0: PORTADA + OBJETIVOS -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-portada" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.0</span>
+            ¿De qué trata este taller práctico?
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Despliegue Real (5 min)</h4>
+            <p><strong>Objetivo:</strong> Introducir el taller como la consolidación de redes, cómputo y seguridad en un entorno Linux con AWS EC2 real.</p>
+            <ul>
+              <li><strong>Contexto:</strong> "Hoy trabajaremos sobre un servidor Ubuntu vacío en AWS Academy. Aprenderemos cómo configurarlo de forma profesional."</li>
+              <li><strong>Tiempo estimado:</strong> 60 minutos.</li>
+              <li><strong>Entregable:</strong> Un archivo `.txt` con los comandos de respuestas correctas que exportarán al final y subirán a AVA.</li>
+            </ul>
+          </div>
+
+          <p>Tu misión en este taller es actuar como administrador de sistemas de un equipo de desarrollo. Configurarás una máquina vacía en la nube para que sea segura, ordenada y automatizada:</p>
+
+          <div class="objectives-grid">
+            <div class="objective-card">
+              <div class="objective-num">1</div>
+              <p><strong>Aprovisionar una instancia Ubuntu EC2</strong> en AWS Academy y guardar la llave de acceso.</p>
+            </div>
+            <div class="objective-card">
+              <div class="objective-num">2</div>
+              <p><strong>Conectarte vía SSH</strong> usando tu terminal nativa o PuTTY de forma encriptada.</p>
+            </div>
+            <div class="objective-card">
+              <div class="objective-num">3</div>
+              <p><strong>Crear identidades del equipo</strong> en Linux para evitar compartir el usuario administrativo.</p>
+            </div>
+            <div class="objective-card">
+              <div class="objective-num">4</div>
+              <p><strong>Estructurar directorios</strong> del backend y proteger credenciales sensibles de bases de datos.</p>
+            </div>
+            <div class="objective-card">
+              <div class="objective-num">5</div>
+              <p><strong>Configurar permisos Linux</strong> exactos (`chmod`/`chown`) para los archivos del proyecto.</p>
+            </div>
+            <div class="objective-card">
+              <div class="objective-num">6</div>
+              <p><strong>Instalar y programar tareas automáticas</strong> en segundo plano con el servicio `cronie`.</p>
+            </div>
+          </div>
+
+          <div class="warning-callout" style="border-left-color: var(--color-accent); margin-top: 2rem;">
+            <strong>⚠️ Registro de Entregable:</strong> En la pestaña <strong>Respuestas</strong> al final de este portal, deberás escribir en orden los comandos que ejecutaste para resolver el taller. Podrás descargar un reporte en `.txt` para enviárselo a tu profesor en AVA.
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 1: MÓDULO 0 — CREAR EL SERVIDOR EN AWS -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-mod0" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.1</span>
+            Módulo 0 — Crear el servidor virtual (Ubuntu EC2)
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Aprovisionamiento en AWS (10 min)</h4>
+            <p>Asegúrate de que los estudiantes elijan <strong>Ubuntu Server 22.04 LTS</strong> en la AMI y no Amazon Linux. Ubuntu requiere el usuario predeterminado <code>ubuntu</code> para la conexión SSH.</p>
+            <ul>
+              <li><strong>Analogía:</strong> EC2 es como arrendar un computador vacío en un centro de datos mundial.</li>
+              <li><strong>Recordatorio:</strong> Descargar la llave `.pem` en formato RSA. Si se pierde no se puede volver a descargar.</li>
+            </ul>
+          </div>
+
+          <p>Sigue estos pasos en la consola AWS para levantar tu servidor virtual:</p>
+
+          <div class="stepper-wizard">
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle">1</div>
+                <div class="stepper-line"></div>
+              </div>
+              <div class="stepper-content">
+                <h4>Iniciar sesión e ir a EC2</h4>
+                <p>Ingresa a tu entorno de AWS Academy Learner Lab, haz clic en el botón de la consola de AWS y busca <strong>EC2</strong> en el cuadro superior de servicios.</p>
+              </div>
+            </div>
+
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle">2</div>
+                <div class="stepper-line"></div>
+              </div>
+              <div class="stepper-content">
+                <h4>Configurar Lanzamiento de Instancia</h4>
+                <p>Haz clic en <strong>Launch Instance</strong> (Lanzar Instancia) y rellena los campos:</p>
+                <table class="comparison-table" style="margin: 0.75rem 0;">
+                  <thead>
+                    <tr><th>Campo</th><th>Valor de configuración</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Name (Nombre)</td><td><code>servidor-backend</code></td></tr>
+                    <tr><td>OS Image (AMI)</td><td><strong>Ubuntu</strong> (Elige "Ubuntu Server 22.04 LTS")</td></tr>
+                    <tr><td>Instance Type</td><td><code>t2.micro</code> (Incluido en la capa gratuita / lab)</td></tr>
+                    <tr><td>Key Pair (Llave)</td><td>Crear nuevo par → tipo <strong>RSA</strong> → formato <strong>.pem</strong> → Descárgalo</td></tr>
+                    <tr><td>Network Settings</td><td>Habilita <strong>Allow SSH traffic from Anywhere</strong> (Puerto 22)</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle">3</div>
+              </div>
+              <div class="stepper-content">
+                <h4>Esperar Estado "Running" y Anotar IP</h4>
+                <p>Haz clic en <strong>Launch Instance</strong>. Espera un minuto en la lista de instancias a que el estado diga <strong>Running</strong>. Selecciona tu instancia y copia la **Dirección IPv4 Pública** (Public IP). La necesitarás a continuación.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Checklist -->
+          <div class="card" style="margin-top: 1.5rem; padding: 1.25rem;">
+            <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; color: var(--color-accent);">✅ Checkpoint 0 — ¿Listo para continuar?</h4>
+            <div class="checklist-container" data-group="mod0">
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">La instancia <code>servidor-backend</code> está en estado Running</span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Tengo descargado el archivo llave <code>.pem</code> en mi computadora</span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">He copiado y anotado la IP Pública del servidor</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 2: MÓDULO 1 — CONECTARSE AL SERVIDOR -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-mod1" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.2</span>
+            Módulo 1 — Conectarse al servidor vía SSH
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Explicando SSH (10 min)</h4>
+            <p><strong>SSH (Secure Shell)</strong> es el túnel seguro que encripta la comunicación entre el terminal local y el servidor remoto.</p>
+            <ul>
+              <li><strong>Detalle:</strong> Recordar que para servidores Ubuntu de AWS, el usuario de conexión inicial es <code>ubuntu</code> (no <code>ec2-user</code> ni <code>root</code>).</li>
+              <li>Recomiende la Opción A si usan macOS, Linux, o Windows con terminal moderna (PowerShell/CMD).</li>
+            </ul>
+          </div>
+
+          <p>Elige uno de los métodos según tu sistema operativo:</p>
+
+          <div class="tab-container" style="margin-top: 1rem;">
+            <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--text-primary);">Opción A: Terminal / PowerShell (Recomendado)</h3>
+            <p>Navega con la terminal de tu computador al directorio donde guardaste tu llave `.pem`:</p>
+            <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>cd ~/Downloads</code></div>
+            
+            <p style="margin-top: 0.75rem;">Conéctate al servidor usando la sintaxis SSH (reemplaza `IP_DE_TU_INSTANCIA` e ingresa `yes` si pide confirmación):</p>
+            <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>ssh -i "nombre-de-tu-llave.pem" ubuntu@IP_DE_TU_INSTANCIA</code></div>
+
+            <hr style="border-color: rgba(255,255,255,0.05); margin: 1.5rem 0;">
+
+            <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--text-primary);">Opción B: Clientes Gráficos (PuTTY)</h3>
+            <p>1. Convierte tu llave `.pem` a `.ppk` con <strong>PuTTYgen</strong>:</p>
+            <ul style="color: var(--text-secondary); margin-left: 1.25rem; font-size: 0.9rem;">
+              <li>Haz clic en <strong>Load</strong>, cambia el filtro a "All Files (*.*)" y selecciona tu `.pem`.</li>
+              <li>Haz clic en <strong>Save private key</strong> y guárdalo en formato `.ppk`.</li>
+            </ul>
+            <p style="margin-top: 0.5rem;">2. Conéctate con <strong>PuTTY</strong>:</p>
+            <ul style="color: var(--text-secondary); margin-left: 1.25rem; font-size: 0.9rem;">
+              <li>Host Name: <code>ubuntu@IP_DE_TU_INSTANCIA</code> (puerto 22).</li>
+              <li>Categoría: <strong>Connection → SSH → Auth → Credentials</strong>. Carga tu `.ppk` en "Private key file".</li>
+              <li>Vuelve a "Session" y presiona <strong>Open</strong>.</li>
+            </ul>
+          </div>
+
+          <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">Orientación Inicial</h3>
+          <p>Una vez conectado y viendo el prompt <code>ubuntu@ip-172-xx-xx-xx:~$</code>, ejecuta estos comandos para familiarizarte con el entorno:</p>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>whoami</code></div>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>pwd</code></div>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>uname -a</code></div>
+
+          <!-- Wiki / Enciclopedia del Administrador -->
+          <div class="card" style="border-top: 3px solid var(--color-cyan); margin-top: 2rem;">
+            <h3 style="font-size: 1.15rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+              <span>📖</span> Enciclopedia del Administrador: Conexión y Orientación
+            </h3>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">
+              Usa esta tabla como referencia rápida para entender qué hace cada comando y qué otras alternativas tienes para profundizar.
+            </p>
+            <table class="comparison-table">
+              <thead>
+                <tr>
+                  <th>Comando</th>
+                  <th>Definición</th>
+                  <th>Ejemplo de Uso Real</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="feature-col"><code>ssh</code></td>
+                  <td><strong>Secure Shell:</strong> Abre un canal de comunicación encriptado con un servidor remoto.</td>
+                  <td><code>ssh -i "llave.pem" ubuntu@54.210.15.80</code></td>
+                </tr>
+                <tr>
+                  <td class="feature-col"><code>whoami</code></td>
+                  <td><strong>Who Am I:</strong> Muestra el nombre de usuario de la sesión de terminal activa.</td>
+                  <td><code>whoami</code> (devuelve <code>ubuntu</code> o <code>dev_js</code>)</td>
+                </tr>
+                <tr>
+                  <td class="feature-col"><code>pwd</code></td>
+                  <td><strong>Print Working Directory:</strong> Imprime la ruta absoluta de la carpeta en la que estás situado.</td>
+                  <td><code>pwd</code> (ej. <code>/home/ubuntu</code>)</td>
+                </tr>
+                <tr>
+                  <td class="feature-col"><code>uname</code></td>
+                  <td><strong>Unix Name:</strong> Muestra detalles técnicos de la versión del sistema operativo y del Kernel de Linux.</td>
+                  <td><code>uname -a</code> (muestra toda la información del sistema)</td>
+                </tr>
+                <!-- Profundización -->
+                <tr style="background: rgba(139,92,246,0.03);">
+                  <td class="feature-col" style="color: var(--color-accent);"><code>ip a</code></td>
+                  <td><span class="badge-neutral" style="font-size: 0.75rem; padding: 0.1rem 0.4rem; border-radius: 4px;">Profundizar</span> Muestra detalles de todas las tarjetas de red e IPs privadas locales.</td>
+                  <td><code>ip a</code></td>
+                </tr>
+                <tr style="background: rgba(139,92,246,0.03);">
+                  <td class="feature-col" style="color: var(--color-accent);"><code>ping</code></td>
+                  <td><span class="badge-neutral" style="font-size: 0.75rem; padding: 0.1rem 0.4rem; border-radius: 4px;">Profundizar</span> Envía paquetes de prueba a un host para comprobar latencia y conectividad.</td>
+                  <td><code>ping -c 4 google.com</code> (hace 4 pings a Google)</td>
+                </tr>
+                <tr style="background: rgba(139,92,246,0.03);">
+                  <td class="feature-col" style="color: var(--color-accent);"><code>exit</code></td>
+                  <td><span class="badge-neutral" style="font-size: 0.75rem; padding: 0.1rem 0.4rem; border-radius: 4px;">Profundizar</span> Cierra la conexión SSH actual y vuelve a tu terminal local.</td>
+                  <td><code>exit</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Checklist -->
+          <div class="card" style="margin-top: 1.5rem; padding: 1.25rem;">
+            <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; color: var(--color-accent);">✅ Checkpoint 1 — ¿Conexión exitosa?</h4>
+            <div class="checklist-container" data-group="mod1">
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Estoy visualizando la terminal del servidor remoto en mi pantalla</span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">El comando <code>whoami</code> me devuelve <code>ubuntu</code></span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">El comando <code>pwd</code> me devuelve el directorio inicial <code>/home/ubuntu</code></span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 3: MÓDULO 2 — CREAR EL USUARIO DEL DESARROLLADOR -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-mod2" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.3</span>
+            Módulo 2 — Crear el usuario del desarrollador
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Explicando Privilegios y Sudo (10 min)</h4>
+            <p>Compartir el usuario de administrador por defecto (<code>ubuntu</code>) es un grave fallo de seguridad. En producción, cada miembro del equipo debe poseer una cuenta individual.</p>
+            <ul>
+              <li><strong>Concepto:</strong> <code>sudo</code> permite a un usuario autorizado ejecutar acciones como superusuario (root).</li>
+              <li>Explique a los alumnos que Linux no muestra caracteres al ingresar contraseñas por seguridad ante miradas indiscretas.</li>
+            </ul>
+          </div>
+
+          <p>Primero, comprueba que tienes permisos de administración en este servidor remoto:</p>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo whoami</code></div>
+          <p style="font-size: 0.9rem; color: var(--text-muted);">Debería devolver: <code>root</code></p>
+
+          <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">Crear el usuario de desarrollo</h3>
+          <p>Crea una nueva cuenta para el desarrollador frontend/backend llamada <code>dev_js</code> con su carpeta personal y bash como intérprete:</p>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo useradd -m -s /bin/bash dev_js</code></div>
+
+          <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">Asignar contraseña</h3>
+          <p>Asigna una contraseña segura al usuario (escríbela dos veces; recuerda que no aparecerá nada en pantalla mientras escribes):</p>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo passwd dev_js</code></div>
+
+          <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">Verificar su existencia</h3>
+          <p>Verifica que el usuario se ha creado correctamente y que tiene su carpeta correspondiente en el sistema:</p>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>id dev_js</code></div>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>ls /home/</code></div>
+
+          <!-- Wiki / Enciclopedia del Administrador -->
+          <div class="card" style="border-top: 3px solid var(--color-cyan); margin-top: 2rem;">
+            <h3 style="font-size: 1.15rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+              <span>📖</span> Enciclopedia del Administrador: Gestión de Usuarios y Sudo
+            </h3>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">
+              Usa esta tabla como referencia rápida para entender la administración de cuentas y delegación en sistemas GNU/Linux.
+            </p>
+            <table class="comparison-table">
+              <thead>
+                <tr>
+                  <th>Comando</th>
+                  <th>Definición</th>
+                  <th>Ejemplo de Uso Real</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="feature-col"><code>sudo</code></td>
+                  <td><strong>Superuser Do:</strong> Ejecuta un comando con los privilegios del usuario administrador (root).</td>
+                  <td><code>sudo whoami</code> (devuelve <code>root</code>)</td>
+                </tr>
+                <tr>
+                  <td class="feature-col"><code>useradd</code></td>
+                  <td><strong>User Add:</strong> Registra una nueva cuenta de usuario en el servidor.</td>
+                  <td><code>sudo useradd -m -s /bin/bash dev_js</code> (crea home y bash)</td>
+                </tr>
+                <tr>
+                  <td class="feature-col"><code>passwd</code></td>
+                  <td><strong>Password:</strong> Configura o actualiza la contraseña de seguridad de cualquier cuenta.</td>
+                  <td><code>sudo passwd dev_js</code></td>
+                </tr>
+                <tr>
+                  <td class="feature-col"><code>id</code></td>
+                  <td><strong>Identification:</strong> Imprime el identificador único UID y los grupos asociados a un usuario.</td>
+                  <td><code>id dev_js</code></td>
+                </tr>
+                <!-- Profundización -->
+                <tr style="background: rgba(139,92,246,0.03);">
+                  <td class="feature-col" style="color: var(--color-accent);"><code>usermod</code></td>
+                  <td><span class="badge-neutral" style="font-size: 0.75rem; padding: 0.1rem 0.4rem; border-radius: 4px;">Profundizar</span> Modifica parámetros del usuario (como añadirlo a un grupo de administradores).</td>
+                  <td><code>sudo usermod -aG sudo dev_js</code> (da privilegios sudo a dev_js)</td>
+                </tr>
+                <tr style="background: rgba(139,92,246,0.03);">
+                  <td class="feature-col" style="color: var(--color-accent);"><code>userdel</code></td>
+                  <td><span class="badge-neutral" style="font-size: 0.75rem; padding: 0.1rem 0.4rem; border-radius: 4px;">Profundizar</span> Elimina una cuenta de usuario del servidor de forma limpia.</td>
+                  <td><code>sudo userdel -r dev_js</code> (elimina cuenta y su carpeta home)</td>
+                </tr>
+                <tr style="background: rgba(139,92,246,0.03);">
+                  <td class="feature-col" style="color: var(--color-accent);"><code>groups</code></td>
+                  <td><span class="badge-neutral" style="font-size: 0.75rem; padding: 0.1rem 0.4rem; border-radius: 4px;">Profundizar</span> Lista de grupos a los que pertenece el usuario activo.</td>
+                  <td><code>groups</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Checklist -->
+          <div class="card" style="margin-top: 1.5rem; padding: 1.25rem;">
+            <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; color: var(--color-accent);">✅ Checkpoint 2 — ¿Usuario configurado?</h4>
+            <div class="checklist-container" data-group="mod2">
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">El comando <code>id dev_js</code> muestra UID y GID válidos</span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">La carpeta <code>/home/dev_js</code> ha sido creada en el disco</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 4: MÓDULO 3 — ORGANIZAR LOS ARCHIVOS DEL PROYECTO -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-mod3" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.4</span>
+            Módulo 3 — Organizar los archivos del proyecto
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Estructura y Touch (5 min)</h4>
+            <p><strong>Propósito:</strong> Introducir el orden de directorios estándar de un backend y el comando <code>touch</code> para la creación rápida de archivos vacíos.</p>
+            <ul>
+              <li><strong>Concepto:</strong> El flag <code>-p</code> es clave para crear directorios aninados sin que la terminal arroje errores si las carpetas padres aún no existen.</li>
+            </ul>
+          </div>
+
+          <p>Es hora de crear la estructura base para la aplicación backend de desarrollo. Utiliza una sola línea para crear las carpetas del proyecto:</p>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>mkdir -p ~/proyecto_backend/src ~/proyecto_backend/config ~/proyecto_backend/logs</code></div>
+
+          <p style="margin-top: 1rem;">Verifica la estructura creada de manera recursiva:</p>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>ls -R ~/proyecto_backend</code></div>
+
+          <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">Crear archivos base del código y configuración</h3>
+          <p>Crea un archivo vacío de inicialización Javascript (`app.js`) y un archivo de configuración para la base de datos (`db.conf`):</p>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>touch ~/proyecto_backend/src/app.js</code></div>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>touch ~/proyecto_backend/config/db.conf</code></div>
+
+          <p style="margin-top: 1rem;">Comprueba que los archivos existen en sus ubicaciones:</p>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>ls -l ~/proyecto_backend/src/</code></div>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>ls -l ~/proyecto_backend/config/</code></div>
+
+          <!-- Wiki / Enciclopedia del Administrador -->
+          <div class="card" style="border-top: 3px solid var(--color-cyan); margin-top: 2rem;">
+            <h3 style="font-size: 1.15rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+              <span>📖</span> Enciclopedia del Administrador: Organización de Archivos
+            </h3>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">
+              Usa esta tabla para recordar cómo moverte y estructurar directorios y ficheros de forma ágil desde el shell.
+            </p>
+            <table class="comparison-table">
+              <thead>
+                <tr>
+                  <th>Comando</th>
+                  <th>Definición</th>
+                  <th>Ejemplo de Uso Real</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="feature-col"><code>mkdir</code></td>
+                  <td><strong>Make Directory:</strong> Crea una o más carpetas vacías en la ruta seleccionada.</td>
+                  <td><code>mkdir -p ~/proyecto/src</code> (<code>-p</code> crea carpetas padres)</td>
+                </tr>
+                <tr>
+                  <td class="feature-col"><code>touch</code></td>
+                  <td><strong>Touch:</strong> Crea un archivo de texto vacío en un segundo si este no existía.</td>
+                  <td><code>touch ~/proyecto/src/app.js</code></td>
+                </tr>
+                <tr>
+                  <td class="feature-col"><code>ls</code></td>
+                  <td><strong>List:</strong> Lista archivos y carpetas del directorio actual con sus nombres.</td>
+                  <td><code>ls -R ~/proyecto</code> (<code>-R</code> lista de forma recursiva)</td>
+                </tr>
+                <!-- Profundización -->
+                <tr style="background: rgba(139,92,246,0.03);">
+                  <td class="feature-col" style="color: var(--color-accent);"><code>rm</code></td>
+                  <td><span class="badge-neutral" style="font-size: 0.75rem; padding: 0.1rem 0.4rem; border-radius: 4px;">Profundizar</span> Borra archivos o carpetas permanentemente. ¡Cuidado en producción!</td>
+                  <td><code>rm -rf ~/proyecto/logs/*</code> (borra logs sin preguntar)</td>
+                </tr>
+                <tr style="background: rgba(139,92,246,0.03);">
+                  <td class="feature-col" style="color: var(--color-accent);"><code>cp</code></td>
+                  <td><span class="badge-neutral" style="font-size: 0.75rem; padding: 0.1rem 0.4rem; border-radius: 4px;">Profundizar</span> Copia archivos o directorios de un origen a un destino.</td>
+                  <td><code>cp db.conf db.conf.backup</code> (crea respaldo)</td>
+                </tr>
+                <tr style="background: rgba(139,92,246,0.03);">
+                  <td class="feature-col" style="color: var(--color-accent);"><code>mv</code></td>
+                  <td><span class="badge-neutral" style="font-size: 0.75rem; padding: 0.1rem 0.4rem; border-radius: 4px;">Profundizar</span> Mueve o renombra un archivo o directorio de ruta.</td>
+                  <td><code>mv viejo.js nuevo.js</code> (renombrar)</td>
+                </tr>
+                <tr style="background: rgba(139,92,246,0.03);">
+                  <td class="feature-col" style="color: var(--color-accent);"><code>cat</code></td>
+                  <td><span class="badge-neutral" style="font-size: 0.75rem; padding: 0.1rem 0.4rem; border-radius: 4px;">Profundizar</span> Concatena y muestra el contenido completo de un archivo por terminal.</td>
+                  <td><code>cat ~/proyecto/config/db.conf</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Checklist -->
+          <div class="card" style="margin-top: 1.5rem; padding: 1.25rem;">
+            <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; color: var(--color-accent);">✅ Checkpoint 3 — ¿Estructura de archivos lista?</h4>
+            <div class="checklist-container" data-group="mod3">
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Las carpetas <code>src</code>, <code>config</code> y <code>logs</code> existen dentro de <code>proyecto_backend</code></span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Los archivos vacíos <code>app.js</code> y <code>db.conf</code> están creados en sus carpetas</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 5: MÓDULO 4 — PROTEGER LOS ARCHIVOS DEL PROYECTO -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-mod4" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.5</span>
+            Módulo 4 — Proteger los archivos (chmod y chown)
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Permisos y Seguridad (15 min)</h4>
+            <p><strong>Permisos octales:</strong> 7 = rwx (Acceso total), 5 = r-x (Lectura/Entrada), 6 = rw- (Lectura/Escritura), 0 = --- (Sin acceso).</p>
+            <ul>
+              <li><strong>Importante:</strong> El archivo <code>db.conf</code> almacena credenciales de producción. Explicar por qué debe configurarse obligatoriamente con permisos restrictivos como <code>600</code>.</li>
+              <li>El cambio de propietario con <code>chown -R</code> asigna el directorio del usuario inicial al nuevo usuario <code>dev_js</code>.</li>
+            </ul>
+          </div>
+
+          <p>Actualmente el proyecto fue creado por `ubuntu` y le pertenece a él. Cambiaremos el propietario al usuario `dev_js` de forma recursiva:</p>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo chown -R dev_js ~/proyecto_backend/</code></div>
+
+          <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">Asignar permisos a la carpeta principal</h3>
+          <p>Configura permisos para que el propietario `dev_js` tenga acceso total (7), el grupo pueda entrar/leer (5) y el resto del mundo no tenga ningún acceso (0):</p>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo chmod 750 ~/proyecto_backend/</code></div>
+
+          <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">Asegurar archivos con credenciales (`db.conf`)</h3>
+          <p>Dado que `db.conf` tendrá contraseñas de bases de datos, solo el propietario `dev_js` debe poder leerlo y escribir en él (6), bloqueando a todos los demás usuarios (00):</p>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo chmod 600 ~/proyecto_backend/config/db.conf</code></div>
+
+          <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">Validar la seguridad asignada</h3>
+          <p>Verifica los permisos reflejados en el sistema de archivos Linux (deben verse como `drwxr-x---` para la carpeta y `-rw-------` para el archivo):</p>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>ls -l ~/ | grep proyecto_backend</code></div>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>ls -l ~/proyecto_backend/config/db.conf</code></div>
+
+          <!-- Wiki / Enciclopedia del Administrador -->
+          <div class="card" style="border-top: 3px solid var(--color-cyan); margin-top: 2rem;">
+            <h3 style="font-size: 1.15rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+              <span>📖</span> Enciclopedia del Administrador: Propietarios y Permisos (chmod/chown)
+            </h3>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">
+              La seguridad en GNU/Linux se basa en el principio de mínimo privilegio. Usa estas reglas para restringir accesos.
+            </p>
+            <table class="comparison-table">
+              <thead>
+                <tr>
+                  <th>Comando</th>
+                  <th>Definición</th>
+                  <th>Ejemplo de Uso Real</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="feature-col"><code>chown</code></td>
+                  <td><strong>Change Owner:</strong> Modifica el propietario y el grupo dueño de un archivo o carpeta.</td>
+                  <td><code>sudo chown -R dev_js ~/proyecto/</code> (<code>-R</code> recursivo)</td>
+                </tr>
+                <tr>
+                  <td class="feature-col"><code>chmod</code></td>
+                  <td><strong>Change Mode:</strong> Cambia los privilegios de lectura, escritura y ejecución usando octales.</td>
+                  <td><code>sudo chmod 600 ~/proyecto/config/db.conf</code> (solo dueño lee/edita)</td>
+                </tr>
+                <!-- Profundización -->
+                <tr style="background: rgba(139,92,246,0.03);">
+                  <td class="feature-col" style="color: var(--color-accent);"><code>chmod +x</code></td>
+                  <td><span class="badge-neutral" style="font-size: 0.75rem; padding: 0.1rem 0.4rem; border-radius: 4px;">Profundizar</span> Otorga permiso de ejecución rápida a scripts de shell.</td>
+                  <td><code>chmod +x despliegue.sh</code> (permite ejecutar como <code>./despliegue.sh</code>)</td>
+                </tr>
+                <tr style="background: rgba(139,92,246,0.03);">
+                  <td class="feature-col" style="color: var(--color-accent);"><code>chgrp</code></td>
+                  <td><span class="badge-neutral" style="font-size: 0.75rem; padding: 0.1rem 0.4rem; border-radius: 4px;">Profundizar</span> Cambia únicamente el grupo del archivo sin tocar el propietario.</td>
+                  <td><code>sudo chgrp developers db.conf</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Checklist -->
+          <div class="card" style="margin-top: 1.5rem; padding: 1.25rem;">
+            <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; color: var(--color-accent);">✅ Checkpoint 4 — ¿Permisos correctos?</h4>
+            <div class="checklist-container" data-group="mod4">
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">El dueño de <code>proyecto_backend</code> es <code>dev_js</code></span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Los permisos de la carpeta son drwxr-x--- (750)</span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Los permisos del archivo db.conf son -rw------- (600)</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 6: MÓDULO 5 — INSTALAR Y ACTIVAR EL PROGRAMADOR DE TAREAS -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-mod5" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.6</span>
+            Módulo 5 — Instalar y activar el programador de tareas
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Gestor de Paquetes y Demonios (10 min)</h4>
+            <p>En servidores de producción, hay procesos y scripts que deben correr automáticamente a ciertas horas. Usaremos <code>cronie</code>, el daemon del programador de tareas de Linux.</p>
+            <ul>
+              <li><strong>Concepto:</strong> <code>apt</code> es la herramienta de gestión de paquetes en Ubuntu. <code>systemctl</code> gestiona el ciclo de vida de los servicios del sistema.</li>
+              <li>El parámetro <code>--now</code> de <code>systemctl enable</code> ahorra tener que ejecutar un start por separado.</li>
+            </ul>
+          </div>
+
+          <p>Primero, actualiza el índice de repositorios local para asegurarte de descargar la versión correcta de los paquetes:</p>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo apt update</code></div>
+
+          <p style="margin-top: 1.5rem; margin-bottom: 0.5rem;">Instala el programador de tareas (`cronie`) confirmando automáticamente con `-y`:</p>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo apt install cronie -y</code></div>
+
+          <p style="margin-top: 1.5rem; margin-bottom: 0.5rem;">Habilita el servicio para que se inicie automáticamente en cada reinicio del servidor y arráncalo inmediatamente:</p>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo systemctl enable --now crond</code></div>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">*Nota: En algunos entornos Ubuntu el servicio puede llamarse simplemente <code>cron</code> en vez de <code>crond</code>.</p>
+
+          <p style="margin-top: 1.5rem; margin-bottom: 0.5rem;">Verifica que el servicio esté en estado activo (verde) y funcionando:</p>
+          <div class="code-copy-block"><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>sudo systemctl status crond</code></div>
+
+          <!-- Wiki / Enciclopedia del Administrador -->
+          <div class="card" style="border-top: 3px solid var(--color-cyan); margin-top: 2rem;">
+            <h3 style="font-size: 1.15rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+              <span>📖</span> Enciclopedia del Administrador: Paquetes y Tareas Automáticas (Apt/Systemctl)
+            </h3>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">
+              Instalar software de forma segura y controlar su ejecución automática son tareas críticas de un DevOps.
+            </p>
+            <table class="comparison-table">
+              <thead>
+                <tr>
+                  <th>Comando</th>
+                  <th>Definición</th>
+                  <th>Ejemplo de Uso Real</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="feature-col"><code>apt</code></td>
+                  <td><strong>Advanced Package Tool:</strong> Gestor de paquetes oficial para instalar o actualizar programas en Ubuntu.</td>
+                  <td><code>sudo apt install cronie -y</code></td>
+                </tr>
+                <tr>
+                  <td class="feature-col"><code>systemctl</code></td>
+                  <td><strong>System Control:</strong> Administra el arranque, apagado y estado de servicios en segundo plano.</td>
+                  <td><code>sudo systemctl enable --now crond</code> (registra e inicia crond)</td>
+                </tr>
+                <!-- Profundización -->
+                <tr style="background: rgba(139,92,246,0.03);">
+                  <td class="feature-col" style="color: var(--color-accent);"><code>crontab</code></td>
+                  <td><span class="badge-neutral" style="font-size: 0.75rem; padding: 0.1rem 0.4rem; border-radius: 4px;">Profundizar</span> Abre el editor de tareas programadas del usuario para añadir reglas temporales.</td>
+                  <td><code>crontab -e</code> (editar reglas) o <code>crontab -l</code> (listar reglas)</td>
+                </tr>
+                <tr style="background: rgba(139,92,246,0.03);">
+                  <td class="feature-col" style="color: var(--color-accent);"><code>journalctl</code></td>
+                  <td><span class="badge-neutral" style="font-size: 0.75rem; padding: 0.1rem 0.4rem; border-radius: 4px;">Profundizar</span> Consulta la bitácora histórica de logs generados por servicios de systemd.</td>
+                  <td><code>journalctl -u crond -n 20</code> (muestra los últimos 20 logs de crond)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Checklist -->
+          <div class="card" style="margin-top: 1.5rem; padding: 1.25rem;">
+            <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; color: var(--color-accent);">✅ Checkpoint 5 — ¿Servicio configurado?</h4>
+            <div class="checklist-container" data-group="mod5">
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">El paquete cronie fue instalado exitosamente</span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">El servicio crond figura en estado "active (running)"</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 7: AUTOEVALUACIÓN -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-quiz" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.7</span>
+            Autoevaluación de Conceptos
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Metacognición (5 min)</h4>
+            <p>Haga que los alumnos respondan estas preguntas antes de registrar sus comandos para consolidar las justificaciones teóricas del taller.</p>
+          </div>
+
+          <p style="margin-bottom: 1.5rem;">Responde a estas preguntas rápidas para verificar tu nivel de aprendizaje:</p>
+
+          <!-- Question 1 -->
+          <div class="quiz-question-card" style="margin-bottom: 1.25rem;">
+            <h4>1. ¿Por qué creamos un usuario como <code>dev_js</code> en lugar de trabajar siempre con <code>ubuntu</code>?</h4>
+            <div class="quiz-options">
+              <div class="quiz-option" data-correct="false">A) Porque el usuario ubuntu no puede ejecutar código JavaScript ni Node.</div>
+              <div class="quiz-option" data-correct="true">B) Por seguridad, para no compartir accesos administrativos y tener trazabilidad.</div>
+              <div class="quiz-option" data-correct="false">C) Porque el sistema operativo Ubuntu se ralentiza si tiene un solo usuario activo.</div>
+            </div>
+            <div class="quiz-explanation" style="display:none; margin-top: 0.75rem; color: #10b981; font-size: 0.9rem;">
+              <strong>Correcto:</strong> Compartir credenciales administrativas aumenta los riesgos de seguridad y elimina la trazabilidad de auditorías en el sistema.
+            </div>
+          </div>
+
+          <!-- Question 2 -->
+          <div class="quiz-question-card" style="margin-bottom: 1.25rem;">
+            <h4>2. ¿Qué permisos otorga el comando <code>chmod 600 db.conf</code>?</h4>
+            <div class="quiz-options">
+              <div class="quiz-option" data-correct="false">A) Lectura y ejecución públicas, pero sin permisos de edición.</div>
+              <div class="quiz-option" data-correct="false">B) Lectura para todos los miembros del grupo y escritura para el dueño.</div>
+              <div class="quiz-option" data-correct="true">C) Lectura y escritura únicamente para el dueño, y ningún permiso para el resto.</div>
+            </div>
+            <div class="quiz-explanation" style="display:none; margin-top: 0.75rem; color: #10b981; font-size: 0.9rem;">
+              <strong>Correcto:</strong> El valor 6 representa lectura (4) y escritura (2) para el dueño, y los ceros indican restricción total de acceso para grupo y otros.
+            </div>
+          </div>
+
+          <!-- Question 3 -->
+          <div class="quiz-question-card">
+            <h4>3. ¿Qué función cumple la opción <code>--now</code> en el comando de servicios <code>systemctl</code>?</h4>
+            <div class="quiz-options">
+              <div class="quiz-option" data-correct="true">A) Activa el inicio automático y además inicia el servicio inmediatamente en este momento.</div>
+              <div class="quiz-option" data-correct="false">B) Detiene y desinstala el servicio inmediatamente del sistema operativo.</div>
+              <div class="quiz-option" data-correct="false">C) Programa la ejecución inmediata del comando una única vez en segundo plano.</div>
+            </div>
+            <div class="quiz-explanation" style="display:none; margin-top: 0.75rem; color: #10b981; font-size: 0.9rem;">
+              <strong>Correcto:</strong> `enable --now` registra el servicio para arranques futuros y lo arranca de forma inmediata sin esperar un reinicio.
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 8: REGISTRO DE RESPUESTAS E INPUTS -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-respuestas" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.8</span>
+            🎯 Registro de Respuestas del Taller
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Exportar Respuestas (5 min)</h4>
+            <p>Los alumnos deben completar sus nombres, sección e ingresar los comandos exactos solicitados. La validación en vivo les avisará si hay errores obvios de sintaxis.</p>
+            <p><strong>Meta:</strong> Exportar el archivo `.txt` y subirlo al AVA de la asignatura en un mensaje dirigido a ti.</p>
+          </div>
+
+          <p>Escribe en orden los comandos que ejecutaste para completar cada paso del taller. Al finalizar, presiona el botón para exportar tu entrega en un archivo `.txt` que subirás a AVA.</p>
+
+          <div class="answers-container">
+            <!-- Student Information -->
+            <div class="student-info-grid">
+              <div class="field">
+                <label for="student-name">Nombre Completo del Estudiante</label>
+                <input type="text" id="student-name" placeholder="Ej. Camilo Navarrete" required>
+              </div>
+              <div class="field">
+                <label for="student-section">Sección / RUT</label>
+                <input type="text" id="student-section" placeholder="Ej. CLD8101-002V" required>
+              </div>
+            </div>
+
+            <!-- Question Inputs -->
+            <div class="answers-list" style="display: flex; flex-direction: column; gap: 1.25rem;">
+              <!-- Command 1 -->
+              <div class="answer-row" data-id="q1">
+                <div class="answer-header">
+                  <label for="ans-1"><span class="answer-number">Q1. Conexión SSH</span>: Comando para conectarse por SSH al servidor usando el archivo llave <code>clave-aws.pem</code>, con usuario por defecto de Ubuntu, a la IP <code>54.210.15.80</code></label>
+                  <span class="validation-badge badge-neutral" id="badge-q1">Pendiente</span>
+                </div>
+                <div class="answer-input-container">
+                  <input type="text" id="ans-1" placeholder="ssh -i ..." onblur="validateInput(this, 'q1')">
+                </div>
+              </div>
+
+              <!-- Command 2 -->
+              <div class="answer-row" data-id="q2">
+                <div class="answer-header">
+                  <label for="ans-2"><span class="answer-number">Q2. ¿Quién Soy?</span>: Comando de una sola palabra para mostrar en el terminal el nombre del usuario con la sesión activa</label>
+                  <span class="validation-badge badge-neutral" id="badge-q2">Pendiente</span>
+                </div>
+                <div class="answer-input-container">
+                  <input type="text" id="ans-2" placeholder="who..." onblur="validateInput(this, 'q2')">
+                </div>
+              </div>
+
+              <!-- Command 3 -->
+              <div class="answer-row" data-id="q3">
+                <div class="answer-header">
+                  <label for="ans-3"><span class="answer-number">Q3. Ruta Actual</span>: Comando para mostrar la ruta del directorio de trabajo actual (donde estás parado)</label>
+                  <span class="validation-badge badge-neutral" id="badge-q3">Pendiente</span>
+                </div>
+                <div class="answer-input-container">
+                  <input type="text" id="ans-3" placeholder="pw..." onblur="validateInput(this, 'q3')">
+                </div>
+              </div>
+
+              <!-- Command 4 -->
+              <div class="answer-row" data-id="q4">
+                <div class="answer-header">
+                  <label for="ans-4"><span class="answer-number">Q4. Información SO</span>: Comando para imprimir en pantalla toda la información detallada del Kernel y SO actual</label>
+                  <span class="validation-badge badge-neutral" id="badge-q4">Pendiente</span>
+                </div>
+                <div class="answer-input-container">
+                  <input type="text" id="ans-4" placeholder="una..." onblur="validateInput(this, 'q4')">
+                </div>
+              </div>
+
+              <!-- Command 5 -->
+              <div class="answer-row" data-id="q5">
+                <div class="answer-header">
+                  <label for="ans-5"><span class="answer-number">Q5. Validar Sudo</span>: Comando para ejecutar "whoami" pero con privilegios temporales de administrador (root)</label>
+                  <span class="validation-badge badge-neutral" id="badge-q5">Pendiente</span>
+                </div>
+                <div class="answer-input-container">
+                  <input type="text" id="ans-5" placeholder="sudo ..." onblur="validateInput(this, 'q5')">
+                </div>
+              </div>
+
+              <!-- Command 6 -->
+              <div class="answer-row" data-id="q6">
+                <div class="answer-header">
+                  <label for="ans-6"><span class="answer-number">Q6. Crear Usuario</span>: Comando para crear el usuario <code>dev_js</code> agregándole su home en el disco y con shell /bin/bash</label>
+                  <span class="validation-badge badge-neutral" id="badge-q6">Pendiente</span>
+                </div>
+                <div class="answer-input-container">
+                  <input type="text" id="ans-6" placeholder="sudo useradd ..." onblur="validateInput(this, 'q6')">
+                </div>
+              </div>
+
+              <!-- Command 7 -->
+              <div class="answer-row" data-id="q7">
+                <div class="answer-header">
+                  <label for="ans-7"><span class="answer-number">Q7. Asignar Clave</span>: Comando para establecer o cambiar la contraseña del usuario recién creado <code>dev_js</code></label>
+                  <span class="validation-badge badge-neutral" id="badge-q7">Pendiente</span>
+                </div>
+                <div class="answer-input-container">
+                  <input type="text" id="ans-7" placeholder="sudo passwd ..." onblur="validateInput(this, 'q7')">
+                </div>
+              </div>
+
+              <!-- Command 8 -->
+              <div class="answer-row" data-id="q8">
+                <div class="answer-header">
+                  <label for="ans-8"><span class="answer-number">Q8. Crear Carpetas</span>: Comando para crear en tu home y en una sola línea la estructura <code>proyecto_backend</code> con subcarpetas <code>src</code>, <code>config</code> y <code>logs</code></label>
+                  <span class="validation-badge badge-neutral" id="badge-q8">Pendiente</span>
+                </div>
+                <div class="answer-input-container">
+                  <input type="text" id="ans-8" placeholder="mkdir -p ..." onblur="validateInput(this, 'q8')">
+                </div>
+              </div>
+
+              <!-- Command 9 -->
+              <div class="answer-row" data-id="q9">
+                <div class="answer-header">
+                  <label for="ans-9"><span class="answer-number">Q9. Crear App.js</span>: Comando para crear el archivo de inicio vacío <code>app.js</code> dentro de la subcarpeta <code>src</code> del proyecto</label>
+                  <span class="validation-badge badge-neutral" id="badge-q9">Pendiente</span>
+                </div>
+                <div class="answer-input-container">
+                  <input type="text" id="ans-9" placeholder="touch ~/proyecto..." onblur="validateInput(this, 'q9')">
+                </div>
+              </div>
+
+              <!-- Command 10 -->
+              <div class="answer-row" data-id="q10">
+                <div class="answer-header">
+                  <label for="ans-10"><span class="answer-number">Q10. Crear DB Config</span>: Comando para crear el archivo de configuración vacío <code>db.conf</code> dentro de <code>config</code> del proyecto</label>
+                  <span class="validation-badge badge-neutral" id="badge-q10">Pendiente</span>
+                </div>
+                <div class="answer-input-container">
+                  <input type="text" id="ans-10" placeholder="touch ~/proyecto..." onblur="validateInput(this, 'q10')">
+                </div>
+              </div>
+
+              <!-- Command 11 -->
+              <div class="answer-row" data-id="q11">
+                <div class="answer-header">
+                  <label for="ans-11"><span class="answer-number">Q11. Cambiar Propietario</span>: Comando administrativo para cambiar de forma recursiva el propietario de toda la carpeta <code>proyecto_backend</code> al usuario <code>dev_js</code></label>
+                  <span class="validation-badge badge-neutral" id="badge-q11">Pendiente</span>
+                </div>
+                <div class="answer-input-container">
+                  <input type="text" id="ans-11" placeholder="sudo chown -R ..." onblur="validateInput(this, 'q11')">
+                </div>
+              </div>
+
+              <!-- Command 12 -->
+              <div class="answer-row" data-id="q12">
+                <div class="answer-header">
+                  <label for="ans-12"><span class="answer-number">Q12. Permisos Carpeta</span>: Comando para asignar permisos 750 (acceso total a dueño, lectura/entrada a grupo y denegado a otros) a la carpeta <code>proyecto_backend</code></label>
+                  <span class="validation-badge badge-neutral" id="badge-q12">Pendiente</span>
+                </div>
+                <div class="answer-input-container">
+                  <input type="text" id="ans-12" placeholder="sudo chmod 750 ..." onblur="validateInput(this, 'q12')">
+                </div>
+              </div>
+
+              <!-- Command 13 -->
+              <div class="answer-row" data-id="q13">
+                <div class="answer-header">
+                  <label for="ans-13"><span class="answer-number">Q13. Permisos Credenciales</span>: Comando para restringir el archivo sensible <code>db.conf</code> a permisos 600 (lectura/escritura solo para su dueño)</label>
+                  <span class="validation-badge badge-neutral" id="badge-q13">Pendiente</span>
+                </div>
+                <div class="answer-input-container">
+                  <input type="text" id="ans-13" placeholder="sudo chmod 600 ..." onblur="validateInput(this, 'q13')">
+                </div>
+              </div>
+
+              <!-- Command 14 -->
+              <div class="answer-row" data-id="q14">
+                <div class="answer-header">
+                  <label for="ans-14"><span class="answer-number">Q14. Actualizar Repositorio</span>: Comando de administración en Ubuntu para actualizar el listado local de software disponible</label>
+                  <span class="validation-badge badge-neutral" id="badge-q14">Pendiente</span>
+                </div>
+                <div class="answer-input-container">
+                  <input type="text" id="ans-14" placeholder="sudo apt ..." onblur="validateInput(this, 'q14')">
+                </div>
+              </div>
+
+              <!-- Command 15 -->
+              <div class="answer-row" data-id="q15">
+                <div class="answer-header">
+                  <label for="ans-15"><span class="answer-number">Q15. Instalar Cronie</span>: Comando para instalar el programador de tareas `cronie` omitiendo preguntas interactivas confirmando "sí"</label>
+                  <span class="validation-badge badge-neutral" id="badge-q15">Pendiente</span>
+                </div>
+                <div class="answer-input-container">
+                  <input type="text" id="ans-15" placeholder="sudo apt install ..." onblur="validateInput(this, 'q15')">
+                </div>
+              </div>
+
+              <!-- Command 16 -->
+              <div class="answer-row" data-id="q16">
+                <div class="answer-header">
+                  <label for="ans-16"><span class="answer-number">Q16. Habilitar Cron</span>: Comando para activar y arrancar el demonio del programador de tareas (`crond`) inmediatamente en un solo paso</label>
+                  <span class="validation-badge badge-neutral" id="badge-q16">Pendiente</span>
+                </div>
+                <div class="answer-input-container">
+                  <input type="text" id="ans-16" placeholder="sudo systemctl ..." onblur="validateInput(this, 'q16')">
+                </div>
+              </div>
+            </div>
+
+            <!-- Export Section -->
+            <div class="export-btn-container">
+              <button onclick="exportAnswers()" class="export-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Exportar Respuestas (.txt)
+              </button>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.75rem;">
+                ⚠️ Nota: Puedes exportar el reporte incluso si hay comandos en estado "Por verificar", pero se aconseja revisarlos antes de enviar.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 9: REFERENCIA + CHECKLIST FINAL -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-referencia" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.9</span>
+            Referencia rápida y Checklist final
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Conclusión del Taller (5 min)</h4>
+            <p>Pídale a los alumnos que verifiquen que todas las tareas del checklist final estén completadas en su servidor virtual.</p>
+            <p><strong>Cierre Importante:</strong> Recordar apagar o terminar la instancia EC2 al finalizar para conservar los recursos de AWS Academy.</p>
+          </div>
+
+          <h3 style="font-size: 1.2rem; margin-bottom: 1rem;">📋 Comandos rápidos de referencia</h3>
+          <table class="comparison-table">
+            <thead><tr><th>Acción en el Servidor</th><th>Comando de Linux</th></tr></thead>
+            <tbody>
+              <tr><td>Conectarse por SSH</td><td><code>ssh -i llave.pem ubuntu@IP_PÚBLICA</code></td></tr>
+              <tr><td>Mostrar usuario actual</td><td><code>whoami</code></td></tr>
+              <tr><td>Mostrar ruta actual</td><td><code>pwd</code></td></tr>
+              <tr><td>Listar archivos con permisos</td><td><code>ls -la</code></td></tr>
+              <tr><td>Crear carpetas recursivas</td><td><code>mkdir -p ruta1/ruta2</code></td></tr>
+              <tr><td>Crear archivos vacíos</td><td><code>touch ruta/archivo</code></td></tr>
+              <tr><td>Asignar propietario recursivamente</td><td><code>sudo chown -R usuario directorio/</code></td></tr>
+              <tr><td>Cambiar permisos octales</td><td><code>sudo chmod PERMISOS ruta</code></td></tr>
+              <tr><td>Actualizar paquetes</td><td><code>sudo apt update</code></td></tr>
+              <tr><td>Instalar programas con apt</td><td><code>sudo apt install paquete -y</code></td></tr>
+              <tr><td>Habilitar y arrancar servicio</td><td><code>sudo systemctl enable --now servicio</code></td></tr>
+              <tr><td>Ver estado de un servicio</td><td><code>sudo systemctl status servicio</code></td></tr>
+            </tbody>
+          </table>
+
+          <h3 style="font-size: 1.2rem; margin-top: 2.5rem; margin-bottom: 0.5rem;">🎯 Lista de verificación final</h3>
+          <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">Haz clic para marcar lo que completaste en el servidor real:</p>
+          
+          <div class="checklist-progress-bar"><div class="checklist-progress-fill" id="finalProgressFill" style="width: 0%;"></div></div>
+          <div class="checklist-progress-text" id="finalProgressText">0 / 8 completados</div>
+
+          <div class="checklist-container" id="finalChecklist" data-group="final">
+            <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Tengo la instancia EC2 levantada en Ubuntu 22.04 LTS</span></div>
+            <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Pude entrar a la terminal mediante SSH desde mi computadora</span></div>
+            <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Cambié la clave o creé al usuario <code>dev_js</code> con su home</span></div>
+            <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Estructuré las carpetas del proyecto en una sola línea de código</span></div>
+            <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Cambié el propietario del proyecto al usuario <code>dev_js</code></span></div>
+            <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Restringí permisos de carpeta a 750 y del config a 600</span></div>
+            <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Instalé y arranqué el programador de tareas en segundo plano</span></div>
+            <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Exporté mis respuestas en un archivo .txt y las subí a AVA</span></div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Sticky Sidebar Navigation -->
+      <aside class="sidebar-navigation">
+        <h4>Contenido del Taller</h4>
+        <ul class="sidebar-links">
+          <li><a href="#slide-portada" class="active">T.0 Inicio</a></li>
+          <li><a href="#slide-mod0">T.1 Mod 0: AWS</a></li>
+          <li><a href="#slide-mod1">T.2 Mod 1: Conectarse</a></li>
+          <li><a href="#slide-mod2">T.3 Mod 2: Usuarios</a></li>
+          <li><a href="#slide-mod3">T.4 Mod 3: Archivos</a></li>
+          <li><a href="#slide-mod4">T.5 Mod 4: Proteger</a></li>
+          <li><a href="#slide-mod5">T.6 Mod 5: Cron</a></li>
+          <li><a href="#slide-quiz">T.7 Autoevaluación</a></li>
+          <li><a href="#slide-respuestas">T.8 Respuestas</a></li>
+          <li><a href="#slide-referencia">T.9 Referencia</a></li>
+        </ul>
+      </aside>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>© 2026 Portal de Cloud Computing - Diseñado para una docencia ágil e interactiva.</p>
+    <p style="margin-top: 0.5rem;"><a href="index.html">← Volver al Dashboard Principal</a></p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="script.js"></script>
+  
+  <!-- Interactive script logic for Taller Comandos -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initSidebarScrollSpy();
+      initProgressBarScrollSync();
+      initQuiz();
+      initChecklists();
+    });
+
+    // -----------------------------------------------------------------
+    // 1. Copy to Clipboard
+    // -----------------------------------------------------------------
+    function copyCode(btn) {
+      const codeBlock = btn.closest('.code-copy-block');
+      const codeEl = codeBlock.querySelector('code');
+      if (!codeEl) return;
+      
+      const text = codeEl.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = '✓ Copiado';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copiar';
+          btn.classList.remove('copied');
+        }, 2000);
+      }).catch(() => {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        btn.textContent = '✓ Copiado';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copiar';
+          btn.classList.remove('copied');
+        }, 2000);
+      });
+    }
+
+    // -----------------------------------------------------------------
+    // 2. Checklist Toggle
+    // -----------------------------------------------------------------
+    function initChecklists() {
+      // Initialize checks
+    }
+
+    function toggleCheck(item) {
+      item.classList.toggle('checked');
+      const box = item.querySelector('.checklist-box');
+      if (item.classList.contains('checked')) {
+        box.innerHTML = '✓';
+      } else {
+        box.innerHTML = '';
+      }
+      updateFinalProgress();
+    }
+
+    function updateFinalProgress() {
+      const container = document.getElementById('finalChecklist');
+      if (!container) return;
+      const items = container.querySelectorAll('.checklist-item');
+      const checked = container.querySelectorAll('.checklist-item.checked');
+      const total = items.length;
+      const done = checked.length;
+      const pct = total > 0 ? (done / total) * 100 : 0;
+      
+      const fill = document.getElementById('finalProgressFill');
+      const text = document.getElementById('finalProgressText');
+      if (fill) fill.style.width = pct + '%';
+      if (text) text.textContent = `${done} / ${total} completados`;
+    }
+
+    // -----------------------------------------------------------------
+    // 3. Sidebar Scroll Spy
+    // -----------------------------------------------------------------
+    function initSidebarScrollSpy() {
+      const sidebarLinks = document.querySelectorAll('.sidebar-links a');
+      const slidesList = document.querySelectorAll('.slide');
+
+      const onScroll = () => {
+        if (document.body.classList.contains('presentation-mode')) return;
+        
+        let currentSlideId = '';
+        const scrollPosition = window.scrollY + 200;
+
+        slidesList.forEach(slide => {
+          const top = slide.offsetTop;
+          const height = slide.offsetHeight;
+          if (scrollPosition >= top && scrollPosition < top + height) {
+            currentSlideId = slide.getAttribute('id');
+          }
+        });
+
+        if (currentSlideId) {
+          sidebarLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href') === `#${currentSlideId}`) {
+              link.classList.add('active');
+            }
+          });
+        }
+      };
+
+      window.addEventListener('scroll', onScroll);
+    }
+
+    // -----------------------------------------------------------------
+    // 4. Progress Bar Scroll Sync
+    // -----------------------------------------------------------------
+    function initProgressBarScrollSync() {
+      const progressSteps = document.querySelectorAll('.progress-step');
+      const slidesList = document.querySelectorAll('.slide');
+
+      progressSteps.forEach(step => {
+        step.addEventListener('click', () => {
+          const targetId = step.getAttribute('data-target');
+          const targetEl = document.getElementById(targetId);
+          if (targetEl) {
+            targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
+      });
+
+      const onScroll = () => {
+        if (document.body.classList.contains('presentation-mode')) return;
+        
+        let currentSlideId = '';
+        const scrollPosition = window.scrollY + 250;
+
+        slidesList.forEach(slide => {
+          const top = slide.offsetTop;
+          const height = slide.offsetHeight;
+          if (scrollPosition >= top && scrollPosition < top + height) {
+            currentSlideId = slide.getAttribute('id');
+          }
+        });
+
+        if (currentSlideId) {
+          progressSteps.forEach(step => {
+            step.classList.remove('active');
+            if (step.getAttribute('data-target') === currentSlideId) {
+              step.classList.add('active');
+            }
+          });
+        }
+      };
+
+      window.addEventListener('scroll', onScroll);
+    }
+
+    // -----------------------------------------------------------------
+    // 5. Quiz Logic
+    // -----------------------------------------------------------------
+    function initQuiz() {
+      const quizCards = document.querySelectorAll('.quiz-question-card');
+      quizCards.forEach(card => {
+        const options = card.querySelectorAll('.quiz-option');
+        const explanation = card.querySelector('.quiz-explanation');
+        let answered = false;
+
+        options.forEach(opt => {
+          opt.addEventListener('click', () => {
+            if (answered) return;
+            answered = true;
+
+            const isCorrect = opt.getAttribute('data-correct') === 'true';
+            
+            if (isCorrect) {
+              opt.classList.add('correct');
+            } else {
+              opt.classList.add('incorrect');
+              options.forEach(o => {
+                if (o.getAttribute('data-correct') === 'true') {
+                  o.classList.add('correct');
+                }
+              });
+            }
+            if (explanation) explanation.style.display = 'block';
+          });
+        });
+      });
+    }
+
+    // -----------------------------------------------------------------
+    // 6. Interactive Validation & Answers Registry
+    // -----------------------------------------------------------------
+    const answerRules = {
+      q1: (norm) => norm.startsWith('ssh') && norm.includes('-i') && norm.includes('.pem') && norm.includes('ubuntu@'),
+      q2: (norm) => norm === 'whoami',
+      q3: (norm) => norm === 'pwd',
+      q4: (norm) => norm === 'uname -a' || norm === 'uname',
+      q5: (norm) => norm === 'sudo whoami',
+      q6: (norm) => norm.startsWith('sudo useradd') && norm.includes('-m') && norm.includes('-s') && norm.includes('/bin/bash') && norm.includes('dev_js'),
+      q7: (norm) => norm === 'sudo passwd dev_js',
+      q8: (norm) => norm.startsWith('mkdir') && norm.includes('-p') && norm.includes('proyecto_backend/src') && norm.includes('proyecto_backend/config') && norm.includes('proyecto_backend/logs'),
+      q9: (norm) => norm.startsWith('touch') && norm.includes('proyecto_backend/src/app.js'),
+      q10: (norm) => norm.startsWith('touch') && norm.includes('proyecto_backend/config/db.conf'),
+      q11: (norm) => norm.startsWith('sudo chown') && norm.includes('-r') && norm.includes('dev_js') && norm.includes('proyecto_backend'),
+      q12: (norm) => norm.startsWith('sudo chmod') && norm.includes('750') && norm.includes('proyecto_backend'),
+      q13: (norm) => norm.startsWith('sudo chmod') && norm.includes('600') && norm.includes('proyecto_backend/config/db.conf'),
+      q14: (norm) => norm === 'sudo apt update' || norm === 'sudo apt-get update',
+      q15: (norm) => (norm.startsWith('sudo apt install') || norm.startsWith('sudo apt-get install')) && norm.includes('cronie') && norm.includes('-y'),
+      q16: (norm) => norm.startsWith('sudo systemctl') && norm.includes('enable') && norm.includes('--now') && (norm.includes('crond') || norm.includes('cron'))
+    };
+
+    function normalizeCommand(cmd) {
+      return cmd
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, ' ')           // single spaces
+        .replace(/['"]/g, '"')          // normalize quotes to double quotes
+        .replace(/\/home\/ubuntu\//g, '~/') // normalize home dir
+        .replace(/\/$/g, '');           // remove trailing slash
+    }
+
+    function validateInput(inputEl, qId) {
+      const val = inputEl.value;
+      const badge = document.getElementById(`badge-${qId}`);
+      if (!badge) return;
+
+      if (val.trim() === '') {
+        badge.textContent = 'Pendiente';
+        badge.className = 'validation-badge badge-neutral';
+        return;
+      }
+
+      const normalized = normalizeCommand(val);
+      const isCorrect = answerRules[qId](normalized);
+
+      if (isCorrect) {
+        badge.textContent = '✓ Correcto';
+        badge.className = 'validation-badge badge-correct';
+      } else {
+        badge.textContent = '⚠ Por verificar';
+        badge.className = 'validation-badge badge-pending';
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // 7. Export Answers as .TXT File
+    // -----------------------------------------------------------------
+    function exportAnswers() {
+      const studentName = document.getElementById('student-name').value.trim();
+      const studentSection = document.getElementById('student-section').value.trim();
+
+      if (!studentName || !studentSection) {
+        alert('Por favor, ingresa tu Nombre Completo y tu Sección/RUT en la parte superior del formulario antes de exportar.');
+        document.getElementById('student-name').focus();
+        return;
+      }
+
+      let fileContent = `===========================================================
+TALLER: PREPARANDO UN SERVIDOR LINUX EN AWS
+REPORTE DE RESPUESTAS DEL ESTUDIANTE
+===========================================================
+Estudiante          : ${studentName}
+Sección / RUT       : ${studentSection}
+Fecha de Exportación: ${new Date().toLocaleString('es-CL')}
+-----------------------------------------------------------\n\n`;
+
+      const questions = [
+        { id: 'q1', num: '1', title: 'Conexión SSH al servidor (IP 54.210.15.80, llave clave-aws.pem)' },
+        { id: 'q2', num: '2', title: 'Mostrar usuario activo' },
+        { id: 'q3', num: '3', title: 'Ver ruta de trabajo actual' },
+        { id: 'q4', num: '4', title: 'Mostrar información detallada del Kernel y SO' },
+        { id: 'q5', num: '5', title: 'Comprobar permisos de administrador con whoami' },
+        { id: 'q6', num: '6', title: 'Crear usuario dev_js con su home y shell bash' },
+        { id: 'q7', num: '7', title: 'Asignar contraseña al usuario dev_js' },
+        { id: 'q8', num: '8', title: 'Crear estructura de carpetas del proyecto en una línea' },
+        { id: 'q9', num: '9', title: 'Crear archivo app.js vacío dentro de src' },
+        { id: 'q10', num: '10', title: 'Crear archivo db.conf vacío dentro de config' },
+        { id: 'q11', num: '11', title: 'Cambiar propietario recursivamente a dev_js' },
+        { id: 'q12', num: '12', title: 'Asignar permisos 750 a la carpeta del proyecto' },
+        { id: 'q13', num: '13', title: 'Restringir permisos del archivo db.conf a 600' },
+        { id: 'q14', num: '14', title: 'Actualizar índice de paquetes local' },
+        { id: 'q15', num: '15', title: 'Instalar programador de tareas cronie' },
+        { id: 'q16', num: '16', title: 'Habilitar e iniciar inmediatamente el servicio crond' }
+      ];
+
+      questions.forEach((q, idx) => {
+        const inputEl = document.getElementById(`ans-${idx + 1}`);
+        const command = inputEl ? inputEl.value.trim() : '';
+        const badge = document.getElementById(`badge-${q.id}`);
+        const status = badge ? badge.textContent : 'Pendiente';
+
+        fileContent += `Pregunta ${q.num}: ${q.title}
+Comando Ingresado: ${command || '(Sin respuesta)'}
+Estado           : ${status}
+-----------------------------------------------------------\n`;
+      });
+
+      fileContent += `\nFin del reporte. Sube este archivo a la plataforma AVA según las indicaciones de tu docente.`;
+
+      // Trigger Download
+      const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      
+      const safeName = studentName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      link.download = `respuestas_taller_comandos_${safeName}.txt`;
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  </script>
+</body>
+</html>
