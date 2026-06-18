@@ -1,0 +1,3287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clase Especial: Introducción a Linux y Ubuntu | Cloud Computing</title>
+  <meta name="description" content="Aprende cómo funciona Linux, la estructura del sistema de archivos, administración de permisos y domina la terminal con un simulador local interactivo.">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Custom Styles for Class Ubuntu */
+    
+    /* Ubuntu Installation step-by-step styles */
+    .installer-container {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-top: 1.5rem;
+    }
+    
+    .installer-steps {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+    }
+    
+    .installer-step-btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--glass-border);
+      color: var(--text-secondary);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: var(--transition-fast);
+      white-space: nowrap;
+      flex: 1;
+      text-align: center;
+    }
+    
+    .installer-step-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+    }
+    
+    .installer-step-btn.active {
+      background: var(--color-accent);
+      color: #fff;
+      border-color: var(--color-accent);
+      box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+    }
+    
+    .installer-view-window {
+      background: #2c001e; /* Classic Ubuntu Dark Aubergine */
+      border: 1px solid #4f1433;
+      border-radius: 8px;
+      height: 380px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    
+    .installer-header {
+      background: #111;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      padding: 0 1rem;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    
+    .installer-title {
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: #dfdbd2;
+      font-family: sans-serif;
+    }
+    
+    .installer-window-dots {
+      display: flex;
+      gap: 6px;
+    }
+    
+    .installer-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #333;
+    }
+    
+    .installer-dot.red { background: #df4b33; }
+    .installer-dot.yellow { background: #f0c136; }
+    .installer-dot.green { background: #56ae45; }
+    
+    .installer-content {
+      flex: 1;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: #dfdbd2;
+      font-family: sans-serif;
+      text-align: center;
+    }
+    
+    .installer-content h3 {
+      font-size: 1.75rem;
+      color: #fff;
+      margin-bottom: 1rem;
+    }
+    
+    .installer-content p {
+      font-size: 1rem;
+      max-width: 500px;
+      color: #dfdbd2;
+      line-height: 1.5;
+    }
+    
+    .installer-visual-graphic {
+      width: 120px;
+      height: 120px;
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: rgba(223, 75, 51, 0.1);
+      border-radius: 50%;
+      border: 2px dashed #df4b33;
+      color: #df4b33;
+    }
+
+    .installer-visual-graphic svg {
+      width: 60px;
+      height: 60px;
+    }
+    
+    /* Directory Tree Explorer */
+    .tree-explorer {
+      display: grid;
+      grid-template-columns: 1fr 1.5fr;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+    
+    @media (max-width: 768px) {
+      .tree-explorer {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .tree-sidebar {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      padding: 1rem;
+      max-height: 350px;
+      overflow-y: auto;
+    }
+    
+    .tree-item {
+      padding: 0.6rem 0.8rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      transition: var(--transition-fast);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.25rem;
+    }
+    
+    .tree-item:hover {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-primary);
+    }
+    
+    .tree-item.active {
+      background: rgba(6, 182, 212, 0.12);
+      color: var(--color-cyan);
+      border: 1px solid rgba(6, 182, 212, 0.25);
+    }
+    
+    .tree-detail-card {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 350px;
+    }
+    
+    .tree-detail-title {
+      font-size: 1.5rem;
+      color: var(--color-cyan);
+      margin-bottom: 0.5rem;
+      font-family: 'Outfit', sans-serif;
+    }
+    
+    .tree-detail-analogy {
+      background: rgba(6, 182, 212, 0.03);
+      border-left: 3px solid var(--color-cyan);
+      padding: 0.75rem 1rem;
+      border-radius: 0 8px 8px 0;
+      font-size: 0.9rem;
+      margin: 1rem 0;
+      color: var(--text-primary);
+    }
+    
+    .tree-detail-contents {
+      background: rgba(0,0,0,0.4);
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.8rem;
+      color: #bbb;
+    }
+
+    /* Terminal layout tweaks */
+    .terminal-header-bar {
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      padding: 0.5rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .terminal-title {
+      font-size: 0.8rem;
+      font-family: 'Fira Code', monospace;
+      color: var(--text-secondary);
+    }
+    .terminal-window-dots {
+      display: flex;
+      gap: 6px;
+    }
+    .terminal-window-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .terminal-window-dot.red { background: #ff5f56; }
+    .terminal-window-dot.yellow { background: #ffbd2e; }
+    .terminal-window-dot.green { background: #27c93f; }
+
+    .ssh-terminal.ubuntu-shell {
+      border-radius: 0 0 8px 8px;
+      height: 350px;
+      position: relative;
+    }
+
+    /* Nano simulated editor */
+    .nano-editor {
+      display: none;
+      flex-direction: column;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      color: #fff;
+      font-family: 'Fira Code', monospace;
+      z-index: 10;
+      padding: 0;
+    }
+    .nano-header {
+      background: #fff;
+      color: #000;
+      font-size: 0.75rem;
+      padding: 0.2rem 0.5rem;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+    }
+    .nano-body {
+      flex: 1;
+      background: transparent;
+      color: #fff;
+      border: none;
+      outline: none;
+      padding: 0.5rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.8rem;
+      resize: none;
+      line-height: 1.4;
+    }
+    .nano-footer {
+      background: #000;
+      color: #fff;
+      border-top: 1px solid #333;
+      font-size: 0.7rem;
+      padding: 0.3rem 0.5rem;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2px 10px;
+      line-height: 1.3;
+    }
+    .nano-key {
+      color: #fff;
+    }
+    .nano-key-desc {
+      color: #8b5cf6;
+      font-weight: bold;
+    }
+
+    /* Comparison Table styles */
+    .bridge-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1.5rem;
+    }
+    .bridge-table th, .bridge-table td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--glass-border);
+      text-align: left;
+    }
+    .bridge-table th {
+      background: rgba(255,255,255,0.02);
+      font-weight: bold;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+    }
+    .bridge-table td {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+    .bridge-table tr:hover td {
+      color: var(--text-primary);
+      background: rgba(255,255,255,0.01);
+    }
+
+    /* Command Tooltip System */
+    code[data-cmd] {
+      position: relative;
+      cursor: help;
+      border-bottom: 1px dashed rgba(6, 182, 212, 0.4);
+      transition: var(--transition-fast);
+    }
+    code[data-cmd]:hover {
+      color: var(--color-cyan);
+      background: rgba(6, 182, 212, 0.12);
+      border-bottom-color: var(--color-cyan);
+    }
+
+    .cmd-tooltip {
+      position: fixed;
+      z-index: 9999;
+      width: 340px;
+      max-width: 90vw;
+      background: rgba(14, 12, 24, 0.96);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      border-radius: 12px;
+      padding: 1rem 1.15rem;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 20px rgba(6, 182, 212, 0.08);
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      font-family: 'Inter', sans-serif;
+    }
+    .cmd-tooltip.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .cmd-tooltip-name {
+      font-family: 'Fira Code', monospace;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--color-cyan);
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .cmd-tooltip-name .cmd-badge {
+      font-size: 0.6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: rgba(139, 92, 246, 0.2);
+      color: var(--color-accent);
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      border: 1px solid rgba(139, 92, 246, 0.35);
+      font-family: 'Inter', sans-serif;
+    }
+    .cmd-tooltip-desc {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      line-height: 1.45;
+      margin-bottom: 0.6rem;
+    }
+    .cmd-tooltip-section {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-bottom: 0.2rem;
+      margin-top: 0.45rem;
+    }
+    .cmd-tooltip-syntax {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+      background: rgba(0,0,0,0.4);
+      padding: 0.35rem 0.5rem;
+      border-radius: 6px;
+      color: #e2e0e8;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .cmd-tooltip-example {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.75rem;
+      color: var(--color-teacher);
+      background: rgba(16, 185, 129, 0.06);
+      padding: 0.3rem 0.5rem;
+      border-radius: 6px;
+      border: 1px solid rgba(16, 185, 129, 0.15);
+    }
+        /* Interactive VPC & SSH Visualizer Styles */
+    .vpc-visualizer {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      box-shadow: var(--shadow-sm);
+    }
+    .vpc-box {
+      border: 2px dashed #0284c7;
+      background: rgba(2, 132, 199, 0.03);
+      border-radius: 12px;
+      padding: 1.25rem;
+      position: relative;
+      margin-top: 1.5rem;
+    }
+    .vpc-label {
+      position: absolute;
+      top: -10px;
+      left: 15px;
+      background: #0284c7;
+      color: white;
+      font-size: 0.75rem;
+      padding: 0.15rem 0.6rem;
+      border-radius: 20px;
+      font-weight: bold;
+    }
+    .igw-box {
+      border: 2px solid #e11d48;
+      background: rgba(225, 29, 72, 0.05);
+      color: #e11d48;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-weight: bold;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin: 0 auto;
+      width: max-content;
+    }
+    .igw-box:hover {
+      background: rgba(225, 29, 72, 0.1);
+      transform: scale(1.02);
+    }
+    .vpc-layout-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      margin-top: 1.5rem;
+    }
+    .subnet-box {
+      border-radius: 10px;
+      padding: 1rem;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-height: 160px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .subnet-box.public-subnet {
+      border: 2px solid #06b6d4;
+      background: rgba(6, 182, 212, 0.03);
+    }
+    .subnet-box.public-subnet:hover {
+      background: rgba(6, 182, 212, 0.06);
+    }
+    .subnet-box.private-subnet {
+      border: 2px solid #6366f1;
+      background: rgba(99, 102, 241, 0.03);
+    }
+    .subnet-box.private-subnet:hover {
+      background: rgba(99, 102, 241, 0.06);
+    }
+    .subnet-label {
+      font-weight: 700;
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .subnet-label span.badge {
+      font-size: 0.7rem;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      color: white;
+    }
+    .public-subnet .subnet-label span.badge { background: #06b6d4; }
+    .private-subnet .subnet-label span.badge { background: #6366f1; }
+    
+    .vpc-server-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .vpc-info-panel {
+      margin-top: 1.25rem;
+      background: rgba(139, 92, 246, 0.05);
+      border: 1px solid rgba(139, 92, 246, 0.15);
+      border-radius: 8px;
+      padding: 1rem;
+      min-height: 80px;
+    }
+    .vpc-info-title {
+      font-weight: 700;
+      color: var(--color-accent);
+      margin-bottom: 0.25rem;
+      font-size: 0.95rem;
+    }
+    .vpc-info-desc {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    /* SSH simulator console overrides */
+    .ssh-simulator {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      overflow: hidden;
+      font-family: 'Fira Code', monospace;
+      margin: 1.5rem 0;
+    }
+    .ssh-sim-header {
+      background: #1e293b;
+      padding: 0.5rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-bottom: 1px solid #334155;
+    }
+    .ssh-sim-dots span {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .ssh-sim-dots .red { background: #ef4444; }
+    .ssh-sim-dots .yellow { background: #eab308; }
+    .ssh-sim-dots .green { background: #22c55e; }
+    .ssh-sim-title {
+      color: #94a3b8;
+      font-size: 0.75rem;
+      flex-grow: 1;
+      text-align: center;
+    }
+    .ssh-sim-body {
+      padding: 1rem;
+      color: #f1f5f9;
+      font-size: 0.85rem;
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      line-height: 1.4;
+    }
+    .ssh-sim-line {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.4rem;
+    }
+    .ssh-sim-prompt {
+      color: #38bdf8;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+    .ssh-sim-input {
+      background: transparent;
+      border: none;
+      color: white;
+      font-family: inherit;
+      font-size: inherit;
+      width: 100%;
+      outline: none;
+    }
+    .ssh-sim-output {
+      color: #94a3b8;
+      white-space: pre-wrap;
+      margin-bottom: 0.25rem;
+    }
+
+    /* -------------------------------------------------------------
+       PPT Presentation Mode Overrides
+       ------------------------------------------------------------- */
+    .reading-version {
+      display: block;
+    }
+    .ppt-version {
+      display: none !important;
+    }
+
+    body.presentation-mode .reading-version {
+      display: none !important;
+    }
+
+    body.presentation-mode .ppt-version {
+      display: flex !important;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      max-width: 1100px;
+      height: 100%;
+      margin: 0 auto;
+      text-align: center;
+      box-sizing: border-box;
+    }
+
+    /* Slide specific pastel themes in PPT Mode */
+    body.presentation-mode #slide-intro {
+      background: #f5f3ff !important; /* Light pastel violet */
+      color: #2e1065 !important;
+    }
+    body.presentation-mode #slide-directories {
+      background: #ecfeff !important; /* Light pastel cyan */
+      color: #083344 !important;
+    }
+    body.presentation-mode #slide-terminal-basic {
+      background: #f0fdf4 !important; /* Light pastel green */
+      color: #14532d !important;
+    }
+    body.presentation-mode #slide-terminal-permissions {
+      background: #fffbeb !important; /* Light pastel orange */
+      color: #78350f !important;
+    }
+    body.presentation-mode #slide-terminal-advanced {
+      background: #fdf2f8 !important; /* Light pastel pink */
+      color: #701a75 !important;
+    }
+    body.presentation-mode #slide-vpc {
+      background: #f0f9ff !important; /* Light pastel sky-blue */
+      color: #0369a1 !important;
+    }
+    body.presentation-mode #slide-ssh {
+      background: #e0e7ff !important; /* Light pastel indigo */
+      color: #3730a3 !important;
+    }
+    body.presentation-mode #metacognicion {
+      background: #fefce8 !important; /* Light pastel yellow */
+      color: #713f12 !important;
+    }
+
+    /* Typography inside PPT Mode */
+    body.presentation-mode .ppt-version h2 {
+      font-size: 3.5rem !important;
+      font-weight: 800;
+      margin-bottom: 1.5rem;
+      color: inherit !important;
+      background: none !important;
+      -webkit-text-fill-color: initial !important;
+      letter-spacing: -0.025em;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    body.presentation-mode .ppt-version p.ppt-subtitle {
+      font-size: 1.75rem !important;
+      max-width: 850px;
+      line-height: 1.5;
+      color: inherit !important;
+      opacity: 0.85;
+      margin-bottom: 2rem;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    /* Grids and Cards in PPT */
+    body.presentation-mode .ppt-grid {
+      display: grid !important;
+      grid-template-columns: repeat(3, 1fr) !important;
+      gap: 1.5rem !important;
+      width: 100% !important;
+      margin: 1.5rem 0 !important;
+    }
+
+    body.presentation-mode .ppt-card {
+      background: rgba(255, 255, 255, 0.7) !important;
+      border: 1px solid rgba(255, 255, 255, 0.5) !important;
+      border-radius: 16px !important;
+      padding: 1.75rem !important;
+      text-align: left !important;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: flex-start !important;
+    }
+
+    body.presentation-mode .ppt-card h3 {
+      font-size: 1.6rem !important;
+      font-weight: 700 !important;
+      margin-bottom: 0.5rem !important;
+      color: inherit !important;
+      font-family: 'Outfit', sans-serif !important;
+    }
+
+    body.presentation-mode .ppt-card p {
+      font-size: 1.15rem !important;
+      color: inherit !important;
+      opacity: 0.9 !important;
+      line-height: 1.4 !important;
+      margin: 0 !important;
+    }
+
+    /* Diagrams and Trees in PPT */
+    body.presentation-mode .ppt-diagram {
+      background: rgba(255, 255, 255, 0.6) !important;
+      border: 1px solid rgba(0, 0, 0, 0.05) !important;
+      border-radius: 12px !important;
+      padding: 1.5rem !important;
+      font-family: 'Fira Code', monospace !important;
+      font-size: 1.25rem !important;
+      text-align: left !important;
+      line-height: 1.6 !important;
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.02) !important;
+      margin: 1rem 0 !important;
+      width: 100% !important;
+      max-width: 750px;
+    }
+
+    body.presentation-mode .ppt-badge {
+      display: inline-block !important;
+      padding: 0.35rem 0.75rem !important;
+      font-size: 0.95rem !important;
+      font-weight: 700 !important;
+      border-radius: 8px !important;
+      margin-right: 0.5rem !important;
+      text-transform: uppercase !important;
+    }
+
+    body.presentation-mode .ppt-badge-purple { background: #ddd6fe !important; color: #5b21b6 !important; }
+    body.presentation-mode .ppt-badge-cyan { background: #cffafe !important; color: #155e75 !important; }
+    body.presentation-mode .ppt-badge-green { background: #dcfce7 !important; color: #166534 !important; }
+    body.presentation-mode .ppt-badge-orange { background: #fef3c7 !important; color: #9a3412 !important; }
+    body.presentation-mode .ppt-badge-pink { background: #fce7f3 !important; color: #9d174d !important; }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <a href="index.html" class="nav-brand">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17.5 19A3.5 3.5 0 0 0 21 15.5c0-2.79-2.54-4.5-5-4.5-.42 0-.83.04-1.24.12A6.5 6.5 0 0 0 3 13.5A3.5 3.5 0 0 0 6.5 17H12" />
+        <path d="M12 12V21" />
+        <path d="m9 18 3 3 3-3" />
+      </svg>
+      <span>Cloud Foundations</span>
+    </a>
+    
+    <div class="nav-links">
+      <a href="index.html" class="nav-link">Dashboard</a>
+      <div class="teacher-toggle-container">
+        <span class="teacher-toggle-label">Modo Profesor</span>
+        <label class="switch">
+          <input type="checkbox" id="teacherModeToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="container">
+    <a href="index.html" class="back-link">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+      </svg>
+      Volver al Dashboard
+    </a>
+
+    <header class="class-header">
+      <span class="class-number" style="margin-bottom: 0.5rem; display: inline-block;">Clase Especial</span>
+      <h1>Introducción a Linux y Ubuntu Server</h1>
+      <p style="color: var(--text-secondary); font-size: 1.1rem; max-width: 800px;">
+        Descubre cómo piensa Linux, el puente mental entre Windows y la terminal, y practica navegando, editando archivos y administrando permisos en tiempo real.
+      </p>
+    </header>
+
+    <div class="class-content-wrapper">
+      <div class="main-content-flow slides-container" id="slidesContainer">
+        
+        <!-- SLIDE 1: INTRODUCCIÓN A LINUX Y INSTALACIÓN -->
+        <section class="slide" id="slide-intro" tabindex="0">
+          <div class="reading-version">
+            <h2 class="section-title">
+              <span class="section-number">L.1</span>
+              El Puente Mental: Entendiendo Linux y Ubuntu
+            </h2>
+
+            <div class="teacher-note">
+              <h4>💡 Guía Docente: La Analogía del Automóvil (5 min)</h4>
+              <p><strong>Meta:</strong> Explicar que "Linux" no es una marca de sistema operativo cerrada, sino un motor libre.</p>
+              <ul>
+                <li><strong>El Motor (Kernel):</strong> Linux es el "motor" del auto. Es libre; cualquiera puede tomarlo y hacer modificaciones.</li>
+                <li><strong>El Auto Completo (Distribución):</strong> Ubuntu es un auto terminado que usa el motor Linux, agregándole carrocería (escritorio GNOME), aire acondicionado (tienda de software) y manual de usuario.</li>
+                <li><strong>El Puente con Windows:</strong> A los alumnos les asusta la terminal porque la ven como "pantalla de Matrix". Explícales que la terminal es simplemente el Explorador de Archivos de Windows, pero controlado escribiendo en vez de haciendo clics.</li>
+              </ul>
+            </div>
+
+            <p>
+              Muchos creen que <strong>Linux</strong> es un solo sistema operativo complejo. En realidad, Linux es solo el **Kernel** (el núcleo motor que controla el procesador, la memoria y el hardware). 
+              <strong>Ubuntu</strong> es una **Distribución** de Linux: un sistema operativo completo listo para el usuario, que empaqueta el núcleo con interfaces gráficas, herramientas y un gestor de programas.
+            </p>
+
+            <h3 style="margin-top: 1.5rem; font-size: 1.25rem; color: var(--color-accent);">Equivalencias Mentales: Windows vs Linux</h3>
+            <table class="bridge-table">
+              <thead>
+                <tr>
+                  <th>Elemento / Paradigma</th>
+                  <th>Concepto en Windows</th>
+                  <th>Concepto en Linux (Ubuntu)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Instalar Software</strong></td>
+                  <td>Descargar `.exe` de páginas web e instalar manual.</td>
+                  <td>Descargar de repositorios oficiales centralizados (`apt`).</td>
+                  
+                </tr>
+                <tr>
+                  <td><strong>Control del Sistema</strong></td>
+                  <td>Explorador de Archivos y Panel de Control (Ventanas).</td>
+                  <td>Terminal / Consola de Comandos (Texto y automatización).</td>
+                </tr>
+                <tr>
+                  <td><strong>Rutas y Rutas Raíz</strong></td>
+                  <td>Múltiples discos (`C:\`, `D:\`) con barras invertidas `\`.</td>
+                  <td>Una única raíz `/` donde todo cuelga, usando `/`.</td>
+                </tr>
+                <tr>
+                  <td><strong>Privilegios</strong></td>
+                  <td>El usuario suele ser Administrador por defecto.</td>
+                  <td>Usuario sin privilegios; `sudo` para escalar cuando sea necesario.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3 style="margin-top: 2rem; font-size: 1.25rem; color: var(--color-cyan);">Simulador Visual: Instalación de Ubuntu Desktop</h3>
+            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+              Haz clic en los pasos de abajo para simular cómo se realiza el proceso de instalación de Ubuntu en una máquina física.
+            </p>
+
+            <div class="installer-container">
+              <div class="installer-steps">
+                <button class="installer-step-btn active" onclick="showInstallerStep(1)">1. ISO e Imagen</button>
+                <button class="installer-step-btn" onclick="showInstallerStep(2)">2. Booteo USB</button>
+                <button class="installer-step-btn" onclick="showInstallerStep(3)">3. Arranque PC</button>
+                <button class="installer-step-btn" onclick="showInstallerStep(4)">4. Tipo Instalación</button>
+                <button class="installer-step-btn" onclick="showInstallerStep(5)">5. Configuración</button>
+              </div>
+              
+              <div class="installer-view-window">
+                <div class="installer-header">
+                  <div class="installer-window-dots">
+                    <span class="installer-dot red"></span>
+                    <span class="installer-dot yellow"></span>
+                    <span class="installer-dot green"></span>
+                  </div>
+                  <div class="installer-title" id="installerTitle">Paso 1: Descargar ISO y Preparar Software</div>
+                  <div></div>
+                </div>
+                <div class="installer-content" id="installerContent">
+                  <div class="installer-visual-graphic" style="color: var(--color-accent); border-color: var(--color-accent); background: rgba(139,92,246,0.1);">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                  </div>
+                  <h3>Descargar Ubuntu ISO</h3>
+                  <p>Descargamos el archivo oficial `.iso` (imagen de disco) desde ubuntu.com. Además, necesitamos un grabador como Rufus o BalenaEtcher para traspasar este archivo a un pendrive.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ppt-version">
+            <h2>El Puente Mental: Windows vs Linux</h2>
+            <p class="ppt-subtitle">Linux no es un sistema operativo cerrado: es un motor libre adaptado para el usuario.</p>
+            
+            <div class="ppt-grid">
+              <div class="ppt-card">
+                <span class="ppt-badge ppt-badge-purple">Motor</span>
+                <h3>El Kernel (Linux)</h3>
+                <p>El núcleo motor del sistema. Es libre; cualquiera puede modificarlo o integrarlo.</p>
+              </div>
+              <div class="ppt-card">
+                <span class="ppt-badge ppt-badge-purple">Auto</span>
+                <h3>La Distribución</h3>
+                <p>Ubuntu toma el motor Linux y añade la carrocería: interfaz visual, apps y utilidades.</p>
+              </div>
+              <div class="ppt-card">
+                <span class="ppt-badge ppt-badge-purple">Control</span>
+                <h3>La Terminal</h3>
+                <p>Equivale al explorador de archivos. Se maneja por palabras exactas, no por clics.</p>
+              </div>
+            </div>
+
+            <div class="ppt-grid" style="grid-template-columns: 1fr 1fr !important; margin-top: 1rem !important;">
+              <div class="ppt-card">
+                <h4 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem; color: #2e1065;">Así piensa Windows:</h4>
+                <p>• Programas descargados de internet (.exe)<br>• Discos con letras separadas (C:\, D:\)<br>• Administrador absoluto por defecto</p>
+              </div>
+              <div class="ppt-card">
+                <h4 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem; color: #2e1065;">Así piensa Linux:</h4>
+                <p>• Repositorios oficiales centralizados (apt)<br>• Una única raíz (/) jerárquica para todo<br>• Usuario sin privilegios (usa "sudo" para escalar)</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 2: ESTRUCTURA DEL SISTEMA DE ARCHIVOS -->
+        <section class="slide" id="slide-directories" tabindex="0">
+          <div class="reading-version">
+            <h2 class="section-title">
+              <span class="section-number">L.2</span>
+              El Árbol de Directorios: Todo es un Archivo
+            </h2>
+
+            <div class="teacher-note">
+              <h4>💡 Guía Docente: La Gran Estantería (5 min)</h4>
+              <p><strong>Meta:</strong> Explicar el sistema de archivos de Linux, donde no hay discos "C:" ni "D:", sino un solo árbol lógico.</p>
+              <ul>
+                <li><strong>La Raíz (`/`):</strong> Es el tronco del árbol. Todo nace ahí. Incluso las llaves USB y discos duros externos se montan como si fueran carpetas dentro de la raíz (en `/media` o `/mnt`).</li>
+                <li><strong>Todo es un archivo:</strong> En Linux, hasta las tarjetas de red, las pantallas o los discos duros se representan como archivos en `/dev`. Si escribes texto en el archivo de un puerto, se envía por ese puerto.</li>
+                <li>Pide a los estudiantes que pinchen en las distintas carpetas del explorador interactivo para ver qué hace cada una.</li>
+              </ul>
+            </div>
+
+            <p>
+              A diferencia de Windows, donde cada disco físico tiene su letra (`C:\`, `D:\`), en Linux existe una <strong>única gran estructura jerárquica</strong>. 
+              Su origen se llama **Raíz** y se representa con una barra diagonal `/`. Todo, absolutamente todo (archivos, programas, carpetas del usuario, e incluso componentes de hardware), vive colgando de esta raíz.
+            </p>
+
+            <div class="tree-explorer">
+              <div class="tree-sidebar">
+                <div class="tree-item active" onclick="exploreDir('/')">📂 / (Raíz)</div>
+                <div class="tree-item" onclick="exploreDir('/home')">📂 /home (Usuarios)</div>
+                <div class="tree-item" onclick="exploreDir('/etc')">📂 /etc (Configuraciones)</div>
+                <div class="tree-item" onclick="exploreDir('/var')">📂 /var (Datos Variables)</div>
+                <div class="tree-item" onclick="exploreDir('/usr')">📂 /usr (Aplicaciones)</div>
+                <div class="tree-item" onclick="exploreDir('/bin')">📂 /bin (Comandos Básicos)</div>
+                <div class="tree-item" onclick="exploreDir('/tmp')">📂 /tmp (Temporales)</div>
+              </div>
+              
+              <div class="tree-detail-card">
+                <div>
+                  <h3 class="tree-detail-title" id="dirTitle">/ (Raíz)</h3>
+                  <p style="font-size: 0.9rem; color: var(--text-secondary);" id="dirDesc">El directorio inicial del cual se desprenden todos los demás subdirectorios del sistema operativo Linux.</p>
+                  <div class="tree-detail-analogy" id="dirAnalogy">
+                    <strong>💡 Analogía:</strong> El hall central de un edificio. No importa a qué departamento vayas, primero debes cruzar la puerta de entrada principal.
+                  </div>
+                </div>
+                <div>
+                  <p style="font-size: 0.8rem; font-weight: bold; margin-bottom: 0.25rem; color: var(--text-muted);">Contenido Típico:</p>
+                  <div class="tree-detail-contents" id="dirContents">
+                    home/ &nbsp; etc/ &nbsp; var/ &nbsp; usr/ &nbsp; bin/ &nbsp; tmp/ &nbsp; boot/ &nbsp; dev/
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ppt-version">
+            <h2>El Árbol de Directorios: Todo es un Archivo</h2>
+            <p class="ppt-subtitle">No hay unidades C:\ o D:\. Todo vive bajo un solo punto de partida: la Raíz (/).</p>
+            
+            <div class="ppt-diagram">
+              / (Raíz)<br>
+              ├── 📂 <strong>home/</strong> &nbsp;➜ Carpetas de usuarios (/home/usuario)<br>
+              ├── 📂 <strong>etc/</strong> &nbsp;&nbsp;➜ Archivos de configuración (¡La sala de control!)<br>
+              ├── 📂 <strong>var/</strong> &nbsp;&nbsp;➜ Logs y datos variables de aplicaciones<br>
+              ├── 📂 <strong>bin/</strong> &nbsp;&nbsp;➜ Ejecutables de comandos esenciales (ls, cd, cp)<br>
+              └── 📂 <strong>tmp/</strong> &nbsp;&nbsp;➜ Archivos temporales (se borran al reiniciar)
+            </div>
+
+            <div class="ppt-grid" style="margin-top: 1rem !important;">
+              <div class="ppt-card">
+                <span class="ppt-badge ppt-badge-cyan">Filosofía</span>
+                <h3>Todo es un Archivo</h3>
+                <p>En Linux, un archivo no es solo un documento. Las impresoras, los puertos de red y los discos duros se representan como archivos en el sistema.</p>
+              </div>
+              <div class="ppt-card">
+                <span class="ppt-badge ppt-badge-cyan">Rutas</span>
+                <h3>Separador /</h3>
+                <p>Las rutas se escriben usando la barra inclinada `/` (ej: <code>/etc/hosts</code>) y no la barra invertida `\` típica de Windows.</p>
+              </div>
+              <div class="ppt-card">
+                <span class="ppt-badge ppt-badge-cyan">Acceso</span>
+                <h3>Seguridad</h3>
+                <p>El usuario común solo tiene permisos totales de escritura en su carpeta personal <code>/home/usuario</code>.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 3: NAVEGACIÓN BÁSICA Y AYUDA -->
+        <section class="slide" id="slide-terminal-basic" tabindex="0">
+          <div class="reading-version">
+            <h2 class="section-title">
+              <span class="section-number">L.3</span>
+              Moverse en la Oscuridad: Navegación y Ayuda
+            </h2>
+
+            <div class="teacher-note">
+              <h4>💡 Guía Docente: Orientación Espacial (8 min)</h4>
+              <p><strong>Meta:</strong> Aprender los comandos de orientación fundamentales (`pwd`, `ls`, `cd`).</p>
+              <ul>
+                <li><strong>pwd (Print Working Directory):</strong> Equivale a mirar la barra de direcciones en el Explorador de Archivos para saber dónde estamos.</li>
+                <li><strong>ls (List):</strong> Equivale a abrir la carpeta y mirar qué hay adentro.</li>
+                <li><strong>cd (Change Directory):</strong> Equivale a hacer doble clic en una carpeta para meterse en ella, o usar la flecha 'atrás' (`cd ..`).</li>
+                <li><strong>Misión 1:</strong> Haz que los alumnos ejecuten en la terminal los pasos indicados en la caja "Misión 1". Muéstrales cómo autocompletar con la tecla <strong>Tab</strong> (doble tabulador muestra opciones).</li>
+              </ul>
+            </div>
+
+            <div class="class-grid" style="grid-template-columns: 1.2fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+              <div>
+                <p>
+                  En la terminal no hay carpetas amarillas ni botones de navegación. Para moverte, debes guiar al sistema con comandos verbales muy cortos:
+                </p>
+                <ul style="font-size: 0.9rem; color: var(--text-secondary); margin-left: 1.25rem; margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.4rem;">
+                  <li><code>pwd</code>: Te dice en qué directorio estás parado ahora mismo.</li>
+                  <li><code>ls</code>: Muestra los archivos y carpetas del directorio actual.</li>
+                  <li><code>cd [ruta]</code>: Cambia de directorio (ej: <code>cd /etc</code> o <code>cd ..</code> para subir un nivel).</li>
+                  <li><code>mkdir [nombre]</code>: Crea una carpeta nueva.</li>
+                  <li><code>touch [archivo]</code>: Crea un archivo vacío (ej: <code>touch reporte.txt</code>).</li>
+                  <li><code>man [comando]</code>: Muestra el manual de usuario del comando para aprender a usarlo.</li>
+                </ul>
+              </div>
+              
+              <div class="card" style="margin-bottom:0; background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.25);">
+                <h4 style="color:var(--color-accent); font-size:1.05rem; margin-bottom:0.5rem; display:flex; align-items:center; gap:0.25rem;">
+                  🎯 Misión 1: Navegación y Ayuda
+                </h4>
+                <p style="font-size:0.85rem; color: var(--text-secondary); margin-bottom:0.5rem;">
+                  Completa estas tareas en la terminal interactiva de abajo:
+                </p>
+                <ol style="font-size:0.8rem; color: var(--text-muted); margin-left:1.25rem; display:flex; flex-direction:column; gap:0.25rem;">
+                  <li>Escribe <code>pwd</code> para ver tu ruta actual.</li>
+                  <li>Escribe <code>ls</code> para ver qué archivos tienes.</li>
+                  <li>Cambia de directorio con <code>cd /etc</code>.</li>
+                  <li>Escribe <code>pwd</code> and <code>ls</code> allí dentro.</li>
+                  <li>Vuelve a tu hogar con <code>cd</code> (sin argumentos).</li>
+                  <li>Consulta ayuda escribiendo <code>man ls</code> o <code>ls --help</code>.</li>
+                </ol>
+              </div>
+            </div>
+
+            <!-- Shell Container (Persistent and interactive) -->
+            <div class="terminal-container">
+              <div class="terminal-header-bar">
+                <div class="terminal-window-dots">
+                  <span class="terminal-window-dot red"></span>
+                  <span class="terminal-window-dot yellow"></span>
+                  <span class="terminal-window-dot green"></span>
+                </div>
+                <div class="terminal-title">usuario@ubuntu: ~ (Shell Terminal)</div>
+                <div></div>
+              </div>
+              
+              <div class="ssh-terminal ubuntu-shell" id="term1" tabindex="0">
+                <div class="terminal-outputs" id="term1Output">
+                  <div class="ssh-line">Ubuntu GNU/Linux 22.04 LTS (kernel 5.15.0-generic)</div>
+                  <div class="ssh-line">Terminal interactiva lista para usar. Escribe comandos y presiona Enter.</div>
+                  <div class="ssh-line" style="margin-bottom: 0.5rem;">(Escribe <strong style="color: var(--color-cyan);">help</strong> para ver la lista de comandos disponibles).</div>
+                </div>
+                
+                <div class="ssh-input-line">
+                  <span class="ssh-prompt" id="term1Prompt">usuario@ubuntu:~$</span>
+                  <input type="text" class="ssh-input term-input-el" id="term1Input" autocomplete="off" spellcheck="false">
+                </div>
+
+                <!-- Nano Editor Screen overlay -->
+                <div class="nano-editor" id="term1Nano">
+                  <div class="nano-header">
+                    <span>GNU nano 6.2</span>
+                    <span id="nanoFilename">fichero.txt</span>
+                    <span>Modificado</span>
+                  </div>
+                  <textarea class="nano-body" id="term1NanoBody" spellcheck="false"></textarea>
+                  <div class="nano-footer">
+                    <div><span class="nano-key-desc">^X</span> <span class="nano-key">Salir y Guardar</span></div>
+                    <div><span class="nano-key-desc">^O</span> <span class="nano-key">Guardar Fich</span></div>
+                    <div><span class="nano-key-desc">^K</span> <span class="nano-key">Cortar línea</span></div>
+                    <div><span class="nano-key-desc">^U</span> <span class="nano-key">Pegar línea</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ppt-version">
+            <h2>Navegar en la Terminal: Los 3 Pilares</h2>
+            <p class="ppt-subtitle">Moverse y listar contenidos en un sistema basado únicamente en texto.</p>
+            
+            <div class="ppt-grid">
+              <div class="ppt-card">
+                <span class="ppt-badge ppt-badge-green">pwd</span>
+                <h3>¿Dónde estoy?</h3>
+                <p><strong>Print Working Directory</strong><br>Muestra la ruta completa del directorio donde te encuentras parado actualmente.</p>
+              </div>
+              <div class="ppt-card">
+                <span class="ppt-badge ppt-badge-green">ls</span>
+                <h3>¿Qué hay aquí?</h3>
+                <p><strong>List</strong><br>Lista todos los archivos y carpetas del directorio actual. (Usa <code>ls -la</code> para ver archivos ocultos y detalles).</p>
+              </div>
+              <div class="ppt-card">
+                <span class="ppt-badge ppt-badge-green">cd [ruta]</span>
+                <h3>Cambiar de Lugar</h3>
+                <p><strong>Change Directory</strong><br>Te traslada a otra carpeta. Usa <code>cd ..</code> para retroceder un nivel o solo <code>cd</code> para volver a tu carpeta /home.</p>
+              </div>
+            </div>
+
+            <div class="ppt-card" style="width: 100% !important; margin-top: 1rem !important; background: rgba(255, 255, 255, 0.8) !important;">
+              <h3 style="font-size: 1.6rem; color: #14532d; display: flex; align-items: center; gap: 0.5rem; justify-content: center; width: 100%;">
+                ⌨️ Regla de Oro: La Tecla TAB
+              </h3>
+              <p style="text-align: center; font-size: 1.3rem !important; margin: 0.5rem 0 0 0 !important; color: #14532d !important;">
+                <strong>Nunca escribas rutas o archivos largos a mano.</strong> Presiona la tecla <strong>Tab</strong> y la terminal autocompletará el nombre por ti, evitando errores de tipeo.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 4: SEGURIDAD, PERMISOS Y GESTIÓN DE SOFTWARE -->
+        <section class="slide" id="slide-terminal-permissions" tabindex="0">
+          <div class="reading-version">
+            <h2 class="section-title">
+              <span class="section-number">L.4</span>
+              Seguridad y Repositorios: Permisos, Sudo y APT
+            </h2>
+
+            <div class="teacher-note">
+              <h4>💡 Guía Docente: La Llave Maestra (8 min)</h4>
+              <p><strong>Meta:</strong> Comprender la seguridad de archivos en Linux y cómo se instala software.</p>
+              <ul>
+                <li><strong>Permisos (rwx):</strong> Explica qué significan las 3 zonas: Usuario (Propietario), Grupo y Otros.</li>
+                <li><strong>sudo (SuperUser Do):</strong> Es la versión en terminal del cartel "Ejecutar como Administrador" de Windows. No uses `sudo` para todo, solo cuando requieras modificar el sistema (como en `/etc` o al instalar programas).</li>
+                <li><strong>APT (Advanced Package Tool):</strong> Es como la "App Store" de Ubuntu. En lugar de ir a Google a descargar instaladores dudosos, Ubuntu le pide a sus repositorios seguros que bajen e instalen la última versión autorizada.</li>
+                <li><strong>Misión 2:</strong> Ayuda a los alumnos a usar `sudo` para crear cosas en `/etc` o actualizar paquetes en la terminal simulada.</li>
+              </ul>
+            </div>
+
+            <div class="class-grid" style="grid-template-columns: 1.2fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+              <div>
+                <p>
+                  Linux fue diseñado como un sistema multiusuario sumamente seguro. Cada archivo tiene 3 tipos de permisos representados por <strong>r (read)</strong>, <strong>w (write)</strong>, y <strong>x (execute)</strong>:
+                </p>
+                <ul style="font-size: 0.85rem; color: var(--text-secondary); margin-left: 1.25rem; margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.35rem;">
+                  <li><code>ls -l</code>: Muestra los archivos en formato de lista larga, revelando permisos (ej: <code>-rwxr-xr-x</code>), propietarios y tamaño.</li>
+                  <li><code>chmod [permisos] [archivo]</code>: Cambia los permisos (ej: <code>chmod +x mi_script.sh</code> lo hace ejecutable).</li>
+                  <li><code>sudo [comando]</code>: Ejecuta un comando con permisos de administrador (Root).</li>
+                  <li><code>apt update</code>: Actualiza el índice de software disponible en los servidores oficiales (repositorios).</li>
+                  <li><code>apt install [programa]</code>: Descarga e instala un programa seguro automáticamente.</li>
+                </ul>
+              </div>
+              
+              <div class="card" style="margin-bottom:0; background: rgba(6, 182, 212, 0.05); border: 1px solid rgba(6, 182, 212, 0.25);">
+                <h4 style="color:var(--color-cyan); font-size:1.05rem; margin-bottom:0.5rem; display:flex; align-items:center; gap:0.25rem;">
+                  🎯 Misión 2: Permisos y Software
+                </h4>
+                <p style="font-size:0.85rem; color: var(--text-secondary); margin-bottom:0.5rem;">
+                  Ejecuta estas tareas en la terminal interactiva (puedes usar la del slide anterior o la de abajo, son la misma sesión):
+                </p>
+                <ol style="font-size:0.8rem; color: var(--text-muted); margin-left:1.25rem; display:flex; flex-direction:column; gap:0.25rem;">
+                  <li>Escribe <code>ls -l</code> para ver los permisos de <code>mi_script.sh</code>.</li>
+                  <li>Hazlo ejecutable con <code>chmod +x mi_script.sh</code>.</li>
+                  <li>Vuelve a escribir <code>ls -l</code> y observa cómo cambia a color verde (ejecutable).</li>
+                  <li>Intenta crear una carpeta en la raíz: <code>mkdir /etc/test</code> (Verás error de Permiso Denegado).</li>
+                  <li>Supera el error usando <code>sudo mkdir /etc/test</code>.</li>
+                  <li>Instala un servicio web Apache simulado: <code>sudo apt update</code> seguido de <code>sudo apt install apache2</code>.</li>
+                </ol>
+              </div>
+            </div>
+
+            <!-- Shell Container (shared instance) -->
+            <div class="terminal-placeholder-1">
+              <!-- JavaScript will move the terminal here or we can render it dynamically. To keep it simple, we will have a unified container styling -->
+              <p style="font-size: 0.85rem; color: var(--text-muted); text-align: center; margin-bottom: 0.5rem;">
+                💡 <em>Usa la terminal interactiva ubicada en la parte inferior para completar tu misión.</em>
+              </p>
+            </div>
+          </div>
+
+          <div class="ppt-version">
+            <h2>Seguridad y Repositorios: Sudo y APT</h2>
+            <p class="ppt-subtitle">Cómo protege Linux sus archivos y cómo se instala software de forma segura.</p>
+            
+            <div class="ppt-grid">
+              <div class="ppt-card">
+                <span class="ppt-badge ppt-badge-orange">Permisos</span>
+                <h3>El sistema rwx</h3>
+                <p>Cada archivo tiene permisos para: Propietario (u), Grupo (g) y Otros (o).<br>• <strong>r</strong>: Lectura<br>• <strong>w</strong>: Escritura<br>• <strong>x</strong>: Ejecución</p>
+              </div>
+              <div class="ppt-card">
+                <span class="ppt-badge ppt-badge-orange">sudo</span>
+                <h3>SuperUser Do</h3>
+                <p>Es la llave maestra temporal. Te concede privilegios de administrador (root) para realizar cambios en el sistema. ¡Úsalo con cuidado!</p>
+              </div>
+              <div class="ppt-card">
+                <span class="ppt-badge ppt-badge-orange">apt</span>
+                <h3>Gestor de Paquetes</h3>
+                <p>La "tienda de aplicaciones" oficial. Centraliza la descarga e instalación de programas desde servidores seguros oficiales.</p>
+              </div>
+            </div>
+
+            <div class="ppt-diagram" style="margin-top: 1rem !important; text-align: center !important;">
+              <code>chmod +x script.sh</code> &nbsp;➜&nbsp; Añade permiso de ejecución (color verde)<br>
+              <code>sudo apt update && sudo apt install htop</code> &nbsp;➜&nbsp; Actualiza e instala un programa
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 5: PROCESOS, REDES Y EDICIÓN DE TEXTO -->
+        <section class="slide" id="slide-terminal-advanced" tabindex="0">
+          <div class="reading-version">
+            <h2 class="section-title">
+              <span class="section-number">L.5</span>
+              Administración de Sistemas: Procesos, Redes y Edición
+            </h2>
+
+            <div class="teacher-note">
+              <h4>💡 Guía Docente: Administrando Recursos (10 min)</h4>
+              <p><strong>Meta:</strong> Enseñar cómo inspeccionar la red, gestionar procesos colgados y editar archivos con Nano.</p>
+              <ul>
+                <li><strong>Los Procesos:</strong> En Linux los programas corren en segundo plano (servicios/daemons). `ps` y `top` nos permiten vigilarlos.</li>
+                <li><strong>Nano:</strong> Es un editor súper básico por terminal. Explícales que para guardar deben presionar <strong>Ctrl+X</strong>, luego <strong>Y</strong> (o S en español) para confirmar, y luego <strong>Enter</strong>. Esto es un dolor de cabeza típico de principiante, enséñaselos con calma.</li>
+                <li><strong>Misión 3:</strong> Haz que los alumnos usen `nano notas.txt` para editar un archivo, que usen `top` o `htop` para ver procesos, y que prueben su red simulada con `ping 8.8.8.8`.</li>
+              </ul>
+            </div>
+
+            <div class="class-grid" style="grid-template-columns: 1.2fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+              <div>
+                <p>
+                  Una vez dominada la terminal básica, puedes gestionar el sistema completo controlando la red, los procesos y configurando ficheros de texto plano:
+                </p>
+                <ul style="font-size: 0.85rem; color: var(--text-secondary); margin-left: 1.25rem; margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.35rem;">
+                  <li><code>nano [nombre_archivo]</code>: Abre un editor de texto interactivo directo en la terminal. Muy útil para modificar configuraciones.</li>
+                  <li><code>top</code> o <code>htop</code>: Muestra en tiempo real el consumo de CPU y RAM de todos los procesos vivos. Presiona <code>q</code> para salir.</li>
+                  <li><code>ip a</code>: Muestra las direcciones IP de tus tarjetas de red físicas y virtuales.</li>
+                  <li><code>ping [ip/dominio]</code>: Comprueba si tienes conectividad de red con otro equipo (ej: <code>ping 8.8.8.8</code>).</li>
+                  <li><code>[comando1] | grep [filtro]</code>: El "tubo" o tubería <code>|</code> toma la salida del primer comando y la filtra usando <code>grep</code> (ej: <code>cat notas.txt | grep Linux</code>).</li>
+                </ul>
+              </div>
+              
+              <div class="card" style="margin-bottom:0; background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.25);">
+                <h4 style="color:var(--color-accent); font-size:1.05rem; margin-bottom:0.5rem; display:flex; align-items:center; gap:0.25rem;">
+                  🎯 Misión 3: Procesos, Red y Nano
+                </h4>
+                <p style="font-size:0.85rem; color: var(--text-secondary); margin-bottom:0.5rem;">
+                  Ejecuta estas tareas avanzadas en el simulador:
+                </p>
+                <ol style="font-size:0.8rem; color: var(--text-muted); margin-left:1.25rem; display:flex; flex-direction:column; gap:0.25rem;">
+                  <li>Edita el archivo notas: <code>nano notas.txt</code>.</li>
+                  <li>Escribe una nueva línea, y presiona <code>Ctrl+X</code> para guardar y salir del editor.</li>
+                  <li>Verifica los procesos del sistema ejecutando <code>htop</code> (presiona <code>q</code> para salir del monitor de procesos).</li>
+                  <li>Verifica tu IP simulada ejecutando <code>ip a</code>.</li>
+                  <li>Haz una prueba de conexión: <code>ping 8.8.8.8</code>.</li>
+                  <li>Filtra la configuración usando <code>cat notas.txt | grep terminal</code>.</li>
+                </ol>
+              </div>
+            </div>
+
+            <div class="terminal-placeholder-2">
+              <p style="font-size: 0.85rem; color: var(--text-muted); text-align: center; margin-bottom: 0.5rem;">
+                💡 <em>Usa la terminal interactiva de la página para completar tu misión.</em>
+              </p>
+            </div>
+          </div>
+
+          <div class="ppt-version">
+            <h2>Administración y Diagnóstico</h2>
+            <p class="ppt-subtitle">Comandos para configurar, monitorear la red y controlar recursos en caliente.</p>
+            
+            <div class="ppt-grid">
+              <div class="ppt-card">
+                <span class="ppt-badge ppt-badge-pink">nano</span>
+                <h3>GNU Nano</h3>
+                <p>El "Block de Notas" rápido de la consola. Modifica archivos directamente sin entorno gráfico.<br>• Guardar y Salir: <code>Ctrl+X</code>, luego <code>Y</code> y <code>Enter</code>.</p>
+              </div>
+              <div class="ppt-card">
+                <span class="ppt-badge ppt-badge-pink">procesos</span>
+                <h3>Monitoreo</h3>
+                <p><strong>htop / ps aux</strong><br>Administrador de tareas de Linux. Permite vigilar qué procesos consumen CPU y memoria RAM en tiempo real.</p>
+              </div>
+              <div class="ppt-card">
+                <span cl            <div class="ppt-card" style="width: 100% !important; margin-top: 1rem !important; background: rgba(255, 255, 255, 0.8) !important;">
+              <h3 style="font-size: 1.4rem; color: #701a75; display: flex; align-items: center; gap: 0.5rem; justify-content: center; width: 100%;">
+                🌐 Diagnóstico de Red Rápido:
+              </h3>
+              <p style="text-align: center; font-size: 1.2rem !important; margin: 0.5rem 0 0 0 !important; color: #701a75 !important;">
+                <code>ip a</code> (Muestra las direcciones IP de tus interfaces) &nbsp;&nbsp;&nbsp;&nbsp;
+                <code>ping 8.8.8.8</code> (Comprueba si tienes salida a Internet)
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 6: LA RED VIRTUAL (VPC) -->
+        <section class="slide" id="slide-vpc" tabindex="0">
+          <div class="reading-version">
+            <h2 class="section-title">
+              <span class="section-number">L.6</span>
+              La Frontera del Cloud: ¿Qué es una VPC?
+            </h2>
+
+            <div class="teacher-note">
+              <h4>💡 Guía Docente: Redes en la Nube (10 min)</h4>
+              <p><strong>Meta:</strong> Explicar que para desplegar servidores en AWS necesitamos una red virtual privada (VPC).</p>
+              <ul>
+                <li><strong>La analogía:</strong> Una VPC es como un condominio privado y cerrado. Tú defines quién entra, quién sale y qué departamentos se conectan a la calle.</li>
+                <li><strong>Subredes:</strong> 
+                  <ul>
+                    <li><em>Públicas:</em> Conectadas al Internet Gateway (el portón de salida). Tienen IPs públicas.</li>
+                    <li><em>Privadas:</em> Aisladas, ideales para bases de datos (RDS) con datos sensibles de clientes.</li>
+                  </ul>
+                </li>
+                <li><strong>Security Groups:</strong> Son los guardias. Bloquean todos los puertos por defecto, excepto los autorizados (ej: HTTP 80 o SSH 22).</li>
+              </ul>
+            </div>
+
+            <div class="class-grid" style="grid-template-columns: 1.2fr 1.1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+              <div>
+                <p>
+                  Antes de crear un servidor en AWS, debemos diseñar su red. Una <strong>VPC (Virtual Private Cloud)</strong> nos permite definir una sección aislada de la nube de AWS para lanzar recursos en una red virtual propia.
+                </p>
+                <div class="vpc-info-panel" id="vpcInfoPanel">
+                  <div class="vpc-info-title" id="vpcInfoTitle">Selecciona un elemento del diagrama ➔</div>
+                  <div class="vpc-info-desc" id="vpcInfoDesc">Haz clic en el Internet Gateway (IGW), la Subred Pública o la Subred Privada para ver su descripción detallada e importancia.</div>
+                </div>
+              </div>
+
+              <!-- Interactive Diagram -->
+              <div class="vpc-visualizer">
+                <div style="text-align: center; margin-bottom: 0.75rem;">
+                  <div class="igw-box" onclick="selectVpcElement('igw')">
+                    🔌 Internet Gateway (IGW)
+                  </div>
+                </div>
+                
+                <div class="vpc-box" onclick="selectVpcElement('vpc')">
+                  <span class="vpc-label">VPC (Virtual Private Cloud - 10.0.0.0/16)</span>
+                  
+                  <div class="vpc-layout-grid">
+                    <div class="subnet-box public-subnet" onclick="event.stopPropagation(); selectVpcElement('public')">
+                      <div class="subnet-label">
+                        <span>Pública (10.0.1.0/24)</span>
+                        <span class="badge">Internet</span>
+                      </div>
+                      <div class="vpc-server-card">
+                        🖥️ EC2 (Web Apache)
+                        <br><span style="font-size:0.7rem; color:var(--text-muted);">IP: 54.210.85.12</span>
+                      </div>
+                    </div>
+
+                    <div class="subnet-box private-subnet" onclick="event.stopPropagation(); selectVpcElement('private')">
+                      <div class="subnet-label">
+                        <span>Privada (10.0.2.0/24)</span>
+                        <span class="badge" style="background:#4f46e5;">Aislada</span>
+                      </div>
+                      <div class="vpc-server-card">
+                        🗄️ RDS (Base Datos)
+                        <br><span style="font-size:0.7rem; color:var(--text-muted);">IP: 10.0.2.5</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ppt-version">
+            <h2>¿Qué es una VPC? (Red en AWS)</h2>
+            <p class="ppt-subtitle">Virtual Private Cloud: Tu propia red lógica aislada en la nube de Amazon.</p>
+            
+            <div class="ppt-grid">
+              <div class="ppt-card">
+                <span class="ppt-badge ppt-badge-cyan">Subred Pública</span>
+                <h3>Acceso a Internet</h3>
+                <p>Tiene ruta al <strong>Internet Gateway</strong>.<br>Ideal para servidores web públicos (como Apache) donde entran los clientes.</p>
+              </div>
+              <div class="ppt-card">
+                <span class="ppt-badge ppt-badge-cyan">Subred Privada</span>
+                <h3>Aislada de Internet</h3>
+                <p>Sin ruta al exterior.<br>Ideal para bases de datos seguras (PostgreSQL/Oracle) que nunca deben ser atacadas desde fuera.</p>
+              </div>
+              <div class="ppt-card">
+                <span class="ppt-badge ppt-badge-cyan">Internet Gateway</span>
+                <h3>El Enrutador</h3>
+                <p>El portal/router que conecta tu VPC con internet.<br>Sin él, ninguna máquina de la VPC puede comunicarse con el exterior.</p>
+              </div>
+            </div>
+            
+            <div class="ppt-card" style="width: 100% !important; margin-top: 1rem !important; background: rgba(255, 255, 255, 0.8) !important; text-align: center !important;">
+              <p style="font-size: 1.3rem !important; color: #0369a1 !important; margin: 0 !important;">
+                <strong>Seguridad Total:</strong> Los <strong>Security Groups</strong> actúan como firewalls a nivel de servidor, autorizando puertos específicos (como el 80 para HTTP o el 22 para SSH).
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 7: CONEXIÓN SSH A LA NUBE -->
+        <section class="slide" id="slide-ssh" tabindex="0">
+          <div class="reading-version">
+            <h2 class="section-title">
+              <span class="section-number">L.7</span>
+              El Enlace Seguro: Conectarse por SSH a la Nube
+            </h2>
+
+            <div class="teacher-note">
+              <h4>💡 Guía Docente: Práctica de Conexión (10 min)</h4>
+              <p><strong>Meta:</strong> Enseñar cómo ingresar a un servidor Linux remoto en la nube de forma segura usando llaves.</p>
+              <ul>
+                <li><strong>SSH:</strong> Protocolo en el puerto 22 para administrar servidores Linux por consola.</li>
+                <li><strong>La regla del 400:</strong> Explica que Linux es muy estricto con las llaves privadas (`.pem`). Si otros usuarios de tu computadora pueden leer tu llave, SSH rechazará la conexión por seguridad. Se debe arreglar ejecutando `chmod 400 llave.pem`.</li>
+                <li><strong>Simulador:</strong> Desafía a los alumnos a usar la consola interactiva de abajo. Primero deben arreglar la llave y luego conectarse al servidor AWS virtual.</li>
+              </ul>
+            </div>
+
+            <div class="class-grid" style="grid-template-columns: 1.1fr 1.2fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+              <div>
+                <p>
+                  Para administrar tu servidor Linux hospedado en AWS u otro proveedor Cloud, usas <strong>SSH (Secure Shell)</strong>. En lugar de una contraseña común, se utiliza un par de llaves criptográficas (un archivo <code>.pem</code>).
+                </p>
+                <div class="card" style="margin-top: 1rem; border-left: 4px solid var(--color-teacher);">
+                  <h4 style="margin-bottom:0.25rem; font-size:0.95rem;">🔒 Regla de oro para conectar:</h4>
+                  <ol style="font-size: 0.8rem; color: var(--text-secondary); margin-left: 1.25rem;">
+                    <li>Cambia permisos de tu archivo pem: <code>chmod 400 llave.pem</code></li>
+                    <li>Ejecuta el comando: <code>ssh -i llave.pem ubuntu@ip-publica-aws</code></li>
+                  </ol>
+                </div>
+              </div>
+
+              <!-- Interactive SSH Console -->
+              <div class="ssh-simulator">
+                <div class="ssh-sim-header">
+                  <div class="ssh-sim-dots">
+                    <span class="red"></span>
+                    <span class="yellow"></span>
+                    <span class="green"></span>
+                  </div>
+                  <div class="ssh-sim-title">Consola Local - Simulación de Conexión SSH</div>
+                </div>
+                <div class="ssh-sim-body" id="sshSimBody">
+                  <div class="ssh-sim-output" id="sshSimOutput">Consola lista. Escribe "ls -l" para inspeccionar tus archivos locales.</div>
+                  <div class="ssh-sim-line">
+                    <span class="ssh-sim-prompt" id="sshSimPrompt">hachimaki@local:~$</span>
+                    <input type="text" class="ssh-sim-input" id="sshSimInput" placeholder="Escribe un comando..." autofocus autocomplete="off" spellcheck="false">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ppt-version">
+            <h2>SSH: Controlando Servidores Remotos</h2>
+            <p class="ppt-subtitle">Cómo conectar tu terminal local con una máquina en la nube de AWS.</p>
+            
+            <div class="ppt-grid">
+              <div class="ppt-card">
+                <span class="ppt-badge ppt-badge-indigo">Archivo Llave (.pem)</span>
+                <h3>Criptografía</h3>
+                <p>Es tu llave de acceso privada. No contiene una contraseña legible, sino un conjunto de firmas criptográficas hiperseguras.</p>
+              </div>
+              <div class="ppt-card">
+                <span class="ppt-badge ppt-badge-indigo">chmod 400</span>
+                <h3>Permisos Estrictos</h3>
+                <p>SSH exige que la llave privada sea <strong>secreta</strong>.<br>Si otros usuarios locales pueden leerla, SSH bloqueará la conexión. Debes protegerla con permisos read-only.</p>
+              </div>
+              <div class="ppt-card">
+                <span class="ppt-badge ppt-badge-indigo">ssh -i ...</span>
+                <h3>El Comando de Acceso</h3>
+                <p><code>ssh -i llave.pem ubuntu@54.210.85.12</code><br>Le indica al cliente SSH que use la identidad (llave) para loguearse como el usuario ubuntu en la IP pública indicada.</p>
+              </div>
+            </div>
+            
+            <div class="ppt-card" style="width: 100% !important; margin-top: 1rem !important; background: rgba(255, 255, 255, 0.8) !important; text-align: center !important;">
+              <p style="font-size: 1.3rem !important; color: #3730a3 !important; margin: 0 !important;">
+                💻 <strong>¡Listo para administrar!</strong> Una vez dentro por SSH, la terminal que ves es la del servidor en AWS. Todo lo que escribas se ejecutará directamente allá.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- SLIDE 8: CIERRE, AUTOEVALUACIÓN Y BUENAS PRÁCTICAS -->
+        <section class="slide" id="metacognicion" tabindex="0">
+          <div class="reading-version">
+            <h2 class="section-title">
+              <span class="section-number">L.8</span>
+              Cierre: Buenas Prácticas y Autoevaluación
+            </h2>
+
+            <div class="teacher-note">
+              <h4>💡 Guía Docente: Reflexión Final (10 min)</h4>
+              <p>Comenta las siguientes reglas de oro con la clase:</p>
+              <ul>
+                <li><strong>No usar sudo por flojera:</strong> Usar `sudo` todo el tiempo abre puertas traseras de seguridad y permite que cometas errores fatales de forma accidental (como borrar el disco).</li>
+                <li><strong>Resolver el Quiz:</strong> Pídeles que respondan de forma individual y analiza por qué las opciones erróneas son incorrectas.</li>
+              </ul>
+            </div>
+
+            <div class="class-grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+              <div class="card" style="margin-bottom:0;">
+                <h3 style="color:var(--color-cyan); font-size:1.2rem; margin-bottom:0.5rem;">Errores Comunes del Principiante</h3>
+                <ul style="font-size:0.85rem; color:var(--text-secondary); margin-left:1.25rem; display:flex; flex-direction:column; gap:0.4rem;">
+                  <li><strong>"command not found"</strong>: Escribiste mal el comando, o el programa no está instalado en el PATH.</li>
+                  <li><strong>"Permission denied"</strong>: Estás tratando de modificar un archivo del sistema sin usar <code>sudo</code>.</li>
+                  <li><strong>"No such file or directory"</strong>: Escribiste mal el nombre de la carpeta o archivo, o no estás parado en la ruta donde existe.</li>
+                </ul>
+              </div>
+              
+              <div class="card" style="margin-bottom:0;">
+                <h3 style="color:var(--color-accent); font-size:1.2rem; margin-bottom:0.5rem;">Buenas Prácticas</h3>
+                <ul style="font-size:0.85rem; color:var(--text-secondary); margin-left:1.25rem; display:flex; flex-direction:column; gap:0.4rem;">
+                  <li>Usa la tecla <strong>Tab</strong> constantemente para autocompletar nombres y evitar errores de tipeo.</li>
+                  <li>No uses <code>sudo</code> a menos que la terminal te lo pida o vayas a modificar archivos globales.</li>
+                  <li>Antes de pegar comandos complejos de internet, leelos y usa <code>man</code> para saber qué hacen.</li>
+                </ul>
+              </div>
+            </div>
+
+            <h3 style="margin-bottom:1rem; font-size: 1.5rem;">Autoevaluación Interactiva</h3>
+            <div class="quiz-container">
+              
+              <!-- Quiz 1 -->
+              <div class="quiz-question-card">
+                <h4>1. Estás en la terminal en tu carpeta personal y deseas ver los permisos detallados (rwx) de tus archivos. ¿Qué comando utilizas?</h4>
+                <div class="quiz-options">
+                  <div class="quiz-option" data-correct="false">
+                    <div class="quiz-option-marker">A</div>
+                    <span>ls -a</span>
+                  </div>
+                  <div class="quiz-option" data-correct="true">
+                    <div class="quiz-option-marker">B</div>
+                    <span>ls -l</span>
+                  </div>
+                  <div class="quiz-option" data-correct="false">
+                    <div class="quiz-option-marker">C</div>
+                    <span>pwd</span>
+                  </div>
+                </div>
+                <div class="quiz-explanation">
+                  <strong>Correcto:</strong> El flag `-l` activa el formato de lista larga, mostrando los permisos, propietario, tamaño y fecha de modificación del archivo.
+                </div>
+              </div>
+
+              <!-- Quiz 2 -->
+              <div class="quiz-question-card">
+                <h4>2. Si ejecutas "mkdir /etc/misconfig" y el sistema te devuelve el error "Permission denied", ¿cuál es la forma correcta de solucionarlo?</h4>
+                <div class="quiz-options">
+                  <div class="quiz-option" data-correct="false">
+                    <div class="quiz-option-marker">A</div>
+                    <span>Cambiar a Windows porque Linux no funciona.</span>
+                  </div>
+                  <div class="quiz-option" data-correct="false">
+                    <div class="quiz-option-marker">C</div>
+                    <span>Usar el comando "chmod +w /etc/misconfig".</span>
+                  </div>
+                  <div class="quiz-option" data-correct="true">
+                    <div class="quiz-option-marker">B</div>
+                    <span>Anteponer el comando "sudo" para ejecutarlo con permisos de administrador: "sudo mkdir /etc/misconfig".</span>
+                  </div>
+                </div>
+                <div class="quiz-explanation">
+                  <strong>Correcto:</strong> El directorio `/etc` es un directorio del sistema protegido. Los usuarios comunes no pueden escribir en él directamente; se debe escalar privilegios temporalmente usando `sudo`.
+                </div>
+              </div>
+
+              <!-- Quiz 3 -->
+              <div class="quiz-question-card">
+                <h4>3. ¿Para qué se utiliza la barra vertical u operador tubería (|) en la terminal de Linux?</h4>
+                <div class="quiz-options">
+                  <div class="quiz-option" data-correct="true">
+                    <div class="quiz-option-marker">A</div>
+                    <span>Para encadenar comandos, enviando la salida de un comando como la entrada del siguiente comando.</span>
+                  </div>
+                  <div class="quiz-option" data-correct="false">
+                    <div class="quiz-option-marker">B</div>
+                    <span>Para borrar la pantalla de la terminal.</span>
+                  </div>
+                  <div class="quiz-option" data-correct="false">
+                    <div class="quiz-option-marker">C</div>
+                    <span>Para detener un proceso que se encuentra colgado en segundo plano.</span>
+                  </div>
+                </div>
+                <div class="quiz-explanation">
+                  <strong>Correcto:</strong> Las tuberías (pipes) son la esencia de la filosofía Unix/Linux: permiten enlazar programas pequeños y especializados para resolver tareas complejas.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ppt-version">
+            <h2>Cierre y Autoevaluación</h2>
+            <p class="ppt-subtitle">Reglas de oro y verificación rápida de conocimientos.</p>
+            
+            <div class="ppt-grid" style="grid-template-columns: 1fr 1fr !important;">
+              <div class="ppt-card">
+                <span class="ppt-badge ppt-badge-yellow">Reglas de Oro</span>
+                <p style="font-size: 1.15rem !important; line-height: 1.6 !important;">
+                  • <strong>No abuses de sudo:</strong> Úsalo solo para configuraciones globales.<br>
+                  • <strong>Tabulador siempre:</strong> Te ahorra errores de tipeo y frustración.<br>
+                  • <strong>Lee antes de pegar:</strong> Entiende los comandos antes de correrlos.
+                </p>
+              </div>
+              <div class="ppt-card">
+                <span class="ppt-badge ppt-badge-yellow">Preguntas Rápidas</span>
+                <p style="font-size: 1.1rem !important; line-height: 1.5 !important;">
+                  1. ¿Cómo listamos archivos con detalles de permisos?<br>
+                  &nbsp;&nbsp;&nbsp;<strong>ls -l</strong><br>
+                  2. ¿Qué hacer ante un "Permission denied"?<br>
+                  &nbsp;&nbsp;&nbsp;<strong>Agregar "sudo" al principio</strong><br>
+                  3. ¿Qué hace el operador de tubería (|)?<br>
+                  &nbsp;&nbsp;&nbsp;<strong>Pasa la salida de un comando al siguiente</strong>
+                </p>
+              </div>
+            </div>
+
+            <div class="ppt-card" style="width: 100% !important; margin-top: 1rem !important; background: rgba(255, 255, 255, 0.8) !important; text-align: center !important;">
+              <h3 style="font-size: 1.5rem; color: #854d0e; margin-bottom: 0.25rem;">🚀 ¡Felicidades!</h3>
+              <p style="font-size: 1.15rem !important; color: #854d0e !important; margin: 0 !important;">
+                Ya comprendes las bases del funcionamiento de Linux y estás listo para desplegar servicios web en la nube.
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Sticky Sidebar Navigation -->
+      <aside class="sidebar-navigation">
+        <h4>Contenido de la Clase</h4>
+        <ul class="sidebar-links">
+          <li><a href="#slide-intro" class="active">L.1 Puente Windows/Linux</a></li>
+          <li><a href="#slide-directories">L.2 Árbol de Directorios</a></li>
+          <li><a href="#slide-terminal-basic">L.3 Navegación y Ayuda</a></li>
+          <li><a href="#slide-terminal-permissions">L.4 Permisos y Software</a></li>
+          <li><a href="#slide-terminal-advanced">L.5 Procesos y Nano</a></li>
+          <li><a href="#slide-vpc">L.6 AWS VPC y Subredes</a></li>
+          <li><a href="#slide-ssh">L.7 SSH a la Nube</a></li>
+          <li><a href="#metacognicion">L.8 Autoevaluación</a></li>
+        </ul>
+      </aside>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>© 2026 Portal de Cloud Computing - Diseñado para una docencia ágil e interactiva.</p>
+    <p style="margin-top: 0.5rem;"><a href="index.html">← Volver al Dashboard Principal</a></p>
+  </footer>
+
+  <script src="script.js"></script>
+  
+  <script>
+    // -------------------------------------------------------------
+    // Page Initializer
+    // -------------------------------------------------------------
+    document.addEventListener('DOMContentLoaded', () => {
+      initUbuntuInstaller();
+      initQuiz();
+      initSidebarScrollSpy();
+      initLinuxTerminal();
+      initCommandTooltips();
+      initVpcVisualizer();
+      initSshSimulator();
+    });
+
+    // -------------------------------------------------------------
+    // 1. Ubuntu Installer Simulation
+    // -------------------------------------------------------------
+    const installerSteps = [
+      {
+        title: "Paso 1: Descargar ISO y Preparar Software",
+        graphic: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>`,
+        color: "var(--color-accent)",
+        h3: "Descargar Ubuntu ISO",
+        desc: "Descargamos el archivo oficial `.iso` (imagen de disco) desde ubuntu.com. Además, necesitamos un grabador como Rufus o BalenaEtcher para traspasar este archivo a un pendrive."
+      },
+      {
+        title: "Paso 2: Grabar Imagen en Pendrive (USB Booteable)",
+        graphic: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 6h4"/><path d="M10 10h4"/><circle cx="12" cy="16" r="2"/>
+                  </svg>`,
+        color: "var(--color-cyan)",
+        h3: "Flashing del Pendrive",
+        desc: "Insertamos un pendrive USB de mínimo 8 GB (¡Ojo, se borrará todo lo que tenga!). Rufus se encarga de formatear la unidad y copiar los archivos necesarios para que la computadora pueda iniciar desde allí."
+      },
+      {
+        title: "Paso 3: Arrancar desde la BIOS/UEFI",
+        graphic: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+                  </svg>`,
+        color: "var(--color-pink)",
+        h3: "Cambiar el Orden de Arranque",
+        desc: "Apagamos la computadora, conectamos el USB y al encender presionamos repetidamente F12, F11 o Supr para entrar al menú de arranque (Boot Menu). Elegimos iniciar desde el USB en lugar de nuestro disco duro común."
+      },
+      {
+        title: "Paso 4: Seleccionar Tipo de Instalación",
+        graphic: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M3 9h18"/>
+                  </svg>`,
+        color: "var(--color-teacher)",
+        h3: "Particionar el Disco Duro",
+        desc: "El instalador te preguntará: ¿Borrar disco entero e instalar Ubuntu? o ¿Instalar junto a Windows (Dual Boot)? Para principiantes en entornos de prueba, borrar el disco entero es lo más rápido y seguro para evitar fallos de arranque."
+      },
+      {
+        title: "Paso 5: Configurar Nombre de Usuario y Contraseña",
+        graphic: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                  </svg>`,
+        color: "#f59e0b",
+        h3: "Configurando el Administrador",
+        desc: "Creas tu primer usuario normal (ej: 'usuario') y una contraseña fuerte. En Ubuntu Server, este usuario se añade automáticamente al grupo de administradores (grupo 'sudo') para poder hacer tareas de mantenimiento."
+      }
+    ];
+
+    function showInstallerStep(stepNum) {
+      const btns = document.querySelectorAll('.installer-step-btn');
+      btns.forEach((btn, index) => {
+        if (index === stepNum - 1) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
+      const step = installerSteps[stepNum - 1];
+      document.getElementById('installerTitle').textContent = step.title;
+      
+      const content = document.getElementById('installerContent');
+      content.innerHTML = `
+        <div class="installer-visual-graphic" style="color: ${step.color}; border-color: ${step.color}; background: ${step.color}15;">
+          ${step.graphic}
+        </div>
+        <h3>${step.h3}</h3>
+        <p>${step.desc}</p>
+      `;
+    }
+
+    function initUbuntuInstaller() {
+      showInstallerStep(1);
+    }
+
+    // -------------------------------------------------------------
+    // 2. Directory Tree Explorer
+    // -------------------------------------------------------------
+    const directoryDetails = {
+      '/': {
+        title: "/ (Raíz)",
+        desc: "El directorio inicial del cual se desprenden todos los demás subdirectorios del sistema operativo Linux.",
+        analogy: "<strong>💡 Analogía:</strong> El hall central de un edificio. No importa a qué departamento vayas, primero debes cruzar la puerta de entrada principal.",
+        contents: "home/ &nbsp; etc/ &nbsp; var/ &nbsp; usr/ &nbsp; bin/ &nbsp; tmp/ &nbsp; boot/ &nbsp; dev/"
+      },
+      '/home': {
+        title: "/home (Usuarios)",
+        desc: "Contiene las carpetas personales de todos los usuarios del sistema. Cada usuario tiene su propio espacio aislado para guardar sus documentos y configuraciones.",
+        analogy: "<strong>💡 Analogía:</strong> Los departamentos de los vecinos en el edificio. Tu llave solo abre tu puerta, no puedes entrar a husmear el departamento de otros usuarios.",
+        contents: "usuario/ &nbsp; profesor/ &nbsp; alumno1/ &nbsp; alumno2/"
+      },
+      '/etc': {
+        title: "/etc (Configuraciones)",
+        desc: "El centro neurálgico del sistema. Guarda todos los archivos de configuración de los programas instalados y del propio sistema operativo en formato de texto editable.",
+        analogy: "<strong>💡 Analogía:</strong> La sala de mantenimiento y tableros eléctricos del edificio. Solo el electricista autorizado (root / sudo) puede meter mano allí para cambiar las conexiones.",
+        contents: "hostname &nbsp; hosts &nbsp; fstab &nbsp; passwd &nbsp; ssh/ &nbsp; network/"
+      },
+      '/var': {
+        title: "/var (Datos Variables)",
+        desc: "Contiene archivos que cambian de tamaño constantemente durante la ejecución del sistema: bases de datos, colas de impresión y archivos de registro (logs).",
+        analogy: "<strong>💡 Analogía:</strong> El buzón de correo o el cuaderno de bitácora del conserje del edificio. Registra todo lo que entra y sale, y va acumulando hojas día a día.",
+        contents: "log/ &nbsp; mail/ &nbsp; backups/ &nbsp; cache/ &nbsp; www/"
+      },
+      '/usr': {
+        title: "/usr (Aplicaciones del Usuario)",
+        desc: "Aquí se guardan la gran mayoría de los programas, librerías, iconos y manuales que instalan los usuarios y las aplicaciones del sistema.",
+        analogy: "<strong>💡 Analogía:</strong> La sala de áreas comunes, gimnasio y piscina del edificio. Todos los residentes comparten estos equipamientos y programas públicos.",
+        contents: "bin/ &nbsp; lib/ &nbsp; local/ &nbsp; share/ &nbsp; sbin/ &nbsp; include/"
+      },
+      '/bin': {
+        title: "/bin (Comandos Esenciales)",
+        desc: "Contiene los ejecutables de los comandos más básicos e indispensables del sistema que necesitan tanto el administrador como los usuarios (ej: ls, cd, cp, rm, mkdir).",
+        analogy: "<strong>💡 Analogía:</strong> La caja de herramientas básica que hay en la recepción del edificio. Destornillador, martillo y llaves inglesas siempre listos para emergencias.",
+        contents: "cat &nbsp; cd &nbsp; cp &nbsp; ls &nbsp; mkdir &nbsp; mv &nbsp; rm &nbsp; touch &nbsp; pwd"
+      },
+      '/tmp': {
+        title: "/tmp (Archivos Temporales)",
+        desc: "Carpeta de libre acceso donde el sistema y los programas guardan datos temporales. Se borra automáticamente cada vez que se reinicia la computadora.",
+        analogy: "<strong>💡 Analogía:</strong> El tarro de basura del hall o una pizarra de notas rápidas. Anotas algo que necesitas por 5 minutos y luego lo borras o tiras al tacho.",
+        contents: "session_48329.tmp &nbsp; ssh-auth-socket &nbsp; systemd-private-etc/"
+      }
+    };
+
+    function exploreDir(dirPath) {
+      const items = document.querySelectorAll('.tree-item');
+      items.forEach(item => {
+        if (item.textContent.includes(dirPath + ' ') || item.textContent === '📂 / (Raíz)' && dirPath === '/') {
+          item.classList.add('active');
+        } else {
+          item.classList.remove('active');
+        }
+      });
+
+      const details = directoryDetails[dirPath];
+      document.getElementById('dirTitle').textContent = details.title;
+      document.getElementById('dirDesc').textContent = details.desc;
+      document.getElementById('dirAnalogy').innerHTML = details.analogy;
+      document.getElementById('dirContents').innerHTML = details.contents;
+    }
+
+    // -------------------------------------------------------------
+    // 3. Simulated Linux Terminal
+    // -------------------------------------------------------------
+    function initLinuxTerminal() {
+      const terminal = document.getElementById('term1');
+      const input = document.getElementById('term1Input');
+      const output = document.getElementById('term1Output');
+      const prompt = document.getElementById('term1Prompt');
+      const nanoEditor = document.getElementById('term1Nano');
+      const nanoBody = document.getElementById('term1NanoBody');
+      const nanoFilenameLabel = document.getElementById('nanoFilename');
+
+      if (!terminal || !input) return;
+
+      // Terminal state variables
+      let currentDir = '/home/usuario';
+      let isSudoMode = false;
+      let shellMode = 'terminal'; // 'terminal' or 'nano' or 'htop'
+      let currentEditingFile = '';
+      let commandHistory = [];
+      let historyIndex = -1;
+
+      // File System state representation
+      let fileSystem = {
+        '/': { type: 'dir', permissions: 'rwxr-xr-x', owner: 'root', group: 'root', children: ['home', 'etc', 'var', 'usr', 'bin', 'tmp'] },
+        '/home': { type: 'dir', permissions: 'rwxr-xr-x', owner: 'root', group: 'root', children: ['usuario'] },
+        '/home/usuario': { type: 'dir', permissions: 'rwxr-xr-x', owner: 'usuario', group: 'usuario', children: ['notas.txt', 'mi_script.sh'] },
+        '/home/usuario/notas.txt': {
+          type: 'file',
+          permissions: 'rw-r--r--',
+          owner: 'usuario',
+          group: 'usuario',
+          content: 'Bienvenido a Ubuntu.\nLinux se administra a traves de archivos de texto.\nAprender terminal te da superpoderes!'
+        },
+        '/home/usuario/mi_script.sh': {
+          type: 'file',
+          permissions: 'rw-r--r--',
+          owner: 'usuario',
+          group: 'usuario',
+          content: '#!/bin/bash\necho "Hola Mundo desde Ubuntu!"'
+        },
+        '/etc': { type: 'dir', permissions: 'rwxr-xr-x', owner: 'root', group: 'root', children: ['hostname', 'hosts'] },
+        '/etc/hostname': { type: 'file', permissions: 'rw-r--r--', owner: 'root', group: 'root', content: 'ubuntu-server-2204' },
+        '/etc/hosts': { type: 'file', permissions: 'rw-r--r--', owner: 'root', group: 'root', content: '127.0.0.1   localhost\n127.0.1.1   ubuntu-server-2204' },
+        '/var': { type: 'dir', permissions: 'rwxr-xr-x', owner: 'root', group: 'root', children: ['log'] },
+        '/var/log': { type: 'dir', permissions: 'rwxr-xr-x', owner: 'root', group: 'root', children: ['syslog'] },
+        '/var/log/syslog': {
+          type: 'file',
+          permissions: 'rw-r-----',
+          owner: 'syslog',
+          group: 'adm',
+          content: 'Jun 13 07:00:01 ubuntu systemd[1]: Starting Periodic Command Scheduler...\nJun 13 07:00:01 ubuntu cron[512]: (root) CMD (echo "System Check OK" >> /var/log/cron.log)'
+        },
+        '/usr': { type: 'dir', permissions: 'rwxr-xr-x', owner: 'root', group: 'root', children: ['bin'] },
+        '/usr/bin': { type: 'dir', permissions: 'rwxr-xr-x', owner: 'root', group: 'root', children: [] },
+        '/bin': { type: 'dir', permissions: 'rwxr-xr-x', owner: 'root', group: 'root', children: ['ls', 'cd', 'pwd', 'mkdir', 'rm', 'cp', 'mv'] },
+        '/tmp': { type: 'dir', permissions: 'rwxrwxrwt', owner: 'root', group: 'root', children: [] }
+      };
+
+      // Redirect terminal focus
+      terminal.addEventListener('click', () => {
+        if (shellMode === 'terminal') {
+          input.focus();
+        } else if (shellMode === 'nano') {
+          nanoBody.focus();
+        }
+      });
+
+      // Key listeners
+      input.addEventListener('keydown', (e) => {
+        if (shellMode !== 'terminal') return;
+
+        if (e.key === 'Enter') {
+          const rawCommand = input.value;
+          const command = rawCommand.trim();
+          input.value = '';
+          
+          if (command !== '') {
+            commandHistory.push(rawCommand);
+            historyIndex = commandHistory.length;
+          }
+
+          // Print command
+          const promptLabel = prompt.innerHTML;
+          const cmdLine = document.createElement('div');
+          cmdLine.className = 'ssh-line';
+          cmdLine.innerHTML = `<span class="ssh-prompt">${promptLabel}</span> ${escapeHtml(rawCommand)}`;
+          output.appendChild(cmdLine);
+
+          if (command === '') {
+            scrollToBottom();
+            return;
+          }
+
+          // Process command
+          executeCommand(command);
+          scrollToBottom();
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (historyIndex > 0) {
+            historyIndex--;
+            input.value = commandHistory[historyIndex];
+          }
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          if (historyIndex < commandHistory.length - 1) {
+            historyIndex++;
+            input.value = commandHistory[historyIndex];
+          } else {
+            historyIndex = commandHistory.length;
+            input.value = '';
+          }
+        } else if (e.key === 'Tab') {
+          e.preventDefault();
+          autocompleteInput();
+        }
+      });
+
+      // Handle keyboard controls in Nano Editor Mode
+      nanoBody.addEventListener('keydown', (e) => {
+        if (shellMode !== 'nano') return;
+
+        // Capture Ctrl+X to exit
+        if (e.ctrlKey && e.key.toLowerCase() === 'x') {
+          e.preventDefault();
+          saveAndExitNano();
+        }
+        
+        // Capture Ctrl+O to save
+        if (e.ctrlKey && e.key.toLowerCase() === 'o') {
+          e.preventDefault();
+          saveEditingFile();
+          printToastMessage("[ Fichero escrito/guardado ]");
+        }
+      });
+
+      // Capture Global Ctrl+L to clear screen inside terminal
+      terminal.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key.toLowerCase() === 'l') {
+          e.preventDefault();
+          if (shellMode === 'terminal') {
+            clearScreen();
+          }
+        }
+      });
+
+      // Helper functions for path resolution
+      function resolvePath(targetPath) {
+        if (!targetPath) return currentDir;
+        if (targetPath.startsWith('/')) {
+          return normalizePath(targetPath);
+        } else {
+          let base = currentDir === '/' ? '/' : currentDir + '/';
+          return normalizePath(base + targetPath);
+        }
+      }
+
+      function normalizePath(path) {
+        let parts = path.split('/');
+        let stack = [];
+        for (let part of parts) {
+          if (part === '' || part === '.') continue;
+          if (part === '..') {
+            stack.pop();
+          } else {
+            stack.push(part);
+          }
+        }
+        return '/' + stack.join('/');
+      }
+
+      function getParentPath(path) {
+        let idx = path.lastIndexOf('/');
+        if (idx === 0) return '/';
+        return path.substring(0, idx);
+      }
+
+      function getBasename(path) {
+        let idx = path.lastIndexOf('/');
+        return path.substring(idx + 1);
+      }
+
+      function getPathPermissions(path) {
+        return fileSystem[path] ? fileSystem[path].permissions : null;
+      }
+
+      function checkWritePermission(path) {
+        // Simple permission model: write only allowed inside /home/usuario or /tmp
+        // unless they are in Sudo Mode (root)
+        if (isSudoMode) return true;
+        if (path.startsWith('/home/usuario') || path.startsWith('/tmp')) return true;
+        return false;
+      }
+
+      function checkReadPermission(path, node) {
+        if (isSudoMode) return true;
+        if (node.owner === 'usuario' || node.permissions.endsWith('r--') || node.permissions.endsWith('r-x') || node.permissions.indexOf('r', 4) !== -1) {
+          return true;
+        }
+        // Specific block for /var/log/syslog (rw-r-----) for normal user
+        if (path === '/var/log/syslog' && node.owner === 'syslog') {
+          return false;
+        }
+        return true;
+      }
+
+      // Shell execution engine
+      function executeCommand(commandLine) {
+        // Check for pipes (only supporting | grep for now)
+        if (commandLine.includes('|')) {
+          const pipes = commandLine.split('|').map(p => p.trim());
+          if (pipes.length === 2 && pipes[1].startsWith('grep ')) {
+            const grepPattern = pipes[1].substring(5).trim().replace(/['"]/g, '');
+            const captureOutput = interceptCommandOutput(pipes[0]);
+            
+            if (captureOutput.error) {
+              printLine(`Error: ${captureOutput.error}`);
+              return;
+            }
+            
+            const lines = captureOutput.output.split('\n');
+            const filteredLines = lines.filter(line => line.toLowerCase().includes(grepPattern.toLowerCase()));
+            
+            if (filteredLines.length > 0) {
+              filteredLines.forEach(line => printLine(line));
+            }
+            return;
+          } else {
+            printLine("Pipes simulados solo soportados para: [comando] | grep [patrón]");
+            return;
+          }
+        }
+
+        const args = commandLine.split(/\s+/);
+        let cmd = args[0];
+        let runAsSudo = false;
+
+        if (cmd === 'sudo') {
+          runAsSudo = true;
+          args.shift();
+          cmd = args[0];
+          if (!cmd) {
+            // "sudo" with no arguments enters interactive superuser shell
+            isSudoMode = true;
+            updatePrompt();
+            printLine("Sesión de administrador (root) iniciada.");
+            return;
+          }
+        }
+
+        const effectiveSudo = isSudoMode || runAsSudo;
+        const lowerCmd = cmd.toLowerCase();
+
+        switch (lowerCmd) {
+          case 'help':
+          case '?':
+            printHelp();
+            break;
+            
+          case 'clear':
+            clearScreen();
+            break;
+            
+          case 'pwd':
+            printLine(currentDir);
+            break;
+            
+          case 'ls':
+            executeLs(args.slice(1));
+            break;
+            
+          case 'cd':
+            executeCd(args[1]);
+            break;
+            
+          case 'mkdir':
+            executeMkdir(args[1], effectiveSudo);
+            break;
+            
+          case 'touch':
+            executeTouch(args[1], effectiveSudo);
+            break;
+            
+          case 'rm':
+            executeRm(args, effectiveSudo);
+            break;
+            
+          case 'cat':
+            executeCat(args[1], effectiveSudo);
+            break;
+            
+          case 'nano':
+            executeNano(args[1], effectiveSudo);
+            break;
+            
+          case 'chmod':
+            executeChmod(args[1], args[2], effectiveSudo);
+            break;
+            
+          case 'chown':
+            executeChown(args[1], args[2], effectiveSudo);
+            break;
+            
+          case 'apt':
+            executeApt(args.slice(1), effectiveSudo);
+            break;
+            
+          case 'htop':
+          case 'top':
+            executeHtop();
+            break;
+            
+          case 'ps':
+            executePs();
+            break;
+            
+          case 'ip':
+            if (args[1] === 'a' || args[1] === 'addr') {
+              executeIpAddr();
+            } else {
+              printLine("Uso: ip a");
+            }
+            break;
+            
+          case 'ping':
+            executePing(args[1]);
+            break;
+            
+          case 'exit':
+            if (isSudoMode) {
+              isSudoMode = false;
+              updatePrompt();
+              printLine("Sesión de root cerrada. Volviendo a usuario.");
+            } else {
+              printLine("Conexión remota simulada cerrada. Escribe 'ssh' o refresca la página para reiniciar.");
+            }
+            break;
+            
+          default:
+            printLine(`bash: ${cmd}: command not found`);
+        }
+      }
+
+      // Interceptor of command output for pipes
+      function interceptCommandOutput(command) {
+        let outputBuffer = [];
+        const originalPrintLine = printLine;
+        
+        // Temporarily redefine printLine to capture outputs
+        printLine = (text) => {
+          outputBuffer.push(text);
+        };
+        
+        try {
+          executeCommand(command);
+        } catch (err) {
+          printLine = originalPrintLine;
+          return { error: err.message };
+        }
+        
+        // Restore printLine
+        printLine = originalPrintLine;
+        return { output: outputBuffer.join('\n') };
+      }
+
+      // Commands implementation details
+      function printHelp() {
+        printLine("Comandos disponibles en el simulador Ubuntu:");
+        printLine("  <strong style='color:var(--color-cyan)'>Navegación:</strong> pwd, ls, cd [ruta], mkdir [directorio], touch [fichero]");
+        printLine("  <strong style='color:var(--color-cyan)'>Archivos:</strong> cat [fichero], nano [fichero], rm [-r] [ruta]");
+        printLine("  <strong style='color:var(--color-cyan)'>Permisos:</strong> chmod [permiso] [fichero], chown [usuario:grupo] [fichero]");
+        printLine("  <strong style='color:var(--color-cyan)'>Administración:</strong> sudo [comando], apt update, apt install [programa], ps, htop");
+        printLine("  <strong style='color:var(--color-cyan)'>Redes:</strong> ip a, ping [servidor]");
+        printLine("  <strong style='color:var(--color-cyan)'>Otros:</strong> clear (Ctrl+L), exit");
+      }
+
+      function clearScreen() {
+        output.innerHTML = '';
+      }
+
+      function executeLs(options) {
+        let showLongFormat = false;
+        let showAll = false;
+        let paths = [];
+
+        options.forEach(opt => {
+          if (opt.startsWith('-')) {
+            if (opt.includes('l')) showLongFormat = true;
+            if (opt.includes('a')) showAll = true;
+          } else {
+            paths.push(opt);
+          }
+        });
+
+        let targetDir = resolvePath(paths[0]);
+        let node = fileSystem[targetDir];
+
+        if (!node || node.type !== 'dir') {
+          printLine(`ls: cannot access '${paths[0] || ''}': No such file or directory`);
+          return;
+        }
+
+        // Check if we have permission to list
+        if (!isSudoMode && targetDir === '/var/log' && !checkReadPermission(targetDir, node)) {
+          printLine("ls: cannot open directory '/var/log': Permission denied");
+          return;
+        }
+
+        let childrenNames = [...node.children];
+        if (showAll) {
+          childrenNames.unshift('.', '..');
+        }
+
+        if (showLongFormat) {
+          printLine(`total ${childrenNames.length * 4}`);
+          childrenNames.forEach(name => {
+            let childPath = targetDir === '/' ? '/' + name : targetDir + '/' + name;
+            let childNode = fileSystem[childPath] || {
+              type: 'dir',
+              permissions: 'rwxr-xr-x',
+              owner: 'root',
+              group: 'root',
+              content: ''
+            };
+            
+            if (name === '.') childNode = node;
+            if (name === '..') childNode = fileSystem[getParentPath(targetDir)] || node;
+
+            let size = childNode.type === 'dir' ? 4096 : (childNode.content ? childNode.content.length : 0);
+            let prefix = childNode.type === 'dir' ? 'd' : '-';
+            
+            // Format output line
+            let permStr = prefix + childNode.permissions;
+            let owner = childNode.owner;
+            let group = childNode.group;
+            let dateStr = "Jun 13 07:23";
+            
+            let colorizedName = name;
+            if (childNode.type === 'dir') {
+              colorizedName = `<span style="color:var(--color-cyan); font-weight:bold;">${name}/</span>`;
+            } else if (childNode.permissions.includes('x')) {
+              colorizedName = `<span style="color:var(--color-teacher); font-weight:bold;">${name}*</span>`;
+            }
+
+            printLine(`${permStr} &nbsp;1 ${owner.padEnd(8)} ${group.padEnd(8)} &nbsp;${size.toString().padStart(5)} ${dateStr} ${colorizedName}`);
+          });
+        } else {
+          let outputNames = childrenNames.map(name => {
+            let childPath = targetDir === '/' ? '/' + name : targetDir + '/' + name;
+            let childNode = fileSystem[childPath];
+            if (name === '.') childNode = node;
+            if (name === '..') childNode = fileSystem[getParentPath(targetDir)] || node;
+
+            if (childNode && childNode.type === 'dir') {
+              return `<span style="color:var(--color-cyan); font-weight:bold;">${name}</span>`;
+            } else if (childNode && childNode.permissions.includes('x')) {
+              return `<span style="color:var(--color-teacher); font-weight:bold;">${name}</span>`;
+            }
+            return name;
+          });
+          printLine(outputNames.join(' &nbsp; &nbsp; '));
+        }
+      }
+
+      function executeCd(path) {
+        let targetPath = resolvePath(path);
+        let node = fileSystem[targetPath];
+
+        if (!node) {
+          printLine(`bash: cd: ${path || ''}: No such file or directory`);
+          return;
+        }
+
+        if (node.type !== 'dir') {
+          printLine(`bash: cd: ${path}: Not a directory`);
+          return;
+        }
+
+        currentDir = targetPath;
+        updatePrompt();
+      }
+
+      function executeMkdir(path, effSudo) {
+        if (!path) {
+          printLine("mkdir: missing operand");
+          return;
+        }
+
+        let targetPath = resolvePath(path);
+        if (fileSystem[targetPath]) {
+          printLine(`mkdir: cannot create directory ‘${path}’: File exists`);
+          return;
+        }
+
+        let parentPath = getParentPath(targetPath);
+        let parentNode = fileSystem[parentPath];
+
+        if (!parentNode || parentNode.type !== 'dir') {
+          printLine(`mkdir: cannot create directory ‘${path}’: No such file or directory`);
+          return;
+        }
+
+        if (!effSudo && !checkWritePermission(parentPath)) {
+          printLine(`mkdir: cannot create directory ‘${path}’: Permission denied`);
+          return;
+        }
+
+        // Success
+        let dirName = getBasename(targetPath);
+        fileSystem[targetPath] = {
+          type: 'dir',
+          permissions: 'rwxr-xr-x',
+          owner: effSudo ? 'root' : 'usuario',
+          group: effSudo ? 'root' : 'usuario',
+          children: []
+        };
+        parentNode.children.push(dirName);
+      }
+
+      function executeTouch(path, effSudo) {
+        if (!path) {
+          printLine("touch: missing file operand");
+          return;
+        }
+
+        let targetPath = resolvePath(path);
+        let parentPath = getParentPath(targetPath);
+        let parentNode = fileSystem[parentPath];
+
+        if (!parentNode || parentNode.type !== 'dir') {
+          printLine(`touch: cannot touch ‘${path}’: No such file or directory`);
+          return;
+        }
+
+        if (!effSudo && !checkWritePermission(parentPath)) {
+          printLine(`touch: cannot touch ‘${path}’: Permission denied`);
+          return;
+        }
+
+        let filename = getBasename(targetPath);
+
+        if (fileSystem[targetPath]) {
+          // File exists, just update timestamp in a real system
+          return;
+        }
+
+        // Create new empty file
+        fileSystem[targetPath] = {
+          type: 'file',
+          permissions: 'rw-r--r--',
+          owner: effSudo ? 'root' : 'usuario',
+          group: effSudo ? 'root' : 'usuario',
+          content: ''
+        };
+        parentNode.children.push(filename);
+      }
+
+      function executeRm(args, effSudo) {
+        let isRecursive = false;
+        let paths = [];
+
+        args.slice(1).forEach(arg => {
+          if (arg.startsWith('-') && arg.includes('r')) {
+            isRecursive = true;
+          } else if (!arg.startsWith('-')) {
+            paths.push(arg);
+          }
+        });
+
+        if (paths.length === 0) {
+          printLine("rm: missing operand");
+          return;
+        }
+
+        let targetPath = resolvePath(paths[0]);
+        let node = fileSystem[targetPath];
+
+        if (!node) {
+          printLine(`rm: cannot remove ‘${paths[0]}’: No such file or directory`);
+          return;
+        }
+
+        if (node.type === 'dir' && !isRecursive) {
+          printLine(`rm: cannot remove ‘${paths[0]}’: Is a directory`);
+          return;
+        }
+
+        let parentPath = getParentPath(targetPath);
+        if (!effSudo && !checkWritePermission(parentPath)) {
+          printLine(`rm: cannot remove ‘${paths[0]}’: Permission denied`);
+          return;
+        }
+
+        // Remove from parent list
+        let parentNode = fileSystem[parentPath];
+        let filename = getBasename(targetPath);
+        parentNode.children = parentNode.children.filter(c => c !== filename);
+
+        // Delete from flat database
+        delete fileSystem[targetPath];
+      }
+
+      function executeCat(path, effSudo) {
+        if (!path) {
+          printLine("cat: missing file operand");
+          return;
+        }
+
+        let targetPath = resolvePath(path);
+        let node = fileSystem[targetPath];
+
+        if (!node) {
+          printLine(`cat: ${path}: No such file or directory`);
+          return;
+        }
+
+        if (node.type === 'dir') {
+          printLine(`cat: ${path}: Is a directory`);
+          return;
+        }
+
+        if (!effSudo && !checkReadPermission(targetPath, node)) {
+          printLine(`cat: ${path}: Permission denied`);
+          return;
+        }
+
+        // Print content line by line
+        if (node.content === '') {
+          return;
+        }
+        
+        let lines = node.content.split('\n');
+        lines.forEach(l => printLine(escapeHtml(l)));
+      }
+
+      function executeNano(path, effSudo) {
+        if (!path) {
+          printLine("nano: missing file operand");
+          return;
+        }
+
+        let targetPath = resolvePath(path);
+        let parentPath = getParentPath(targetPath);
+        let parentNode = fileSystem[parentPath];
+
+        if (!parentNode || parentNode.type !== 'dir') {
+          printLine(`nano: folder path doesn't exist`);
+          return;
+        }
+
+        if (!effSudo && !checkWritePermission(parentPath)) {
+          printLine(`nano: cannot open file: Permission denied`);
+          return;
+        }
+
+        // Open nano simulator
+        shellMode = 'nano';
+        currentEditingFile = targetPath;
+        nanoFilenameLabel.textContent = getBasename(targetPath);
+        
+        let node = fileSystem[targetPath];
+        if (node) {
+          nanoBody.value = node.content;
+        } else {
+          nanoBody.value = '';
+        }
+
+        nanoEditor.style.display = 'flex';
+        input.blur();
+        nanoBody.focus();
+      }
+
+      function saveEditingFile() {
+        let node = fileSystem[currentEditingFile];
+        if (!node) {
+          // File was created in nano, initialize it
+          let parentPath = getParentPath(currentEditingFile);
+          let filename = getBasename(currentEditingFile);
+          
+          fileSystem[currentEditingFile] = {
+            type: 'file',
+            permissions: 'rw-r--r--',
+            owner: isSudoMode ? 'root' : 'usuario',
+            group: isSudoMode ? 'root' : 'usuario',
+            content: nanoBody.value
+          };
+          fileSystem[parentPath].children.push(filename);
+        } else {
+          node.content = nanoBody.value;
+        }
+      }
+
+      function saveAndExitNano() {
+        saveEditingFile();
+        
+        // Close screen
+        nanoEditor.style.display = 'none';
+        shellMode = 'terminal';
+        
+        printLine(`[ Fichero guardado y cerrado: ${getBasename(currentEditingFile)} ]`);
+        currentEditingFile = '';
+        updatePrompt();
+        
+        // Return focus
+        setTimeout(() => {
+          input.focus();
+          scrollToBottom();
+        }, 50);
+      }
+
+      function printToastMessage(msg) {
+        const toast = document.createElement('div');
+        toast.style.position = 'absolute';
+        toast.style.bottom = '40px';
+        toast.style.left = '50%';
+        toast.style.transform = 'translateX(-50%)';
+        toast.style.background = '#8b5cf6';
+        toast.style.color = '#fff';
+        toast.style.padding = '0.4rem 1rem';
+        toast.style.borderRadius = '20px';
+        toast.style.fontSize = '0.8rem';
+        toast.style.fontWeight = 'bold';
+        toast.style.pointerEvents = 'none';
+        toast.textContent = msg;
+        terminal.appendChild(toast);
+        setTimeout(() => toast.remove(), 1500);
+      }
+
+      function executeChmod(permissions, path, effSudo) {
+        if (!permissions || !path) {
+          printLine("chmod: missing operand (usage: chmod [permiso] [fichero])");
+          return;
+        }
+
+        let targetPath = resolvePath(path);
+        let node = fileSystem[targetPath];
+
+        if (!node) {
+          printLine(`chmod: cannot access '${path}': No such file or directory`);
+          return;
+        }
+
+        // Permission check: only owner of file or root can chmod
+        if (!effSudo && node.owner !== 'usuario') {
+          printLine(`chmod: changing permissions of '${path}': Operation not permitted`);
+          return;
+        }
+
+        // Parse permissions simple simulation
+        if (permissions === '+x') {
+          node.permissions = 'rwxr-xr-x';
+        } else if (permissions === '-x') {
+          node.permissions = 'rw-r--r--';
+        } else if (permissions === '755') {
+          node.permissions = 'rwxr-xr-x';
+        } else if (permissions === '644') {
+          node.permissions = 'rw-r--r--';
+        } else if (permissions === '700') {
+          node.permissions = 'rwx------';
+        } else {
+          // Fake success but change to standard permissions
+          node.permissions = 'rwxr-xr-x';
+        }
+        printLine(`Permissions changed for '${getBasename(targetPath)}' -> ${node.permissions}`);
+      }
+
+      function executeChown(ownerGroup, path, effSudo) {
+        if (!ownerGroup || !path) {
+          printLine("chown: missing operand (usage: chown [usuario:grupo] [fichero])");
+          return;
+        }
+
+        let targetPath = resolvePath(path);
+        let node = fileSystem[targetPath];
+
+        if (!node) {
+          printLine(`chown: cannot access '${path}': No such file or directory`);
+          return;
+        }
+
+        // Only root can chown in real system
+        if (!effSudo) {
+          printLine(`chown: changing ownership of '${path}': Operation not permitted (requires sudo)`);
+          return;
+        }
+
+        let parts = ownerGroup.split(':');
+        let owner = parts[0];
+        let group = parts[1] || owner;
+
+        node.owner = owner;
+        node.group = group;
+        printLine(`Owner/Group changed for '${getBasename(targetPath)}' -> ${owner}:${group}`);
+      }
+
+      function executeApt(args, effSudo) {
+        if (args.length === 0) {
+          printLine("APT (Advanced Package Tool) - Uso: apt update | apt install [paquete]");
+          return;
+        }
+
+        let subCommand = args[0].toLowerCase();
+
+        if (!effSudo) {
+          printLine("E: Could not open lock file /var/lib/dpkg/lock-frontend - open (13: Permission denied)");
+          printLine("E: Unable to acquire the dpkg frontend lock, are you root? (try using sudo)");
+          return;
+        }
+
+        if (subCommand === 'update') {
+          printLine("Get:1 http://mirrors.ubuntu.com/ubuntu jammy InRelease [119 kB]");
+          printLine("Get:2 http://security.ubuntu.com/ubuntu jammy-security InRelease [110 kB]");
+          printLine("Fetched 229 kB in 1.2s (190 kB/s)");
+          printLine("Reading package lists... Done");
+          printLine("Building dependency tree... Done");
+          printLine("All packages are up to date.");
+        } else if (subCommand === 'install') {
+          let packageName = args[1];
+          if (!packageName) {
+            printLine("apt install: missing package name");
+            return;
+          }
+          
+          if (packageName.toLowerCase() === 'apache2') {
+            printLine(`Reading package lists... Done`);
+            printLine(`Building dependency tree... Done`);
+            printLine(`The following NEW packages will be installed: apache2 apache2-bin`);
+            printLine(`Need to get 1,200 kB of archives.`);
+            printLine(`Unpacking apache2 (2.4.52-1ubuntu4.6)...`);
+            printLine(`Setting up apache2 ...`);
+            printLine(`<span style="color:var(--color-teacher)">* Starting Apache HTTP Server (apache2.service) ... [ OK ]</span>`);
+            printLine("apache2 is installed and running on port 80.");
+          } else {
+            printLine(`Reading package lists... Done`);
+            printLine(`Building dependency tree... Done`);
+            printLine(`E: Unable to locate package ${packageName}`);
+          }
+        } else {
+          printLine(`apt: command '${subCommand}' not recognized in this simulator.`);
+        }
+      }
+
+      function executeHtop() {
+        shellMode = 'htop';
+        input.blur();
+        
+        let termOutputOriginal = output.innerHTML;
+        let termInputOriginal = prompt.parentNode.style.display;
+        
+        // Hide regular prompt
+        prompt.parentNode.style.display = 'none';
+        
+        output.innerHTML = `
+          <div style="color:#0f0; background:#000; font-family:'Fira Code', monospace; font-size:0.8rem; line-height:1.2;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid #333; padding-bottom:0.5rem; margin-bottom:0.5rem;">
+              <div>
+                CPU[||||||||||||||||||||||||||||| &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 38.2%]
+                Mem[|||||||||||| &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 312MB/1.96GB]
+              </div>
+              <div style="text-align:right;">
+                Tasks: 4, 1 running
+                Uptime: 0 days, 01:24:12
+              </div>
+            </div>
+            
+            <div style="background:#0f0; color:#000; font-weight:bold; display:grid; grid-template-columns: 50px 70px 50px 50px 50px 80px 1fr; padding:1px 5px;">
+              <span>PID</span><span>USER</span><span>CPU%</span><span>MEM%</span><span>TIME+</span><span>STATE</span><span>Command</span>
+            </div>
+            <div style="padding:0 5px; height:200px; overflow-y:auto; display:flex; flex-direction:column; gap:2px;">
+              <div style="display:grid; grid-template-columns: 50px 70px 50px 50px 50px 80px 1fr;"><span>1</span><span>root</span><span>0.0</span><span>0.1</span><span>0:02.1</span><span>sleeping</span><span>/sbin/init</span></div>
+              <div style="display:grid; grid-template-columns: 50px 70px 50px 50px 50px 80px 1fr; color:#55f;"><span>512</span><span>root</span><span>0.1</span><span>0.3</span><span>0:00.8</span><span>sleeping</span><span>/usr/sbin/cron -f</span></div>
+              <div style="display:grid; grid-template-columns: 50px 70px 50px 50px 50px 80px 1fr; color:#f55;"><span>890</span><span>usuario</span><span>0.2</span><span>0.5</span><span>0:01.4</span><span>sleeping</span><span>/bin/bash</span></div>
+              <div style="display:grid; grid-template-columns: 50px 70px 50px 50px 50px 80px 1fr; color:#0f0; background:rgba(0,255,0,0.15)"><span>1203</span><span>usuario</span><span>12.5</span><span>1.2</span><span>0:00.2</span><span>running</span><span>htop</span></div>
+            </div>
+            <div style="border-top:1px solid #333; margin-top:0.5rem; padding-top:0.5rem; text-align:center; color:var(--text-muted);">
+              Presiona la tecla <strong style="color:#fff;">[ q ]</strong> para salir del monitor de procesos y volver a la terminal.
+            </div>
+          </div>
+        `;
+        
+        // Listen to exit key
+        const exitHtopListener = (e) => {
+          if (shellMode === 'htop' && e.key.toLowerCase() === 'q') {
+            window.removeEventListener('keydown', exitHtopListener);
+            shellMode = 'terminal';
+            output.innerHTML = termOutputOriginal;
+            prompt.parentNode.style.display = termInputOriginal;
+            printLine("[ Cerrado monitor de procesos htop ]");
+            scrollToBottom();
+            setTimeout(() => input.focus(), 50);
+          }
+        };
+        window.addEventListener('keydown', exitHtopListener);
+      }
+
+      function executePs() {
+        printLine("  PID TTY          TIME CMD");
+        printLine("    1 ?        00:00:02 systemd");
+        printLine("  512 ?        00:00:00 cron");
+        printLine("  890 pts/0    00:00:01 bash");
+        printLine(" 1245 pts/0    00:00:00 ps");
+      }
+
+      function executeIpAddr() {
+        printLine("1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default");
+        printLine("    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00");
+        printLine("    inet 127.0.0.1/8 scope host lo");
+        printLine("2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default");
+        printLine("    link/ether 08:00:27:bd:bc:ad brd ff:ff:ff:ff:ff:ff");
+        printLine("    inet 10.0.2.15/24 brd 10.0.2.255 scope global dynamic eth0");
+      }
+
+      function executePing(host) {
+        if (!host) {
+          printLine("ping: missing host operand");
+          return;
+        }
+
+        printLine(`PING ${host} (${host}) 56(84) bytes of data.`);
+        let count = 0;
+        
+        const pingInterval = setInterval(() => {
+          if (count >= 4) {
+            clearInterval(pingInterval);
+            printLine(`--- ${host} ping statistics ---`);
+            printLine("4 packets transmitted, 4 received, 0% packet loss, time 3004ms");
+            scrollToBottom();
+            input.focus();
+            return;
+          }
+          printLine(`64 bytes from ${host}: icmp_seq=${count+1} ttl=116 time=${(10 + Math.random()*15).toFixed(1)} ms`);
+          scrollToBottom();
+          count++;
+        }, 800);
+      }
+
+      // Autocomplete command/filenames with Tab key
+      function autocompleteInput() {
+        const val = input.value;
+        const parts = val.split(/\s+/);
+        const currentWord = parts[parts.length - 1];
+        
+        if (parts.length === 1) {
+          // Autocomplete command
+          const commands = ['help', 'clear', 'pwd', 'ls', 'cd', 'mkdir', 'touch', 'rm', 'cat', 'nano', 'chmod', 'chown', 'apt', 'htop', 'ps', 'ip', 'ping', 'exit'];
+          const matches = commands.filter(c => c.startsWith(currentWord));
+          if (matches.length === 1) {
+            parts[0] = matches[0];
+            input.value = parts.join(' ') + ' ';
+          }
+        } else {
+          // Autocomplete filenames in current directory
+          let node = fileSystem[currentDir];
+          if (node) {
+            const matches = node.children.filter(name => name.startsWith(currentWord));
+            if (matches.length === 1) {
+              parts[parts.length - 1] = matches[0];
+              input.value = parts.join(' ');
+            }
+          }
+        }
+      }
+
+      function updatePrompt() {
+        let displayDir = currentDir;
+        if (currentDir === '/home/usuario') {
+          displayDir = '~';
+        }
+        
+        if (isSudoMode) {
+          prompt.innerHTML = `root@ubuntu:${displayDir}#`;
+          prompt.style.color = '#ef4444'; // Red prompt for root
+        } else {
+          prompt.innerHTML = `usuario@ubuntu:${displayDir}$`;
+          prompt.style.color = '#0f0'; // Green prompt for normal user
+        }
+      }
+
+      function printLine(html) {
+        const line = document.createElement('div');
+        line.className = 'ssh-line ssh-output';
+        line.innerHTML = html;
+        output.appendChild(line);
+      }
+
+      function scrollToBottom() {
+        terminal.scrollTop = terminal.scrollHeight;
+      }
+
+      function escapeHtml(text) {
+        return text
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      // Initial prompt update
+      updatePrompt();
+    }
+
+    // -------------------------------------------------------------
+    // 4. Quiz Initialization
+    // -------------------------------------------------------------
+    function initQuiz() {
+      const quizCards = document.querySelectorAll('.quiz-question-card');
+      quizCards.forEach(card => {
+        const options = card.querySelectorAll('.quiz-option');
+        const explanation = card.querySelector('.quiz-explanation');
+        let answered = false;
+
+        options.forEach(opt => {
+          opt.addEventListener('click', () => {
+            if (answered) return;
+            answered = true;
+
+            const isCorrect = opt.getAttribute('data-correct') === 'true';
+            
+            if (isCorrect) {
+              opt.classList.add('correct');
+            } else {
+              opt.classList.add('incorrect');
+              options.forEach(o => {
+                if (o.getAttribute('data-correct') === 'true') {
+                  o.classList.add('correct');
+                }
+              });
+            }
+            explanation.style.display = 'block';
+          });
+        });
+      });
+    }
+
+    // -------------------------------------------------------------
+    // 5. Scroll Sync for Sidebar
+    // -------------------------------------------------------------
+    function initSidebarScrollSpy() {
+      const sidebarLinks = document.querySelectorAll('.sidebar-links a');
+      const slidesList = document.querySelectorAll('.slide');
+
+      const onScroll = () => {
+        if (document.body.classList.contains('presentation-mode')) return;
+        
+        let currentSlideId = '';
+        const scrollPosition = window.scrollY + 200;
+
+        slidesList.forEach(slide => {
+          const top = slide.offsetTop;
+          const height = slide.offsetHeight;
+          if (scrollPosition >= top && scrollPosition < top + height) {
+            currentSlideId = slide.getAttribute('id');
+          }
+        });
+
+        if (currentSlideId) {
+          sidebarLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href') === `#${currentSlideId}`) {
+              link.classList.add('active');
+            }
+          });
+        }
+      };
+
+      window.addEventListener('scroll', onScroll);
+    }
+
+    // -------------------------------------------------------------
+    // 6. Command Tooltip System
+    // -------------------------------------------------------------
+    function initCommandTooltips() {
+      const cmdDocs = {
+        'pwd':    { badge: 'comando', desc: 'Print Working Directory — Muestra la ruta absoluta del directorio en el que te encuentras actualmente.', syntax: 'pwd', example: '$ pwd\n/home/usuario' },
+        'ls':     { badge: 'comando', desc: 'List — Lista los archivos y carpetas del directorio actual (o del que indiques). Acepta múltiples flags para cambiar el formato de salida.', syntax: 'ls [opciones] [directorio]', example: '$ ls -la /etc' },
+        'cd':     { badge: 'comando', desc: 'Change Directory — Cambia el directorio de trabajo actual. Sin argumentos, vuelve al directorio personal (~). Con ".." sube un nivel.', syntax: 'cd [ruta]', example: '$ cd /var/log\n$ cd ..\n$ cd' },
+        'mkdir':  { badge: 'comando', desc: 'Make Directory — Crea un nuevo directorio (carpeta). Usa la flag -p para crear directorios intermedios automáticamente.', syntax: 'mkdir [-p] <directorio>', example: '$ mkdir proyectos\n$ mkdir -p /opt/app/config' },
+        'touch':  { badge: 'comando', desc: 'Touch — Crea un archivo vacío si no existe, o actualiza la fecha de modificación si ya existe. Muy usado para crear archivos de configuración rápidos.', syntax: 'touch <archivo>', example: '$ touch reporte.txt' },
+        'rm':     { badge: 'comando', desc: 'Remove — Elimina archivos o directorios. ⚠️ No tiene papelera de reciclaje: lo borrado no se puede recuperar fácilmente.', syntax: 'rm [-r] [-f] <archivo|directorio>', example: '$ rm archivo.txt\n$ rm -r carpeta/' },
+        'cp':     { badge: 'comando', desc: 'Copy — Copia archivos o directorios de un lugar a otro. Usa -r para copiar carpetas completas recursivamente.', syntax: 'cp [-r] <origen> <destino>', example: '$ cp foto.jpg /backup/\n$ cp -r proyecto/ /tmp/' },
+        'mv':     { badge: 'comando', desc: 'Move — Mueve o renombra archivos y directorios. Si el destino es en la misma carpeta, funciona como renombrar.', syntax: 'mv <origen> <destino>', example: '$ mv viejo.txt nuevo.txt\n$ mv archivo.txt /opt/' },
+        'cat':    { badge: 'comando', desc: 'Concatenate — Muestra el contenido completo de un archivo en la terminal. También sirve para concatenar varios archivos.', syntax: 'cat <archivo> [archivo2...]', example: '$ cat /etc/hostname\n$ cat a.txt b.txt > total.txt' },
+        'man':    { badge: 'comando', desc: 'Manual — Abre la página del manual oficial de cualquier comando. Es la documentación integrada de Linux. Navega con flechas y sal con "q".', syntax: 'man <comando>', example: '$ man ls\n$ man chmod' },
+        'nano':   { badge: 'editor', desc: 'GNU Nano — Editor de texto minimalista en la terminal. Ideal para principiantes. Los atajos se muestran en la parte inferior (^ = Ctrl).', syntax: 'nano <archivo>', example: '$ nano /etc/hosts\n(Ctrl+X para guardar y salir)' },
+        'chmod':  { badge: 'comando', desc: 'Change Mode — Modifica los permisos de acceso (lectura, escritura, ejecución) de un archivo o directorio. Acepta notación simbólica (+x, -w) u octal (755, 644).', syntax: 'chmod <permisos> <archivo>', example: '$ chmod +x script.sh\n$ chmod 755 app.py' },
+        'chown':  { badge: 'comando', desc: 'Change Owner — Cambia el propietario y/o grupo de un archivo. Requiere permisos de superusuario (sudo).', syntax: 'chown <usuario[:grupo]> <archivo>', example: '$ sudo chown www-data:www-data index.html' },
+        'sudo':   { badge: 'privilegios', desc: 'SuperUser Do — Ejecuta un comando con privilegios de administrador (root). Es el equivalente a "Ejecutar como Administrador" en Windows. Pedirá tu contraseña.', syntax: 'sudo <comando>', example: '$ sudo apt update\n$ sudo nano /etc/hosts' },
+        'apt':    { badge: 'gestor', desc: 'Advanced Package Tool — El gestor de paquetes de Debian/Ubuntu. Descarga, instala, actualiza y elimina software de los repositorios oficiales de forma segura.', syntax: 'apt <subcomando> [paquete]', example: '$ sudo apt update\n$ sudo apt install htop' },
+        'grep':   { badge: 'filtro', desc: 'Global Regular Expression Print — Busca líneas que coincidan con un patrón dentro de archivos o en la salida de otros comandos (pipes). Es el buscador de texto por excelencia.', syntax: 'grep [opciones] <patrón> [archivo]', example: '$ grep "error" /var/log/syslog\n$ cat datos.txt | grep Linux' },
+        'top':    { badge: 'monitor', desc: 'Table Of Processes — Muestra en tiempo real los procesos activos, uso de CPU, RAM y carga del sistema. Presiona "q" para salir.', syntax: 'top', example: '$ top' },
+        'htop':   { badge: 'monitor', desc: 'Htop — Versión mejorada de top con interfaz colorida e interactiva. Permite matar procesos con F9 y filtrar con F4. Presiona "q" para salir.', syntax: 'htop', example: '$ htop' },
+        'ps':     { badge: 'comando', desc: 'Process Status — Muestra una instantánea de los procesos en ejecución en este momento. Usa "ps aux" para ver todos los procesos del sistema.', syntax: 'ps [opciones]', example: '$ ps\n$ ps aux | grep apache' },
+        'ping':   { badge: 'red', desc: 'Ping — Envía paquetes ICMP a un host para verificar conectividad de red y medir la latencia (tiempo de respuesta). Ctrl+C para detenerlo.', syntax: 'ping <host|IP>', example: '$ ping 8.8.8.8\n$ ping google.com' },
+        'ip':     { badge: 'red', desc: 'IP — Herramienta moderna para configurar y consultar interfaces de red, direcciones IP, rutas y túneles. Reemplaza al antiguo ifconfig.', syntax: 'ip <objeto> <comando>', example: '$ ip a\n$ ip route show' },
+        'exit':   { badge: 'shell', desc: 'Exit — Cierra la sesión actual de la terminal o sale de un shell anidado (ej: después de usar sudo su).', syntax: 'exit', example: '$ exit' },
+        'clear':  { badge: 'shell', desc: 'Clear — Limpia la pantalla de la terminal. También puedes usar el atajo Ctrl+L para el mismo efecto.', syntax: 'clear', example: '$ clear' },
+        'find':   { badge: 'búsqueda', desc: 'Find — Busca archivos y directorios recursivamente según nombre, tipo, tamaño, permisos, fecha, etc. Es extremadamente potente.', syntax: 'find <ruta> [condiciones]', example: '$ find /home -name "*.txt"\n$ find / -type d -name config' },
+        'wc':     { badge: 'texto', desc: 'Word Count — Cuenta líneas, palabras y caracteres de un archivo o de la entrada estándar.', syntax: 'wc [-l] [-w] [-c] <archivo>', example: '$ wc -l /etc/passwd\n$ cat log.txt | wc -l' },
+        'sort':   { badge: 'texto', desc: 'Sort — Ordena las líneas de un archivo o entrada alfabéticamente. Usa -n para orden numérico y -r para invertir.', syntax: 'sort [opciones] <archivo>', example: '$ sort nombres.txt\n$ sort -nr notas.csv' },
+        'head':   { badge: 'texto', desc: 'Head — Muestra las primeras N líneas de un archivo (10 por defecto). Útil para inspeccionar archivos grandes rápidamente.', syntax: 'head [-n N] <archivo>', example: '$ head /var/log/syslog\n$ head -n 5 datos.csv' },
+        'tail':   { badge: 'texto', desc: 'Tail — Muestra las últimas N líneas de un archivo. Con -f sigue el archivo en tiempo real (ideal para monitorear logs).', syntax: 'tail [-n N] [-f] <archivo>', example: '$ tail -f /var/log/syslog\n$ tail -n 20 errores.log' },
+        'less':   { badge: 'visor', desc: 'Less — Visor de archivos paginado. Permite navegar con flechas, buscar con "/" y salir con "q". Más versátil que cat para archivos largos.', syntax: 'less <archivo>', example: '$ less /etc/ssh/sshd_config' },
+        'echo':   { badge: 'shell', desc: 'Echo — Imprime texto o variables en la terminal. Muy usado en scripts para mostrar mensajes o escribir contenido en archivos.', syntax: 'echo <texto|$VARIABLE>', example: '$ echo "Hola Mundo"\n$ echo $PATH' },
+        'wget':   { badge: 'red', desc: 'Wget — Descarga archivos desde internet directamente a la terminal. Soporta HTTP, HTTPS y FTP. Útil en servidores sin interfaz gráfica.', syntax: 'wget <URL>', example: '$ wget https://ejemplo.com/archivo.zip' },
+        'curl':   { badge: 'red', desc: 'cURL — Transfiere datos desde o hacia un servidor usando múltiples protocolos. Más versátil que wget, ideal para probar APIs.', syntax: 'curl [opciones] <URL>', example: '$ curl https://api.github.com\n$ curl -O https://ejemplo.com/file.tar.gz' },
+        'kill':   { badge: 'procesos', desc: 'Kill — Envía una señal a un proceso (por defecto SIGTERM para terminar). Usa kill -9 para forzar la terminación inmediata.', syntax: 'kill [-señal] <PID>', example: '$ kill 1234\n$ kill -9 5678' },
+        'ssh':    { badge: 'red', desc: 'Secure Shell — Establece una conexión remota cifrada a otro servidor. Es la forma estándar de administrar servidores Linux en la nube.', syntax: 'ssh <usuario@host>', example: '$ ssh ec2-user@54.120.30.5' },
+        // Flags
+        '-l':     { badge: 'flag', desc: 'Long format — Muestra la lista de archivos en formato detallado: permisos, propietario, grupo, tamaño y fecha de modificación.', syntax: 'ls -l [directorio]', example: '$ ls -l /home' },
+        '-a':     { badge: 'flag', desc: 'All — Incluye archivos ocultos (los que empiezan con punto, como .bashrc o .ssh/) en el listado.', syntax: 'ls -a', example: '$ ls -a ~' },
+        '-r':     { badge: 'flag', desc: 'Recursive — Aplica la operación de forma recursiva, incluyendo todos los subdirectorios y su contenido.', syntax: 'rm -r <directorio>\ncp -r <origen> <destino>', example: '$ rm -r /tmp/basura/\n$ cp -r proyecto/ backup/' },
+        '-la':    { badge: 'flags', desc: 'Long + All — Combina el formato detallado (-l) con la inclusión de archivos ocultos (-a). Muestra TODO con todos los detalles.', syntax: 'ls -la [directorio]', example: '$ ls -la /home/usuario' },
+        '+x':     { badge: 'permiso', desc: 'Añadir ejecución — Añade el permiso de ejecución al archivo. Necesario para que scripts (.sh) puedan ser ejecutados directamente.', syntax: 'chmod +x <archivo>', example: '$ chmod +x mi_script.sh\n$ ./mi_script.sh' },
+        '--help': { badge: 'flag', desc: 'Ayuda rápida — Muestra un resumen de uso y las opciones disponibles del comando, directamente en la terminal. Más breve que man.', syntax: '<comando> --help', example: '$ ls --help\n$ chmod --help' },
+        // Operators
+        '|':      { badge: 'operador', desc: 'Pipe (Tubería) — Toma la salida estándar del comando de la izquierda y la envía como entrada del comando de la derecha. Es la esencia de la filosofía Unix.', syntax: '<cmd1> | <cmd2>', example: '$ cat archivo.txt | grep error\n$ ps aux | head -5' },
+        '>':      { badge: 'operador', desc: 'Redirección (Sobreescribir) — Envía la salida de un comando a un archivo, reemplazando su contenido anterior si ya existe.', syntax: '<comando> > <archivo>', example: '$ echo "hola" > saludo.txt\n$ ls -l > listado.txt' },
+        '>>':     { badge: 'operador', desc: 'Redirección (Añadir) — Envía la salida de un comando al final de un archivo, sin borrar el contenido previo.', syntax: '<comando> >> <archivo>', example: '$ echo "nueva línea" >> notas.txt' },
+        'Ctrl+C': { badge: 'atajo', desc: 'Interrupt — Detiene inmediatamente el proceso que se está ejecutando en la terminal (envía la señal SIGINT).', syntax: 'Ctrl+C', example: '(Mientras ejecutas ping, presiona Ctrl+C)' },
+        'Ctrl+X': { badge: 'atajo', desc: 'Salir de Nano — En el editor Nano, Ctrl+X inicia la secuencia de guardado y cierre. Te preguntará si deseas guardar los cambios.', syntax: 'Ctrl+X → Y → Enter', example: '(Dentro de nano, Ctrl+X para salir)' },
+        'Ctrl+L': { badge: 'atajo', desc: 'Clear Screen — Limpia la pantalla de la terminal, equivalente a escribir el comando "clear". Funciona en Bash y la mayoría de shells.', syntax: 'Ctrl+L', example: '(Presiona Ctrl+L en cualquier momento)' },
+        'Ctrl+R': { badge: 'atajo', desc: 'Reverse Search — Busca hacia atrás en el historial de comandos. Empieza a escribir y te mostrará el último comando que coincida.', syntax: 'Ctrl+R → escribir patrón', example: '(Ctrl+R → "apt" → Enter)' },
+        'Tab':    { badge: 'atajo', desc: 'Autocompletar — Completa automáticamente nombres de archivos, directorios y comandos. Presiona dos veces para ver todas las opciones posibles.', syntax: 'Tab (o Tab Tab)', example: '$ cd /ho → Tab → /home/' },
+      };
+
+      // Create the single tooltip element
+      const tooltip = document.createElement('div');
+      tooltip.className = 'cmd-tooltip';
+      tooltip.id = 'cmdTooltip';
+      document.body.appendChild(tooltip);
+
+      let hideTimeout = null;
+
+      // Scan all <code> elements and tag them
+      const codeElements = document.querySelectorAll('code');
+      codeElements.forEach(el => {
+        // Skip code elements inside the terminal simulator
+        if (el.closest('.ssh-terminal') || el.closest('.nano-editor')) return;
+
+        const text = el.textContent.trim();
+        
+        // Try to match against our dictionary
+        const matchedKey = findBestMatch(text);
+        if (matchedKey) {
+          el.setAttribute('data-cmd', matchedKey);
+          
+          el.addEventListener('mouseenter', (e) => {
+            if (hideTimeout) clearTimeout(hideTimeout);
+            showTooltip(e, matchedKey);
+          });
+          
+          el.addEventListener('mouseleave', () => {
+            hideTimeout = setTimeout(() => {
+              tooltip.classList.remove('visible');
+            }, 120);
+          });
+
+          el.addEventListener('mousemove', (e) => {
+            positionTooltip(e);
+          });
+        }
+      });
+
+      function findBestMatch(text) {
+        // Exact match first
+        if (cmdDocs[text]) return text;
+        
+        // Extract first word/token
+        const firstToken = text.split(/[\s\[\(]/)[0];
+        if (cmdDocs[firstToken]) return firstToken;
+        
+        // Check for flag patterns like "-l", "-a", "-r", "+x" etc
+        const flagMatch = text.match(/^(-{1,2}[a-zA-Z]+|\+[rwx])$/);
+        if (flagMatch && cmdDocs[flagMatch[0]]) return flagMatch[0];
+        
+        // Check for Ctrl+ shortcuts
+        if (text.startsWith('Ctrl+') && cmdDocs[text]) return text;
+        
+        // Check for compound commands like "ls -l", "apt update", "apt install", "ip a"
+        const words = text.split(/\s+/);
+        if (words.length >= 2) {
+          const twoWordKey = words[0] + ' ' + words[1];
+          // Special compound commands
+          if (words[0] === 'apt' && cmdDocs['apt']) return 'apt';
+          if (words[0] === 'ip' && cmdDocs['ip']) return 'ip';
+          if (words[0] === 'man' && cmdDocs['man']) return 'man';
+          if (words[0] === 'sudo' && cmdDocs['sudo']) return 'sudo';
+          if (words[0] === 'chmod' && cmdDocs['chmod']) return 'chmod';
+          if (words[0] === 'chown' && cmdDocs['chown']) return 'chown';
+          if (words[0] === 'nano' && cmdDocs['nano']) return 'nano';
+          if (words[0] === 'ping' && cmdDocs['ping']) return 'ping';
+          if (words[0] === 'ssh' && cmdDocs['ssh']) return 'ssh';
+          if (words[0] === 'cd' && cmdDocs['cd']) return 'cd';
+          if (words[0] === 'mkdir' && cmdDocs['mkdir']) return 'mkdir';
+          if (words[0] === 'touch' && cmdDocs['touch']) return 'touch';
+          if (words[0] === 'cat' && cmdDocs['cat']) return 'cat';
+          if (words[0] === 'rm' && cmdDocs['rm']) return 'rm';
+          if (words[0] === 'cp' && cmdDocs['cp']) return 'cp';
+          if (words[0] === 'mv' && cmdDocs['mv']) return 'mv';
+          if (words[0] === 'grep' && cmdDocs['grep']) return 'grep';
+          if (words[0] === 'ls' && cmdDocs['ls']) return 'ls';
+          if (words[0] === 'find' && cmdDocs['find']) return 'find';
+          if (words[0] === 'wget' && cmdDocs['wget']) return 'wget';
+          if (words[0] === 'curl' && cmdDocs['curl']) return 'curl';
+          if (words[0] === 'kill' && cmdDocs['kill']) return 'kill';
+          if (words[0] === 'head' && cmdDocs['head']) return 'head';
+          if (words[0] === 'tail' && cmdDocs['tail']) return 'tail';
+          if (words[0] === 'less' && cmdDocs['less']) return 'less';
+          if (words[0] === 'echo' && cmdDocs['echo']) return 'echo';
+          if (words[0] === 'sort' && cmdDocs['sort']) return 'sort';
+          if (words[0] === 'wc' && cmdDocs['wc']) return 'wc';
+          
+          // Check if second word is a known flag
+          if (cmdDocs[words[1]]) return words[1];
+        }
+        
+        // Check Tab
+        if (text === 'Tab') return 'Tab';
+        
+        return null;
+      }
+
+      function showTooltip(e, key) {
+        const doc = cmdDocs[key];
+        if (!doc) return;
+
+        tooltip.innerHTML = `
+          <div class="cmd-tooltip-name">
+            ${key}
+            <span class="cmd-badge">${doc.badge}</span>
+          </div>
+          <div class="cmd-tooltip-desc">${doc.desc}</div>
+          <div class="cmd-tooltip-section">Sintaxis</div>
+          <div class="cmd-tooltip-syntax">${doc.syntax}</div>
+          <div class="cmd-tooltip-section">Ejemplo</div>
+          <div class="cmd-tooltip-example">${doc.example.replace(/\n/g, '<br>')}</div>
+        `;
+
+        positionTooltip(e);
+        tooltip.classList.add('visible');
+      }
+
+      function positionTooltip(e) {
+        const pad = 12;
+        let x = e.clientX + pad;
+        let y = e.clientY + pad;
+        const tw = tooltip.offsetWidth || 340;
+        const th = tooltip.offsetHeight || 200;
+
+        // Keep inside viewport
+        if (x + tw > window.innerWidth - pad) {
+          x = e.clientX - tw - pad;
+        }
+        if (y + th > window.innerHeight - pad) {
+          y = e.clientY - th - pad;
+        }
+        if (x < pad) x = pad;
+        if (y < pad) y = pad;
+
+        tooltip.style.left = x + 'px';
+        tooltip.style.top = y + 'px';
+      }
+    }
+
+    // -------------------------------------------------------------
+    // VPC Visualizer Interaction
+    // -------------------------------------------------------------
+    function initVpcVisualizer() {
+      window.selectVpcElement = function(type) {
+        const title = document.getElementById('vpcInfoTitle');
+        const desc = document.getElementById('vpcInfoDesc');
+        if (!title || !desc) return;
+        
+        const data = {
+          igw: {
+            title: "🔌 Internet Gateway (IGW)",
+            desc: "Es el componente que conecta la VPC a Internet. Actúa como el enrutador de entrada y salida para que las subredes públicas tengan conexión con el exterior."
+          },
+          vpc: {
+            title: "📦 VPC (Virtual Private Cloud)",
+            desc: "Tu propia sección lógica y aislada dentro de AWS. Aquí controlas tus bloques de direcciones IP, subredes y tablas de ruteo."
+          },
+          public: {
+            title: "🌐 Subred Pública (10.0.1.0/24)",
+            desc: "Subred que tiene ruta directa al Internet Gateway. Las instancias aquí reciben una IP pública. Ideal para servidores web públicos (como Apache)."
+          },
+          private: {
+            title: "🔒 Subred Privada (10.0.2.0/24)",
+            desc: "Subred totalmente aislada sin ruta al Internet Gateway. Sus servidores no son accesibles desde internet. Ideal para bases de datos (como Oracle o RDS)."
+          }
+        };
+        
+        const info = data[type];
+        if (info) {
+          title.textContent = info.title;
+          desc.textContent = info.desc;
+          
+          // Visual feedback
+          const panel = document.getElementById('vpcInfoPanel');
+          if (panel) {
+            panel.style.background = 'rgba(2, 132, 199, 0.08)';
+            panel.style.borderColor = '#0284c7';
+            setTimeout(() => {
+              panel.style.background = 'rgba(139, 92, 246, 0.05)';
+              panel.style.borderColor = 'rgba(139, 92, 246, 0.15)';
+            }, 300);
+          }
+        }
+      };
+    }
+
+    // -------------------------------------------------------------
+    // SSH Simulator Interaction
+    // -------------------------------------------------------------
+    function initSshSimulator() {
+      const input = document.getElementById('sshSimInput');
+      const body = document.getElementById('sshSimBody');
+      const prompt = document.getElementById('sshSimPrompt');
+      if (!input || !body || !prompt) return;
+
+      let keyPerm = "644";
+      let isConnected = false;
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const cmdStr = input.value.trim();
+          input.value = '';
+          if (!cmdStr) return;
+
+          // Append command to output
+          const userLine = document.createElement('div');
+          userLine.style.color = '#38bdf8';
+          userLine.style.fontWeight = 'bold';
+          userLine.textContent = `${prompt.textContent} ${cmdStr}`;
+          body.insertBefore(userLine, input.parentNode);
+
+          const response = processSshCommand(cmdStr);
+          if (response) {
+            const respLine = document.createElement('div');
+            respLine.className = 'ssh-sim-output';
+            respLine.innerHTML = response;
+            body.insertBefore(respLine, input.parentNode);
+          }
+
+          // Scroll console to bottom
+          body.scrollTop = body.scrollHeight;
+        }
+      });
+
+      function processSshCommand(cmd) {
+        const parts = cmd.split(/\s+/);
+        const main = parts[0];
+
+        if (isConnected) {
+          if (main === 'exit') {
+            isConnected = false;
+            prompt.textContent = 'hachimaki@local:~$';
+            prompt.style.color = '#38bdf8';
+            return 'Conexión cerrada. De vuelta a tu máquina local.';
+          }
+          if (main === 'ip' && parts[1] === 'a') {
+            return 'inet 10.0.1.10/24 brd 10.0.1.255 scope global eth0<br>  valid_lft forever preferred_lft forever';
+          }
+          if (main === 'ls') {
+            return '<span style="color:#34d399; font-weight:bold;">public_html</span>  notas.txt';
+          }
+          if (main === 'pwd') {
+            return '/home/ubuntu';
+          }
+          if (main === 'clear') {
+            const lines = body.querySelectorAll('div');
+            lines.forEach(line => line.remove());
+            return '';
+          }
+          return `bash: ${main}: comando no encontrado en el servidor AWS. (Prueba "ip a", "ls", "pwd" o "exit")`;
+        } else {
+          // Local machine mode
+          if (cmd === 'ls -l') {
+            const permText = keyPerm === '400' ? '-r--------' : '-rw-r--r--';
+            return `total 4<br>${permText} 1 hachimaki hachimaki 1679 jun 13 07:30 <span style="color:#f43f5e;">llave.pem</span>`;
+          }
+          if (main === 'chmod') {
+            if (parts[1] === '400' && parts[2] === 'llave.pem') {
+              keyPerm = '400';
+              return 'Permisos cambiados con éxito. llave.pem es ahora de solo lectura para el dueño.';
+            }
+            return 'Sintaxis incorrecta. Prueba con: <code>chmod 400 llave.pem</code>';
+          }
+          if (main === 'ssh') {
+            const hasI = parts.includes('-i');
+            const keyIdx = parts.indexOf('-i') + 1;
+            const hasKey = keyIdx > 0 && parts[keyIdx] === 'llave.pem';
+            const hasTarget = parts.some(p => p.includes('ubuntu@'));
+
+            if (!hasI || !hasKey || !hasTarget) {
+              return '<span style="color:#ef4444;">Error de sintaxis SSH.</span> Sintaxis recomendada:<br><code>ssh -i llave.pem ubuntu@54.210.85.12</code>';
+            }
+
+            if (keyPerm !== '400') {
+              return '<span style="color:#ef4444;">WARNING: UNPROTECTED PRIVATE KEY FILE!</span><br>' +
+                     'Permissions 0644 for "llave.pem" are too open.<br>' +
+                     'It is required that your private key files are NOT accessible by others.<br>' +
+                     'This private key will be ignored.<br>' +
+                     'Load key "llave.pem": bad permissions<br>' +
+                     'Permission denied (publickey).';
+            }
+
+            // Success connection
+            isConnected = true;
+            prompt.textContent = 'ubuntu@ip-10-0-1-10:~$';
+            prompt.style.color = '#22c55e';
+            return 'Welcome to Ubuntu 24.04 LTS (GNU/Linux 6.8.0-aws)<br>' +
+                   '* Documentation: https://help.ubuntu.com<br>' +
+                   '* Management:    https://landscape.canonical.com<br>' +
+                   'Last login: Sat Jun 13 07:35:10 2026 from 192.168.1.15<br><br>' +
+                   'Conexión exitosa con el servidor en la nube de AWS.<br>' +
+                   'Prueba a escribir <code>ip a</code> para ver tu dirección IP privada o <code>exit</code> para salir.';
+          }
+          if (main === 'clear') {
+            const lines = body.querySelectorAll('div');
+            lines.forEach(line => line.remove());
+            return '';
+          }
+          return `bash: ${main}: comando no encontrado localmente. (Prueba "ls -l", "chmod 400 llave.pem" o "ssh -i llave.pem ubuntu@54.210.85.12")`;
+        }
+      }
+    }
+  </script>
+</body>
+</html>
