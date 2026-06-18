@@ -1,0 +1,2319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Taller Práctico: Tu Primera VPC en AWS | Cloud Computing</title>
+  <meta name="description" content="Taller práctico paso a paso para construir una VPC completa en AWS: red privada virtual, subredes, Internet Gateway, tabla de rutas y asociación.">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* ============================================================
+       VPC BUILDER SIMULATOR — Styles
+       ============================================================ */
+    .vpc-builder-canvas {
+      background: #06050a;
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      min-height: 380px;
+      position: relative;
+      overflow: hidden;
+      padding: 1rem;
+    }
+
+    /* VPC boundary box */
+    .builder-vpc-box {
+      position: absolute;
+      top: 30px; left: 20px; right: 130px; bottom: 30px;
+      border: 2px dashed rgba(139,92,246,0.15);
+      border-radius: 16px;
+      background: rgba(139,92,246,0.01);
+      transition: all 0.6s cubic-bezier(0.4,0,0.2,1);
+      opacity: 0;
+    }
+    .builder-vpc-box.visible {
+      border-color: rgba(139,92,246,0.4);
+      background: rgba(139,92,246,0.03);
+      opacity: 1;
+    }
+    .builder-vpc-label {
+      position: absolute;
+      top: -12px; left: 14px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--color-accent);
+      background: #06050a;
+      padding: 0 6px;
+      text-transform: uppercase;
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+    .builder-vpc-box.visible .builder-vpc-label { opacity: 1; }
+
+    /* Subnets */
+    .builder-subnet {
+      position: absolute;
+      border: 1px dashed rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 0.5rem;
+      opacity: 0;
+      transform: scale(0.9);
+      transition: all 0.5s cubic-bezier(0.4,0,0.2,1);
+    }
+    .builder-subnet.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+    .builder-subnet.public {
+      top: 35px; left: 15px; width: 48%; bottom: 15px;
+      border-color: rgba(6,182,212,0.3);
+      background: rgba(6,182,212,0.03);
+    }
+    .builder-subnet.private {
+      top: 35px; left: 52%; width: 46%; bottom: 15px;
+      border-color: rgba(236,72,153,0.3);
+      background: rgba(236,72,153,0.02);
+    }
+    .builder-subnet-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.25rem;
+    }
+    .builder-subnet.public .builder-subnet-label { color: var(--color-cyan); }
+    .builder-subnet.private .builder-subnet-label { color: var(--color-pink); }
+    .builder-subnet-cidr {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      font-family: 'Fira Code', monospace;
+    }
+
+    /* IGW element */
+    .builder-igw {
+      position: absolute;
+      top: 50%; right: 15px;
+      transform: translateY(-50%) scale(0.8);
+      background: rgba(16,185,129,0.08);
+      border: 1px solid rgba(16,185,129,0.15);
+      border-radius: 10px;
+      padding: 0.6rem 0.75rem;
+      text-align: center;
+      opacity: 0;
+      transition: all 0.5s cubic-bezier(0.4,0,0.2,1);
+    }
+    .builder-igw.visible {
+      opacity: 1;
+      transform: translateY(-50%) scale(1);
+      border-color: rgba(16,185,129,0.4);
+      background: rgba(16,185,129,0.1);
+    }
+    .builder-igw-icon { font-size: 1.4rem; }
+    .builder-igw-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #34d399;
+      margin-top: 0.15rem;
+    }
+
+    /* Route table element */
+    .builder-rt {
+      position: absolute;
+      bottom: 25px; left: 25%;
+      transform: translateX(-50%) scale(0.8);
+      background: rgba(245,158,11,0.08);
+      border: 1px solid rgba(245,158,11,0.15);
+      border-radius: 8px;
+      padding: 0.5rem 0.75rem;
+      text-align: center;
+      opacity: 0;
+      transition: all 0.5s cubic-bezier(0.4,0,0.2,1);
+    }
+    .builder-rt.visible {
+      opacity: 1;
+      transform: translateX(-50%) scale(1);
+      border-color: rgba(245,158,11,0.4);
+      background: rgba(245,158,11,0.1);
+    }
+    .builder-rt-icon { font-size: 1.2rem; }
+    .builder-rt-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #fbbf24;
+      margin-top: 0.1rem;
+    }
+    .builder-rt-route {
+      font-size: 0.6rem;
+      font-family: 'Fira Code', monospace;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .builder-rt-route.visible { opacity: 1; }
+
+    /* Association line */
+    .builder-assoc-line {
+      position: absolute;
+      bottom: 60px; left: 10%;
+      width: 30%;
+      height: 2px;
+      background: transparent;
+      transition: background 0.5s;
+    }
+    .builder-assoc-line.visible {
+      background: repeating-linear-gradient(90deg, #fbbf24 0px, #fbbf24 6px, transparent 6px, transparent 12px);
+      animation: dashMove 1s linear infinite;
+    }
+
+    @keyframes dashMove {
+      0% { background-position: 0 0; }
+      100% { background-position: 12px 0; }
+    }
+
+    /* Internet cloud */
+    .builder-internet {
+      position: absolute;
+      top: 10px; right: 10px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+    .builder-internet.visible { opacity: 1; }
+    .builder-internet-icon { font-size: 1.5rem; }
+
+    /* Connection lines via SVG */
+    .builder-svg-overlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .builder-svg-overlay path {
+      fill: none;
+      stroke: rgba(255,255,255,0.1);
+      stroke-width: 1.5;
+      stroke-dasharray: 6 4;
+      transition: stroke 0.5s, stroke-dasharray 0.5s;
+    }
+    .builder-svg-overlay path.active-route {
+      stroke: rgba(16,185,129,0.5);
+      stroke-dasharray: none;
+      stroke-width: 2;
+    }
+
+    /* Animated packet dot */
+    .builder-packet {
+      position: absolute;
+      width: 12px; height: 12px;
+      background: var(--color-cyan);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--color-cyan);
+      z-index: 15;
+      opacity: 0;
+      transition: left 0.7s linear, top 0.7s linear, bottom 0.7s linear;
+    }
+
+    /* Builder controls */
+    .builder-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    .builder-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--glass-border);
+      color: var(--text-secondary);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .builder-btn:hover:not(:disabled) {
+      border-color: rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.08);
+      color: var(--text-primary);
+    }
+    .builder-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+    .builder-btn.completed {
+      border-color: rgba(16,185,129,0.4);
+      background: rgba(16,185,129,0.1);
+      color: #34d399;
+    }
+    .builder-btn.next-step {
+      border-color: rgba(6,182,212,0.4);
+      background: rgba(6,182,212,0.1);
+      color: var(--color-cyan);
+      animation: pulseGlow 2s infinite;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 5px rgba(6,182,212,0.2); }
+      50% { box-shadow: 0 0 15px rgba(6,182,212,0.4); }
+    }
+    .builder-btn-send {
+      background: var(--color-accent);
+      color: white;
+      border-color: var(--color-accent);
+      box-shadow: 0 4px 15px rgba(139,92,246,0.3);
+    }
+    .builder-btn-send:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(139,92,246,0.4);
+    }
+
+    /* Builder status checklist */
+    .builder-status {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+      font-size: 0.8rem;
+    }
+    .builder-status-item {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      color: var(--text-muted);
+      transition: color 0.3s;
+    }
+    .builder-status-item.done {
+      color: #34d399;
+    }
+
+    /* Builder feedback alert */
+    .builder-alert {
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      margin-top: 0.75rem;
+      font-size: 0.85rem;
+      display: none;
+      animation: fadeIn 0.3s forwards;
+    }
+    .builder-alert.error {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: #f87171;
+    }
+    .builder-alert.success {
+      background: rgba(16,185,129,0.1);
+      border: 1px solid rgba(16,185,129,0.3);
+      color: #34d399;
+    }
+    .builder-alert.info {
+      background: rgba(6,182,212,0.1);
+      border: 1px solid rgba(6,182,212,0.3);
+      color: #22d3ee;
+    }
+
+    /* Color accents for taller VPC */
+    .color-teal { color: #06b6d4; }
+    .bg-teal-subtle { background: rgba(6,182,212,0.1); border-color: rgba(6,182,212,0.3); }
+
+    /* ============================================================
+       EVALUATION QUESTIONNAIRE — Styles
+       ============================================================ */
+    .eval-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+      text-align: left;
+    }
+    .eval-input-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      margin-bottom: 1.5rem;
+      text-align: left;
+    }
+    @media (max-width: 768px) {
+      .eval-input-row {
+        grid-template-columns: 1fr;
+      }
+    }
+    .eval-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .eval-input {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--glass-border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.95rem;
+      transition: all 0.3s;
+    }
+    .eval-input:focus {
+      outline: none;
+      border-color: rgba(6, 182, 212, 0.5);
+      background: rgba(6, 182, 212, 0.02);
+      box-shadow: 0 0 10px rgba(6, 182, 212, 0.15);
+    }
+    .eval-textarea {
+      min-height: 120px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+    .eval-options-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+      margin: 1rem 0;
+    }
+    .eval-option-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      padding: 1rem;
+      cursor: pointer;
+      transition: all 0.25s;
+      text-align: left;
+    }
+    .eval-option-card:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+    .eval-option-card.selected {
+      background: rgba(139, 92, 246, 0.08);
+      border-color: rgba(139, 92, 246, 0.4);
+      box-shadow: 0 0 12px rgba(139, 92, 246, 0.1);
+    }
+    .eval-option-card.selected.cyan-theme {
+      background: rgba(6, 182, 212, 0.08);
+      border-color: rgba(6, 182, 212, 0.4);
+      box-shadow: 0 0 12px rgba(6, 182, 212, 0.1);
+    }
+    .eval-checkbox, .eval-radio {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border: 1px solid var(--glass-border);
+      border-radius: 4px;
+      outline: none;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+      margin-top: 2px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .eval-radio {
+      border-radius: 50%;
+    }
+    .eval-option-card.selected .eval-checkbox {
+      background: var(--color-accent);
+      border-color: var(--color-accent);
+    }
+    .eval-option-card.selected.cyan-theme .eval-checkbox {
+      background: var(--color-cyan);
+      border-color: var(--color-cyan);
+    }
+    .eval-option-card.selected .eval-radio {
+      background: var(--color-accent);
+      border-color: var(--color-accent);
+    }
+    .eval-option-card.selected.cyan-theme .eval-radio {
+      background: var(--color-cyan);
+      border-color: var(--color-cyan);
+    }
+    .eval-option-card.selected .eval-checkbox::after {
+      content: "✓";
+      color: white;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+    .eval-option-card.selected .eval-radio::after {
+      content: "";
+      width: 8px;
+      height: 8px;
+      background: white;
+      border-radius: 50%;
+    }
+    .eval-option-text {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+    .eval-option-card.selected .eval-option-text {
+      color: var(--text-primary);
+    }
+    .eval-section-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--glass-border), transparent);
+      margin: 2rem 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <a href="index.html" class="nav-brand">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17.5 19A3.5 3.5 0 0 0 21 15.5c0-2.79-2.54-4.5-5-4.5-.42 0-.83.04-1.24.12A6.5 6.5 0 0 0 3 13.5A3.5 3.5 0 0 0 6.5 17H12" />
+        <path d="M12 12V21" />
+        <path d="m9 18 3 3 3-3" />
+      </svg>
+      <span>Cloud Foundations</span>
+    </a>
+    
+    <div class="nav-links">
+      <a href="index.html" class="nav-link">Dashboard</a>
+      
+      <div class="teacher-toggle-container">
+        <span class="teacher-toggle-label">Modo Profesor</span>
+        <label class="switch">
+          <input type="checkbox" id="teacherModeToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content Container -->
+  <main class="container">
+    
+    <!-- Back button -->
+    <a href="index.html" class="back-link">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+      </svg>
+      Volver al Dashboard
+    </a>
+
+    <!-- Class Header -->
+    <header class="class-header">
+      <span class="class-number" style="margin-bottom: 0.5rem; display: inline-block; background: rgba(6,182,212,0.15); color: #06b6d4; border-color: rgba(6,182,212,0.3);">🌐 Taller Práctico</span>
+      <h1>Construyendo tu Primera VPC en AWS</h1>
+      <p style="color: var(--text-secondary); font-size: 1.1rem; max-width: 800px;">
+        Para estudiantes que ya entienden qué es una VPC en teoría. Hoy la van a construir de verdad en la consola de AWS. Sin apuro, entendiendo cada paso.
+      </p>
+    </header>
+
+    <!-- Module Progress Bar -->
+    <div class="taller-progress-bar" id="tallerProgressBar">
+      <div class="progress-step active" data-target="slide-portada">Inicio</div>
+      <div class="progress-step" data-target="slide-conceptos">Conceptos</div>
+      <div class="progress-step" data-target="slide-arquitectura">Arquitectura</div>
+      <div class="progress-step" data-target="slide-vpc-builder">VPC Builder</div>
+      <div class="progress-step" data-target="slide-mod1">Mod 1: VPC</div>
+      <div class="progress-step" data-target="slide-mod2">Mod 2: Subredes</div>
+      <div class="progress-step" data-target="slide-mod3">Mod 3: IGW</div>
+      <div class="progress-step" data-target="slide-mod4">Mod 4: Rutas</div>
+      <div class="progress-step" data-target="slide-mod5">Mod 5: Asociar</div>
+      <div class="progress-step" data-target="slide-evaluacion">Evaluación</div>
+      <div class="progress-step" data-target="slide-desafio">Desafío</div>
+      <div class="progress-step" data-target="slide-casos">Casos</div>
+      <div class="progress-step" data-target="slide-limpieza">Limpieza</div>
+    </div>
+
+    <!-- Content with Slides Container -->
+    <div class="class-content-wrapper">
+      
+      <!-- Slides Container -->
+      <div class="main-content-flow slides-container" id="slidesContainer">
+        
+        <!-- ============================================================ -->
+        <!-- SLIDE 0: PORTADA + OBJETIVOS -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-portada" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.0</span>
+            ¿Qué vas a construir en este taller?
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Introducción al Taller VPC (5 min)</h4>
+            <p><strong>Meta:</strong> Contextualizar que este taller conecta directamente con la teoría de la Clase 1 (VPC, subredes, CIDR, IGW, Route Tables). Ahora lo hacen de verdad.</p>
+            <ul>
+              <li><strong>Motivación:</strong> "Hoy van a construir su propia red privada en AWS. Cuando terminen, van a entender exactamente cómo un paquete viaja desde un servidor hasta Google."</li>
+              <li><strong>Tiempo estimado total:</strong> 90-120 minutos</li>
+              <li><strong>Prerequisito:</strong> Haber visto la Clase 1 (Redes Virtuales y VPC). Cada alumno necesita acceso a una cuenta AWS.</li>
+              <li><strong>Tres preguntas fijas:</strong> En CADA paso del taller, los alumnos deben poder responder: ¿Qué estoy definiendo? ¿Qué problema resuelve? ¿Qué pasaría si lo omitiera?</li>
+            </ul>
+          </div>
+
+          <p>Al terminar este taller serás capaz de construir esto por tu cuenta, sin ayuda:</p>
+
+          <div class="objectives-grid">
+            <div class="objective-card">
+              <div class="objective-num">1</div>
+              <p><strong>Crear una VPC</strong> con un bloque CIDR que define tu espacio de red completo</p>
+            </div>
+            <div class="objective-card">
+              <div class="objective-num">2</div>
+              <p><strong>Crear subredes</strong> públicas y privadas dentro de la VPC sin que se superpongan</p>
+            </div>
+            <div class="objective-card">
+              <div class="objective-num">3</div>
+              <p><strong>Crear un Internet Gateway</strong> y asociarlo a la VPC para habilitar la salida a Internet</p>
+            </div>
+            <div class="objective-card">
+              <div class="objective-num">4</div>
+              <p><strong>Crear una tabla de rutas</strong> con la ruta 0.0.0.0/0 → IGW para definir el camino a Internet</p>
+            </div>
+            <div class="objective-card">
+              <div class="objective-num">5</div>
+              <p><strong>Asociar la subred</strong> con la tabla de rutas para que la política realmente se aplique</p>
+            </div>
+            <div class="objective-card">
+              <div class="objective-num">6</div>
+              <p><strong>Explicar el viaje de un paquete</strong> desde una EC2 hasta Google, paso a paso</p>
+            </div>
+          </div>
+
+          <!-- City Analogy Table -->
+          <div class="analogy-box" style="margin-top: 2rem; border-color: rgba(6,182,212,0.3); background: rgba(6,182,212,0.02);">
+            <h4 style="color: var(--color-cyan);">🏙️ La Analogía de la Ciudad</h4>
+            <p style="margin-bottom: 1rem;">Todo lo que vamos a construir tiene un equivalente directo en una ciudad real:</p>
+            <table class="comparison-table" style="margin: 0;">
+              <thead>
+                <tr><th>Ciudad</th><th>AWS</th><th>¿Qué define?</th></tr>
+              </thead>
+              <tbody>
+                <tr><td class="feature-col">🏗️ Terreno</td><td>VPC</td><td>El espacio completo donde vivirán todos los recursos</td></tr>
+                <tr><td class="feature-col">🏘️ Barrios</td><td>Subredes</td><td>Divisiones organizadas del terreno (pública, privada)</td></tr>
+                <tr><td class="feature-col">🚪 Salida a la autopista</td><td>Internet Gateway</td><td>La puerta que conecta la ciudad con el exterior</td></tr>
+                <tr><td class="feature-col">🚦 Señalética vial</td><td>Tabla de rutas</td><td>Las instrucciones de hacia dónde va cada destino</td></tr>
+                <tr><td class="feature-col">📌 Asignar señalética</td><td>Asociación</td><td>Decidir qué barrio usa qué señalética</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="warning-callout">
+            <strong>⚠️ Importante antes de empezar:</strong> Este taller trabaja con la <strong>consola real de AWS</strong>. Asegúrate de <strong>eliminar todos los recursos al finalizar</strong> para no generar cargos inesperados. Te daremos los pasos exactos al final.
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 1: CONCEPTOS CLAVE (FLIP CARDS) -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-conceptos" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.1</span>
+            Conceptos Clave — Tu mapa mental antes de empezar
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Glosario Rápido (5 min)</h4>
+            <p>Estos conceptos ya los vieron en la Clase 1. Este es un repaso rápido para refrescar antes de la práctica.</p>
+            <ul>
+              <li><strong>Pregunta detonante:</strong> "¿Quién me puede explicar la diferencia entre VPC y subred con sus propias palabras?"</li>
+              <li>Si los alumnos dominan estos conceptos, avanza rápido. Si no, dedica 10 minutos extra aquí.</li>
+            </ul>
+          </div>
+
+          <p style="margin-bottom: 0.5rem;">Haz clic en cada tarjeta para ver la explicación. Si entiendes estos 6 conceptos, el resto del taller fluye solo.</p>
+
+          <div class="concept-cards-grid">
+            <!-- Card 1: VPC -->
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+              <div class="flip-card-inner">
+                <div class="flip-card-front">
+                  <span class="flip-icon">🏗️</span>
+                  <h4>VPC</h4>
+                  <span class="flip-hint">Clic para ver →</span>
+                </div>
+                <div class="flip-card-back">
+                  <p><strong>Virtual Private Cloud.</strong> Tu propia red privada aislada dentro de AWS. Defines un bloque CIDR (ej: <code>10.0.0.0/16</code>) que establece las 65.536 direcciones IP disponibles. Nada entra ni sale sin tu permiso.</p>
+                </div>
+              </div>
+            </div>
+            <!-- Card 2: Subred -->
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+              <div class="flip-card-inner">
+                <div class="flip-card-front">
+                  <span class="flip-icon">🏘️</span>
+                  <h4>Subred</h4>
+                  <span class="flip-hint">Clic para ver →</span>
+                </div>
+                <div class="flip-card-back">
+                  <p>Una <strong>partición</strong> de la VPC. Divide el espacio de IPs en zonas más pequeñas. No deben superponerse. Ej: <code>10.0.0.0/20</code> (4.091 IPs útiles). Una subred es <strong>privada por defecto</strong> hasta que le asignas una ruta a Internet.</p>
+                </div>
+              </div>
+            </div>
+            <!-- Card 3: CIDR -->
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+              <div class="flip-card-inner">
+                <div class="flip-card-front">
+                  <span class="flip-icon">📐</span>
+                  <h4>Bloque CIDR</h4>
+                  <span class="flip-hint">Clic para ver →</span>
+                </div>
+                <div class="flip-card-back">
+                  <p><strong>Classless Inter-Domain Routing.</strong> El número después del <code>/</code> indica cuántos bits están fijos. Mientras <strong>menor</strong> el número, <strong>más grande</strong> la red. <code>/16</code> = 65.536 IPs. <code>/20</code> = 4.096 IPs. AWS reserva 5 IPs por subred.</p>
+                </div>
+              </div>
+            </div>
+            <!-- Card 4: IGW -->
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+              <div class="flip-card-inner">
+                <div class="flip-card-front">
+                  <span class="flip-icon">🚪</span>
+                  <h4>Internet Gateway</h4>
+                  <span class="flip-hint">Clic para ver →</span>
+                </div>
+                <div class="flip-card-back">
+                  <p>La <strong>puerta de salida</strong> de tu VPC hacia Internet. Sin ella, aunque tengas una EC2 con IP pública, <strong>no puede comunicarse</strong> con el exterior. Además realiza NAT para traducir IPs privadas a públicas.</p>
+                </div>
+              </div>
+            </div>
+            <!-- Card 5: Route Table -->
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+              <div class="flip-card-inner">
+                <div class="flip-card-front">
+                  <span class="flip-icon">🚦</span>
+                  <h4>Tabla de Rutas</h4>
+                  <span class="flip-hint">Clic para ver →</span>
+                </div>
+                <div class="flip-card-back">
+                  <p>El <strong>GPS</strong> de la subred. Contiene reglas que dicen: "Si el destino es X, envíalo por Y". La ruta clave es <code>0.0.0.0/0 → IGW</code>, que significa: <strong>todo lo que no sea local, envíalo a Internet</strong>.</p>
+                </div>
+              </div>
+            </div>
+            <!-- Card 6: Asociación -->
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+              <div class="flip-card-inner">
+                <div class="flip-card-front">
+                  <span class="flip-icon">🔗</span>
+                  <h4>Asociación</h4>
+                  <span class="flip-hint">Clic para ver →</span>
+                </div>
+                <div class="flip-card-back">
+                  <p>El <strong>vínculo</strong> entre una subred y una tabla de rutas. Sin asociación explícita, la subred usa la tabla principal (que no tiene ruta a Internet). Una subred se vuelve pública <strong>solo</strong> cuando está asociada a una tabla con ruta al IGW.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 2: DIAGRAMA DE ARQUITECTURA -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-arquitectura" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.2</span>
+            Mapa del Taller: Lo que vamos a construir
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: El Mapa General (3 min)</h4>
+            <p>Muestra este diagrama <strong>antes de empezar</strong>. Vuelve a él después de cada módulo para marcar qué parte ya completaron.</p>
+            <ul>
+              <li><strong>Pregunta:</strong> "¿Qué componentes reconocen de la Clase 1?"</li>
+              <li>Deben reconocer VPC, Subredes, IGW, Route Table de la teoría anterior.</li>
+            </ul>
+          </div>
+
+          <p>Este es el panorama completo de lo que vas a construir. Cada módulo te lleva un paso más cerca de tener esta arquitectura funcionando:</p>
+
+          <div class="arch-diagram">
+            <!-- Internet Layer -->
+            <div class="arch-row">
+              <div class="arch-node">
+                <span class="arch-icon">🌐</span>
+                <h5>Internet</h5>
+                <small>Google, AWS, todo lo externo</small>
+              </div>
+            </div>
+
+            <div class="arch-connector">↕️</div>
+
+            <!-- VPC Boundary -->
+            <div class="arch-vpc-boundary">
+              <span class="arch-vpc-label">🔒 VPC (10.0.0.0/16) — Tu Red Privada</span>
+              
+              <!-- IGW -->
+              <div style="text-align: center; margin: 0.75rem 0;">
+                <div class="arch-node" style="display: inline-block; padding: 0.6rem 1.5rem; border-color: rgba(16,185,129,0.3); box-shadow: 0 0 12px rgba(16,185,129,0.1);">
+                  <span style="font-size: 1rem;">🚪</span>
+                  <h5 style="font-size: 0.85rem;">Internet Gateway (IGW)</h5>
+                  <small>La puerta de salida</small>
+                </div>
+              </div>
+
+              <div class="arch-connector">↕️</div>
+
+              <!-- Route Table -->
+              <div style="text-align: center; margin: 0.5rem 0;">
+                <div class="arch-node" style="display: inline-block; padding: 0.6rem 1.5rem; border-color: rgba(245,158,11,0.3); box-shadow: 0 0 12px rgba(245,158,11,0.1);">
+                  <span style="font-size: 1rem;">🚦</span>
+                  <h5 style="font-size: 0.85rem;">Tabla de Rutas</h5>
+                  <small>0.0.0.0/0 → IGW</small>
+                </div>
+              </div>
+
+              <div class="arch-connector">↕️</div>
+
+              <div class="arch-row" style="gap: 2rem; padding: 1rem 0;">
+                <!-- Public Subnet -->
+                <div class="arch-node" style="border-color: rgba(6,182,212,0.3); box-shadow: 0 0 12px rgba(6,182,212,0.1);">
+                  <span class="arch-icon">🏘️</span>
+                  <h5>Subred Pública</h5>
+                  <small>10.0.0.0/20<br>Con ruta a Internet</small>
+                </div>
+
+                <!-- Private Subnet -->
+                <div class="arch-node" style="border-color: rgba(236,72,153,0.3); box-shadow: 0 0 12px rgba(236,72,153,0.1);">
+                  <span class="arch-icon">🔐</span>
+                  <h5>Subred Privada</h5>
+                  <small>10.0.16.0/20<br>Sin ruta a Internet</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="why-callout">
+            <strong>💡 ¿Por qué importa este diagrama?</strong> Cada vez que te pierdas durante el taller, vuelve aquí. Cada módulo construye una pieza de este puzzle. Al final, todo estará conectado.
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 3: VPC BUILDER INTERACTIVO -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-vpc-builder" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.3</span>
+            🏗️ Simulador: Construye tu VPC paso a paso
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: El Simulador VPC Builder (15 min)</h4>
+            <p><strong>Meta:</strong> Que los estudiantes <strong>visualicen</strong> la construcción antes de hacerla en AWS. Cada botón simula un paso real.</p>
+            <ul>
+              <li><strong>Dinámica:</strong> Pide que intenten enviar el paquete SIN completar todos los pasos. Verán exactamente dónde falla y por qué.</li>
+              <li><strong>Pregunta clave:</strong> "¿Qué pasa si construyo la VPC y las subredes, pero no creo el Internet Gateway?"</li>
+              <li>Este simulador funciona como <strong>ensayo mental</strong> antes de ir a la consola real.</li>
+            </ul>
+          </div>
+
+          <p>Construye tu red pieza a pieza. Los botones deben presionarse <strong>en orden</strong> (igual que en AWS). Cuando completes todo, envía un paquete y observa el viaje.</p>
+
+          <div class="card" style="padding: 1.25rem;">
+            <div class="vpc-builder-canvas" id="vpcBuilderCanvas">
+              
+              <!-- VPC boundary -->
+              <div class="builder-vpc-box" id="builderVPC">
+                <span class="builder-vpc-label">VPC — 10.0.0.0/16</span>
+
+                <!-- Public Subnet -->
+                <div class="builder-subnet public" id="builderSubPub">
+                  <div class="builder-subnet-label">Subred Pública</div>
+                  <div class="builder-subnet-cidr">10.0.0.0/20</div>
+                </div>
+
+                <!-- Private Subnet -->
+                <div class="builder-subnet private" id="builderSubPriv">
+                  <div class="builder-subnet-label">Subred Privada</div>
+                  <div class="builder-subnet-cidr">10.0.16.0/20</div>
+                </div>
+
+                <!-- Route Table -->
+                <div class="builder-rt" id="builderRT">
+                  <div class="builder-rt-icon">🚦</div>
+                  <div class="builder-rt-label">Route Table</div>
+                  <div class="builder-rt-route" id="builderRTRoute">0.0.0.0/0 → IGW</div>
+                </div>
+              </div>
+
+              <!-- IGW (outside VPC boundary, on the right edge) -->
+              <div class="builder-igw" id="builderIGW">
+                <div class="builder-igw-icon">🚪</div>
+                <div class="builder-igw-label">IGW</div>
+              </div>
+
+              <!-- Internet -->
+              <div class="builder-internet" id="builderInternet">
+                <div class="builder-internet-icon">🌐</div>
+                <div>Internet</div>
+              </div>
+
+              <!-- Packet dot -->
+              <div class="builder-packet" id="builderPacket"></div>
+            </div>
+
+            <!-- Controls -->
+            <div class="builder-controls" id="builderControls">
+              <button class="builder-btn next-step" id="btnBuildVPC" onclick="buildStep('vpc')">🏗️ Crear VPC</button>
+              <button class="builder-btn" id="btnBuildSubnets" onclick="buildStep('subnets')" disabled>🏘️ Crear Subredes</button>
+              <button class="builder-btn" id="btnBuildIGW" onclick="buildStep('igw')" disabled>🚪 Crear IGW</button>
+              <button class="builder-btn" id="btnBuildRoute" onclick="buildStep('route')" disabled>🚦 Crear Ruta</button>
+              <button class="builder-btn" id="btnBuildAssoc" onclick="buildStep('assoc')" disabled>🔗 Asociar</button>
+              <button class="builder-btn builder-btn-send" id="btnBuildSend" onclick="buildStep('send')">🚀 Enviar Paquete</button>
+              <button class="builder-btn" id="btnBuildReset" onclick="resetBuilder()" style="margin-left: auto;">🔄 Reiniciar</button>
+            </div>
+
+            <!-- Status -->
+            <div class="builder-status" id="builderStatusBar">
+              <span class="builder-status-item" id="statusVPC">⬜ VPC</span>
+              <span class="builder-status-item" id="statusSubnets">⬜ Subredes</span>
+              <span class="builder-status-item" id="statusIGW">⬜ IGW</span>
+              <span class="builder-status-item" id="statusRoute">⬜ Ruta</span>
+              <span class="builder-status-item" id="statusAssoc">⬜ Asociación</span>
+            </div>
+
+            <!-- Alert -->
+            <div class="builder-alert" id="builderAlert"></div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 4: MÓDULO 1 — CREAR VPC -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-mod1" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.4</span>
+            Módulo 1 — Crear la VPC en AWS
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Creación de VPC (10 min)</h4>
+            <p><strong>Meta:</strong> Que cada alumno tenga una VPC creada con el CIDR correcto.</p>
+            <ul>
+              <li><strong>Concepto clave:</strong> "Estamos creando el país. El CIDR /16 es el territorio completo."</li>
+              <li><strong>Riesgo:</strong> Que seleccionen la región equivocada. Todos deben estar en <code>us-east-1</code>.</li>
+              <li><strong>Las 3 preguntas:</strong> ¿Qué estoy definiendo? (Una red privada aislada). ¿Qué problema resuelve? (Aislamiento de recursos). ¿Qué pasa si lo omito? (No hay dónde poner subredes ni recursos).</li>
+              <li><strong>Dato técnico:</strong> AWS permite bloques VPC desde /16 (65.536 IPs) hasta /28 (16 IPs). El bloque <strong>no se puede cambiar</strong> una vez creado.</li>
+            </ul>
+          </div>
+
+          <p>Primero necesitamos el "terreno" donde vivirán todos nuestros recursos. Eso es la VPC.</p>
+
+          <div class="stepper-wizard">
+            <!-- Step 1.1 -->
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle">1</div>
+                <div class="stepper-line"></div>
+              </div>
+              <div class="stepper-content">
+                <h4>Ingresar a la consola de AWS</h4>
+                <ul>
+                  <li>Ve a <a href="https://console.aws.amazon.com" target="_blank" style="color: var(--color-cyan);">console.aws.amazon.com</a></li>
+                  <li>Inicia sesión con tu cuenta</li>
+                  <li>Verifica que la región diga <strong>US East (N. Virginia) — us-east-1</strong></li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Step 1.2 -->
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle">2</div>
+                <div class="stepper-line"></div>
+              </div>
+              <div class="stepper-content">
+                <h4>Buscar el servicio VPC</h4>
+                <ul>
+                  <li>En la barra de búsqueda superior escribe <code>VPC</code></li>
+                  <li>Haz clic en el resultado <strong>VPC</strong> (Isolated Cloud Resources)</li>
+                  <li>En el menú izquierdo, haz clic en <strong>Sus VPC</strong></li>
+                  <li>Haz clic en el botón <strong>Crear VPC</strong></li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Step 1.3 -->
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle">3</div>
+              </div>
+              <div class="stepper-content">
+                <h4>Configurar la VPC</h4>
+                <table class="comparison-table" style="margin-top: 1rem;">
+                  <thead>
+                    <tr><th>Campo</th><th>Valor</th><th>¿Por qué?</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td class="feature-col">Recursos a crear</td><td><strong>Solo la VPC</strong></td><td>Queremos crear cada pieza manualmente para aprender</td></tr>
+                    <tr><td class="feature-col">Etiqueta de nombre</td><td><code>MiVPC-Taller</code></td><td>Nombre descriptivo para identificarla</td></tr>
+                    <tr><td class="feature-col">Bloque de CIDR IPv4</td><td><code>10.0.0.0/16</code></td><td>65.536 direcciones — espacio más que suficiente</td></tr>
+                    <tr><td class="feature-col">Bloque CIDR IPv6</td><td>Ningún bloque</td><td>No necesitamos IPv6 para este taller</td></tr>
+                    <tr><td class="feature-col">Tenencia</td><td>Predeterminada</td><td>Hardware compartido (más económico)</td></tr>
+                  </tbody>
+                </table>
+
+                <div class="why-callout" style="margin-top: 1rem;">
+                  <strong>💡 ¿Por qué /16?</strong> Porque es el bloque más grande permitido por AWS y nos da espacio de sobra para crear múltiples subredes sin preocuparnos de que se acaben las IPs. En producción, planificas según las necesidades reales.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Checklist -->
+          <div class="card" style="margin-top: 1rem; padding: 1.25rem;">
+            <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; color: #06b6d4;">✅ Checklist del Módulo 1</h4>
+            <div class="checklist-container" data-group="mod1">
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Región configurada en us-east-1</span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">VPC creada con CIDR 10.0.0.0/16</span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">VPC ID anotado (vpc-XXXXXXXX)</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 5: MÓDULO 2 — CREAR SUBREDES -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-mod2" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.5</span>
+            Módulo 2 — Crear las Subredes
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Subredes (15 min)</h4>
+            <p><strong>Concepto clave:</strong> "Estamos dividiendo el país en regiones. Cada región tiene su propio rango de IPs y no pueden superponerse."</p>
+            <ul>
+              <li><strong>Pregunta poderosa:</strong> "¿Por qué no ponemos todo en una sola subred?" → Organización, Seguridad, Escalabilidad, Separación de servicios</li>
+              <li><strong>Pregunta detonante:</strong> "¿Qué pasa si dos subredes usan el mismo rango IP?" → Colisión, los paquetes no saben dónde llegar</li>
+              <li><strong>Las 3 preguntas:</strong> ¿Qué estoy definiendo? (Un subconjunto del espacio de la VPC). ¿Qué problema resuelve? (Separación de funciones). ¿Qué pasa si lo omito? (No hay dónde colocar recursos).</li>
+            </ul>
+          </div>
+
+          <p>Ahora dividimos el terreno en barrios. Vamos a crear dos subredes: una pública (para servidores web) y una privada (para bases de datos).</p>
+
+          <!-- Visual: Subnet ranges -->
+          <div class="card" style="text-align: center; padding: 1.5rem; margin: 1.5rem 0;">
+            <h4 style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem;">División del espacio de IPs</h4>
+            <div style="font-family: 'Fira Code', monospace; font-size: 0.9rem; text-align: left; display: inline-block;">
+              <div style="color: var(--color-accent); margin-bottom: 0.5rem;">VPC 10.0.0.0/16 (65.536 IPs)</div>
+              <div style="padding-left: 1.5rem;">
+                <div style="color: var(--color-cyan); margin-bottom: 0.25rem;">├── Subred Pública: 10.0.0.0/20 (4.091 IPs útiles)</div>
+                <div style="color: var(--color-pink); margin-bottom: 0.25rem;">├── Subred Privada: 10.0.16.0/20 (4.091 IPs útiles)</div>
+                <div style="color: var(--text-muted);">└── Espacio libre para futuras subredes</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Steps for Public Subnet -->
+          <h3 style="margin: 1.5rem 0 1rem; font-size: 1.2rem;">Paso 2A: Crear la Subred Pública</h3>
+          <div class="stepper-wizard">
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle">1</div>
+                <div class="stepper-line"></div>
+              </div>
+              <div class="stepper-content">
+                <h4>Navegar a Subredes</h4>
+                <ul>
+                  <li>En el menú izquierdo de VPC, haz clic en <strong>Subredes</strong></li>
+                  <li>Haz clic en <strong>Crear subred</strong></li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle">2</div>
+              </div>
+              <div class="stepper-content">
+                <h4>Configurar la subred pública</h4>
+                <table class="comparison-table" style="margin-top: 0.75rem;">
+                  <thead><tr><th>Campo</th><th>Valor</th><th>¿Por qué?</th></tr></thead>
+                  <tbody>
+                    <tr><td class="feature-col">ID de VPC</td><td>Selecciona <code>MiVPC-Taller</code></td><td>Debe vivir dentro de tu VPC</td></tr>
+                    <tr><td class="feature-col">Nombre de subred</td><td><code>Subred-Publica</code></td><td>Nombre descriptivo</td></tr>
+                    <tr><td class="feature-col">Zona de disponibilidad</td><td><code>us-east-1a</code></td><td>Centro de datos específico</td></tr>
+                    <tr><td class="feature-col">Bloque CIDR IPv4</td><td><code>10.0.0.0/20</code></td><td>4.096 IPs (4.091 útiles)</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Steps for Private Subnet -->
+          <h3 style="margin: 2rem 0 1rem; font-size: 1.2rem;">Paso 2B: Crear la Subred Privada</h3>
+          <p>Repite el mismo proceso con estos valores:</p>
+          <table class="comparison-table" style="margin-top: 0.75rem;">
+            <thead><tr><th>Campo</th><th>Valor</th></tr></thead>
+            <tbody>
+              <tr><td class="feature-col">ID de VPC</td><td>Selecciona <code>MiVPC-Taller</code></td></tr>
+              <tr><td class="feature-col">Nombre de subred</td><td><code>Subred-Privada</code></td></tr>
+              <tr><td class="feature-col">Zona de disponibilidad</td><td><code>us-east-1a</code></td></tr>
+              <tr><td class="feature-col">Bloque CIDR IPv4</td><td><code>10.0.16.0/20</code></td></tr>
+            </tbody>
+          </table>
+
+          <div class="warning-callout" style="margin-top: 1rem;">
+            <strong>⚠️ ¡Cuidado!</strong> El CIDR de la subred privada empieza en <code>10.0.<strong>16</strong>.0</code>, NO en <code>10.0.0.0</code>. Si pones el mismo rango, AWS te dirá que se superpone con la otra subred.
+          </div>
+
+          <!-- Checklist -->
+          <div class="card" style="margin-top: 1rem; padding: 1.25rem;">
+            <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; color: #06b6d4;">✅ Checklist del Módulo 2</h4>
+            <div class="checklist-container" data-group="mod2">
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Subred Pública creada con CIDR 10.0.0.0/20</span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Subred Privada creada con CIDR 10.0.16.0/20</span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Ambas subredes están en la misma VPC</span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Los rangos CIDR NO se superponen</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 6: MÓDULO 3 — CREAR INTERNET GATEWAY -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-mod3" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.6</span>
+            Módulo 3 — Crear y asociar el Internet Gateway
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Internet Gateway (10 min)</h4>
+            <p><strong>Concepto clave:</strong> "Estamos abriendo la puerta de salida de la ciudad. Sin IGW, la VPC es una red completamente cerrada."</p>
+            <ul>
+              <li><strong>Pregunta detonante:</strong> "¿Nuestros servidores pueden acceder a Google ahora?" → No. Todavía no. Necesitan la puerta.</li>
+              <li><strong>Pregunta trampa:</strong> "¿Qué pasa si tengo una EC2 con IP pública pero no tengo IGW?" → No puede comunicarse. La IP pública existe pero no tiene salida.</li>
+              <li><strong>Las 3 preguntas:</strong> ¿Qué estoy definiendo? (Una puerta de enlace a Internet). ¿Qué problema resuelve? (Permite tráfico entrante y saliente). ¿Qué pasa si lo omito? (La VPC queda aislada del mundo).</li>
+            </ul>
+          </div>
+
+          <p>Ahora tenemos una ciudad con barrios, pero <strong>no tiene salida</strong>. Nadie entra, nadie sale. Necesitamos una puerta.</p>
+
+          <div class="stepper-wizard">
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle">1</div>
+                <div class="stepper-line"></div>
+              </div>
+              <div class="stepper-content">
+                <h4>Crear el Internet Gateway</h4>
+                <ul>
+                  <li>En el menú izquierdo de VPC, haz clic en <strong>Puertas de enlace de Internet</strong></li>
+                  <li>Haz clic en <strong>Crear puerta de enlace de Internet</strong></li>
+                  <li>Nombre: <code>IGW-Taller</code></li>
+                  <li>Haz clic en <strong>Crear</strong></li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle">2</div>
+              </div>
+              <div class="stepper-content">
+                <h4>⚠️ Asociar el IGW a la VPC (CRÍTICO)</h4>
+                <p>Un IGW recién creado está <strong>"desprendido" (detached)</strong>. Hay que conectarlo a la VPC.</p>
+                <ul>
+                  <li>Selecciona el IGW que acabas de crear</li>
+                  <li>Haz clic en <strong>Acciones → Asociar a VPC</strong></li>
+                  <li>Selecciona <code>MiVPC-Taller</code></li>
+                  <li>Haz clic en <strong>Asociar</strong></li>
+                </ul>
+
+                <div class="why-callout" style="margin-top: 0.75rem;">
+                  <strong>💡 ¿Puerta sin edificio?</strong> Un IGW sin VPC es como una puerta flotando en el aire. No sirve de nada si no está conectada a un edificio. Este es un error muy común: crear el IGW pero olvidar asociarlo.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Checklist -->
+          <div class="card" style="margin-top: 1rem; padding: 1.25rem;">
+            <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; color: #06b6d4;">✅ Checklist del Módulo 3</h4>
+            <div class="checklist-container" data-group="mod3">
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Internet Gateway creado (IGW-Taller)</span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">IGW asociado a MiVPC-Taller</span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Estado del IGW: "Attached"</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 7: MÓDULO 4 — CREAR TABLA DE RUTAS -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-mod4" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.7</span>
+            Módulo 4 — Crear la Tabla de Rutas
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Tabla de Rutas (15 min)</h4>
+            <p><strong>Este es el corazón conceptual del taller.</strong> La mayoría de los alumnos hace clic sin entender este paso.</p>
+            <ul>
+              <li><strong>Concepto clave:</strong> "Estamos dibujando el mapa. Sin mapa, aunque exista la puerta, nadie sabe dónde está."</li>
+              <li><strong>Analogía del GPS:</strong> Cuando un paquete llega a la tabla de rutas, pregunta: "¿A dónde debo ir?" La tabla responde con el destino y el objetivo.</li>
+              <li><strong>La ruta mágica:</strong> <code>0.0.0.0/0</code> significa "todo lo que no conozcas". Apuntarla al IGW significa "envíalo a Internet".</li>
+              <li><strong>Pregunta para la clase:</strong> "Ya tenemos ciudad, barrio y puerta. ¿Por qué aún no funciona?" → Porque nadie sabe dónde está la puerta.</li>
+            </ul>
+          </div>
+
+          <p>Tenemos VPC, subredes y puerta de salida. Pero nadie sabe <strong>dónde está la puerta</strong>. Necesitamos un mapa.</p>
+
+          <div class="stepper-wizard">
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle">1</div>
+                <div class="stepper-line"></div>
+              </div>
+              <div class="stepper-content">
+                <h4>Crear la tabla de rutas</h4>
+                <ul>
+                  <li>En el menú izquierdo de VPC, haz clic en <strong>Tablas de enrutamiento</strong></li>
+                  <li>Haz clic en <strong>Crear tabla de enrutamiento</strong></li>
+                  <li>Nombre: <code>RT-Publica-Taller</code></li>
+                  <li>VPC: Selecciona <code>MiVPC-Taller</code></li>
+                  <li>Haz clic en <strong>Crear</strong></li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle">2</div>
+              </div>
+              <div class="stepper-content">
+                <h4>Agregar la ruta a Internet</h4>
+                <ul>
+                  <li>Selecciona la tabla que acabas de crear</li>
+                  <li>Haz clic en la pestaña <strong>Rutas</strong></li>
+                  <li>Haz clic en <strong>Editar rutas → Agregar ruta</strong></li>
+                </ul>
+
+                <table class="comparison-table" style="margin-top: 0.75rem;">
+                  <thead><tr><th>Campo</th><th>Valor</th><th>Significado</th></tr></thead>
+                  <tbody>
+                    <tr><td class="feature-col">Destino</td><td><code>0.0.0.0/0</code></td><td>"Todo lo que no sea local"</td></tr>
+                    <tr><td class="feature-col">Objetivo</td><td>Internet Gateway → <code>IGW-Taller</code></td><td>"Envíalo por la puerta de Internet"</td></tr>
+                  </tbody>
+                </table>
+
+                <p style="margin-top: 0.75rem;">Haz clic en <strong>Guardar cambios</strong></p>
+
+                <!-- Anatomy of the route -->
+                <div class="card" style="text-align: center; padding: 1.5rem; margin-top: 1rem;">
+                  <h4 style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem;">Anatomía de la ruta</h4>
+                  <div class="flow-diagram">
+                    <div class="flow-node">
+                      <span class="flow-icon">📦</span>
+                      <strong>Paquete</strong>
+                      <small>"¿A dónde voy?"</small>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-node">
+                      <span class="flow-icon">🚦</span>
+                      <strong>Route Table</strong>
+                      <small>0.0.0.0/0 → IGW</small>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-node" style="border-color: rgba(16,185,129,0.3);">
+                      <span class="flow-icon">🚪</span>
+                      <strong>IGW</strong>
+                      <small>Salida a Internet</small>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-node" style="border-color: rgba(6,182,212,0.3);">
+                      <span class="flow-icon">🌐</span>
+                      <strong>Internet</strong>
+                      <small>Google, etc.</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Checklist -->
+          <div class="card" style="margin-top: 1rem; padding: 1.25rem;">
+            <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; color: #06b6d4;">✅ Checklist del Módulo 4</h4>
+            <div class="checklist-container" data-group="mod4">
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Tabla de rutas creada (RT-Publica-Taller)</span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Ruta 0.0.0.0/0 → IGW agregada</span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">La ruta local (10.0.0.0/16 → local) sigue existiendo</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 8: MÓDULO 5 — ASOCIAR SUBRED -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-mod5" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.8</span>
+            Módulo 5 — Asociar la Subred a la Tabla de Rutas
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Asociación (5 min)</h4>
+            <p><strong>Concepto fundamental:</strong> "Este es el momento en que la política realmente se aplica."</p>
+            <ul>
+              <li><strong>Enfatizar:</strong> Una subred NO es pública porque la llames "Subred-Publica". Se vuelve pública cuando está asociada a una tabla con ruta al IGW.</li>
+              <li><strong>Las 3 preguntas:</strong> ¿Qué estoy definiendo? (Qué tabla usa esta subred). ¿Qué problema resuelve? (La subred ahora sabe el camino a Internet). ¿Qué pasa si lo omito? (La subred usa la tabla principal, que NO tiene ruta a Internet).</li>
+              <li><strong>Dato AWS:</strong> Sin asociación explícita, la subred queda vinculada a la tabla principal de la VPC por defecto.</li>
+            </ul>
+          </div>
+
+          <p>Último paso. Tenemos el mapa (tabla de rutas) y el barrio (subred). Ahora hay que <strong>conectarlos</strong>.</p>
+
+          <div class="analogy-box">
+            <h4>🔗 La Asociación es la Conexión Final</h4>
+            <p>
+              Tengo un barrio. Tengo un conjunto de señales de tránsito. Debo decidir: <strong>¿qué barrio utilizará esas señales?</strong> Eso es exactamente la asociación. Sin ella, el barrio sigue usando las señales genéricas de la ciudad (que no apuntan a ninguna salida).
+            </p>
+          </div>
+
+          <div class="stepper-wizard">
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle">1</div>
+                <div class="stepper-line"></div>
+              </div>
+              <div class="stepper-content">
+                <h4>Abrir la pestaña de asociaciones</h4>
+                <ul>
+                  <li>En <strong>Tablas de enrutamiento</strong>, selecciona <code>RT-Publica-Taller</code></li>
+                  <li>Haz clic en la pestaña <strong>Asociaciones de subred</strong></li>
+                  <li>Haz clic en <strong>Editar asociaciones de subred</strong></li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle">2</div>
+              </div>
+              <div class="stepper-content">
+                <h4>Asociar la subred pública</h4>
+                <ul>
+                  <li>Marca la casilla de <code>Subred-Publica</code></li>
+                  <li><strong>NO</strong> marques la subred privada (esa debe quedarse sin ruta a Internet)</li>
+                  <li>Haz clic en <strong>Guardar asociaciones</strong></li>
+                </ul>
+
+                <div class="warning-callout" style="margin-top: 0.75rem;">
+                  <strong>⚠️ ¿Por qué NO asociamos la subred privada?</strong> Porque queremos que la base de datos y los servidores internos <strong>no tengan acceso directo a Internet</strong>. Eso es exactamente lo que hace una subred "privada": no tiene ruta al IGW.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Checklist -->
+          <div class="card" style="margin-top: 1rem; padding: 1.25rem;">
+            <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; color: #06b6d4;">✅ Checklist del Módulo 5</h4>
+            <div class="checklist-container" data-group="mod5">
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Subred Pública asociada a RT-Publica-Taller</span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Subred Privada NO asociada (usa tabla principal)</span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">🎉 ¡Arquitectura VPC completa!</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 9: CUESTIONARIO DE EVALUACIÓN Y REFLEXIÓN -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-evaluacion" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.9</span>
+            Cuestionario de Evaluación y Reflexión
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Evaluación de Evidencia (5 min)</h4>
+            <p><strong>Meta:</strong> Consolidar el aprendizaje del taller y fomentar la investigación.</p>
+            <ul>
+              <li>Indica a los estudiantes que deben rellenar este cuestionario con sus propias respuestas.</li>
+              <li>Una vez terminado, deben hacer clic en <strong>Exportar Respuestas para AVA</strong>.</li>
+              <li>El archivo descargado se sube al Entorno Virtual de Aprendizaje (AVA) como evidencia de trabajo práctico autónomo.</li>
+            </ul>
+          </div>
+
+          <p style="margin-bottom: 1.5rem;">Completa el siguiente cuestionario de metacognición. Tus respuestas se guardan automáticamente en el navegador. Al finalizar, exporta tu evidencia como archivo de texto plano para subirlo al portal institucional (AVA).</p>
+
+          <div class="card" style="padding: 1.5rem;">
+            <!-- Datos del Estudiante -->
+            <h3 style="font-size: 1.1rem; color: var(--color-cyan); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+              👤 Identificación del Estudiante
+            </h3>
+            <div class="eval-input-row">
+              <div class="eval-input-group">
+                <label class="eval-label" for="evalStudentName">Nombre Completo</label>
+                <input type="text" id="evalStudentName" class="eval-input" placeholder="Ej. Juan Pérez" required>
+              </div>
+              <div class="eval-input-group">
+                <label class="eval-label" for="evalStudentId">RUT / ID de Estudiante</label>
+                <input type="text" id="evalStudentId" class="eval-input" placeholder="Ej. 12.345.678-9" required>
+              </div>
+            </div>
+
+            <div class="eval-section-divider"></div>
+
+            <!-- Pregunta 1 -->
+            <div class="eval-input-group" style="margin-bottom: 2rem;">
+              <h4 style="font-size: 1rem; color: var(--text-primary); margin-bottom: 0.5rem; line-height: 1.4;">
+                1. Reflexión Práctica: ¿Por qué es fundamental que la subred privada no tenga una asociación con la tabla de rutas que apunta al Internet Gateway (IGW)? Explica el riesgo en un escenario real (ej. base de datos).
+              </h4>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">Contesta basándote en tu experiencia realizando este taller.</p>
+              <textarea id="evalQ1" class="eval-input eval-textarea" placeholder="Escribe tu reflexión aquí..." required></textarea>
+            </div>
+
+            <div class="eval-section-divider"></div>
+
+            <!-- Pregunta 2 -->
+            <div class="eval-input-group" style="margin-bottom: 2rem;">
+              <h4 style="font-size: 1rem; color: var(--text-primary); margin-bottom: 0.25rem; line-height: 1.4;">
+                2. Pregunta de Alternativa: ¿Qué componente de red en AWS determina a través de qué caminos viales viajan los paquetes a nivel de subred (es decir, funciona como el GPS)?
+              </h4>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">Selecciona una opción.</p>
+              <div class="eval-options-grid" data-question="q2">
+                <div class="eval-option-card cyan-theme" data-type="radio" data-value="A">
+                  <div class="eval-radio"></div>
+                  <div class="eval-option-text"><strong>A) Internet Gateway (IGW):</strong> Se encarga de direccionar y enviar directamente el tráfico local e internacional.</div>
+                </div>
+                <div class="eval-option-card cyan-theme" data-type="radio" data-value="B">
+                  <div class="eval-radio"></div>
+                  <div class="eval-option-text"><strong>B) Tabla de Rutas (Route Table):</strong> Contiene reglas de enrutamiento que señalan el destino de salida de cada paquete de acuerdo a su dirección IP destino.</div>
+                </div>
+                <div class="eval-option-card cyan-theme" data-type="radio" data-value="C">
+                  <div class="eval-radio"></div>
+                  <div class="eval-option-text"><strong>C) VPC CIDR Block:</strong> Modifica la topología de la red indicando de forma dinámica las rutas externas.</div>
+                </div>
+                <div class="eval-option-card cyan-theme" data-type="radio" data-value="D">
+                  <div class="eval-radio"></div>
+                  <div class="eval-option-text"><strong>D) Subnet ACL:</strong> Traduce direcciones físicas a virtuales permitiendo la comunicación global.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="eval-section-divider"></div>
+
+            <!-- Pregunta 3 -->
+            <div class="eval-input-group" style="margin-bottom: 2rem;">
+              <h4 style="font-size: 1rem; color: var(--text-primary); margin-bottom: 0.25rem; line-height: 1.4;">
+                3. Pregunta de Selección Múltiple: Si una instancia EC2 alojada en tu subred pública no puede comunicarse con Internet, ¿cuáles de las siguientes configuraciones de red o recursos debes inspeccionar?
+              </h4>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">Selecciona todas las opciones que correspondan.</p>
+              <div class="eval-options-grid" data-question="q3">
+                <div class="eval-option-card" data-type="checkbox" data-value="A">
+                  <div class="eval-checkbox"></div>
+                  <div class="eval-option-text"><strong>A) Tabla de rutas:</strong> Verificar si tiene la ruta <code>0.0.0.0/0</code> apuntando al Internet Gateway (IGW) correspondiente.</div>
+                </div>
+                <div class="eval-option-card" data-type="checkbox" data-value="B">
+                  <div class="eval-checkbox"></div>
+                  <div class="eval-option-text"><strong>B) Internet Gateway:</strong> Confirmar que el Internet Gateway esté creado y correctamente enlazado (attached) a tu VPC.</div>
+                </div>
+                <div class="eval-option-card" data-type="checkbox" data-value="C">
+                  <div class="eval-checkbox"></div>
+                  <div class="eval-option-text"><strong>C) Asociación de subred:</strong> Verificar que la subred donde vive la EC2 esté explícitamente asociada a la tabla de rutas pública.</div>
+                </div>
+                <div class="eval-option-card" data-type="checkbox" data-value="D">
+                  <div class="eval-checkbox"></div>
+                  <div class="eval-option-text"><strong>D) Rango de IPs (CIDR Block):</strong> Comprobar si el bloque CIDR de la VPC es exactamente <code>10.0.0.0/16</code> (otros bloques de red no tienen soporte para salir a Internet).</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="eval-section-divider"></div>
+
+            <!-- Pregunta 4 -->
+            <div class="eval-input-group" style="margin-bottom: 2rem;">
+              <h4 style="font-size: 1rem; color: var(--text-primary); margin-bottom: 0.5rem; line-height: 1.4;">
+                4. Investigación y Ampliación de Horizontes: ¿Qué es una subred privada que utiliza un NAT Gateway en vez de un Internet Gateway? ¿En qué se diferencia el flujo de paquetes de un NAT Gateway con respecto a un Internet Gateway?
+              </h4>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">Investiga externamente para ampliar tu conocimiento sobre arquitecturas de red seguras en la nube.</p>
+              <textarea id="evalQ4" class="eval-input eval-textarea" placeholder="Escribe tu investigación aquí..." required></textarea>
+            </div>
+
+            <!-- Botón de Exportación -->
+            <div style="display: flex; flex-direction: column; gap: 0.75rem; align-items: flex-start; margin-top: 1.5rem;">
+              <button class="builder-btn builder-btn-send" id="btnExportAnswers" onclick="exportAnswersToTXT()">
+                📥 Exportar Respuestas para AVA
+              </button>
+              <span id="evalErrorMsg" style="color: #f87171; font-size: 0.85rem; display: none; margin-top: 0.25rem;">
+                ❌ Por favor completa tu Nombre, RUT y todas las respuestas antes de exportar.
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 10: DESAFÍO FINAL -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-desafio" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.10</span>
+            Desafío Final: El Viaje del Paquete
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Evaluación Conceptual (10 min)</h4>
+            <p><strong>La pregunta definitiva:</strong> "Explica el viaje de un paquete desde una instancia EC2 hasta Google."</p>
+            <ul>
+              <li>No preguntes "¿qué botón presionaste?" — pregunta "¿qué pasa con el paquete?"</li>
+              <li>La respuesta completa tiene 5 pasos. Si logran responderlos todos, entendieron redes en AWS.</li>
+              <li>Luego usa las preguntas de eliminación: "¿Qué pasa si elimino la tabla? ¿Y si elimino la puerta? ¿Y si elimino la subred?"</li>
+            </ul>
+          </div>
+
+          <p>Si puedes responder esta pregunta, <strong>entendiste redes en AWS</strong>:</p>
+
+          <div class="card" style="text-align: center; padding: 2rem; margin: 1.5rem 0; border: 2px solid rgba(6,182,212,0.3);">
+            <h3 style="color: var(--color-cyan); font-size: 1.4rem; margin-bottom: 0.5rem;">
+              Explica el viaje de un paquete<br>desde una instancia EC2 hasta Google.
+            </h3>
+          </div>
+
+          <!-- Quiz: Packet Journey -->
+          <div class="quiz-container">
+            <div class="quiz-question-card">
+              <h4>1. ¿Cuál es el orden correcto del viaje de un paquete desde EC2 hasta Internet?</h4>
+              <div class="quiz-options">
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">A</div>
+                  <span>EC2 → Internet Gateway → Subred → Tabla de Rutas → Internet</span>
+                </div>
+                <div class="quiz-option" data-correct="true">
+                  <div class="quiz-option-marker">B</div>
+                  <span>EC2 → Subred → Tabla de Rutas → Internet Gateway → Internet</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">C</div>
+                  <span>EC2 → VPC → Internet (la VPC conecta directo)</span>
+                </div>
+              </div>
+              <div class="quiz-explanation">
+                <strong>Correcto:</strong> El paquete sale de la instancia EC2, llega a la subred, consulta la tabla de rutas, la ruta 0.0.0.0/0 lo envía al Internet Gateway, y este conecta la VPC con Internet.
+              </div>
+            </div>
+
+            <div class="quiz-question-card">
+              <h4>2. Una subred se llama "Subred-Publica" pero NO tiene ruta al IGW en su tabla de rutas. ¿Es realmente pública?</h4>
+              <div class="quiz-options">
+                <div class="quiz-option" data-correct="true">
+                  <div class="quiz-option-marker">A</div>
+                  <span>No. El nombre es solo una etiqueta. Sin ruta al IGW, es privada sin importar cómo se llame.</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">B</div>
+                  <span>Sí. AWS la reconoce como pública automáticamente por el nombre.</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">C</div>
+                  <span>Depende de si tiene IP pública asignada.</span>
+                </div>
+              </div>
+              <div class="quiz-explanation">
+                <strong>Correcto:</strong> Una subred es pública <strong>únicamente</strong> si tiene una ruta directa a un Internet Gateway en su tabla de rutas asociada. El nombre es solo una etiqueta para humanos; AWS no lo lee.
+              </div>
+            </div>
+
+            <div class="quiz-question-card">
+              <h4>3. ¿Qué pasaría si eliminas el Internet Gateway pero dejas todo lo demás igual?</h4>
+              <div class="quiz-options">
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">A</div>
+                  <span>Nada cambia, la tabla de rutas seguirá enviando tráfico a Internet.</span>
+                </div>
+                <div class="quiz-option" data-correct="false">
+                  <div class="quiz-option-marker">B</div>
+                  <span>Solo se pierde el tráfico de entrada, el de salida sigue funcionando.</span>
+                </div>
+                <div class="quiz-option" data-correct="true">
+                  <div class="quiz-option-marker">C</div>
+                  <span>Se pierde toda comunicación con Internet. La ruta 0.0.0.0/0 apunta a un IGW que ya no existe, así que los paquetes se pierden.</span>
+                </div>
+              </div>
+              <div class="quiz-explanation">
+                <strong>Correcto:</strong> La tabla de rutas seguirá apuntando a un IGW que ya no existe. AWS marcará esa ruta como "blackhole" (agujero negro). Los paquetes no tendrán salida y la comunicación con Internet se detiene completamente.
+              </div>
+            </div>
+          </div>
+
+          <!-- Open discussion questions -->
+          <h3 style="margin: 2rem 0 1rem; font-size: 1.2rem;">Preguntas Abiertas para Discusión</h3>
+          <div class="card" style="padding: 1.5rem;">
+            <ol style="display: flex; flex-direction: column; gap: 0.75rem; margin-left: 1.25rem; color: var(--text-secondary); font-size: 0.95rem;">
+              <li>¿Por qué no poner todo en una sola subred?</li>
+              <li>¿Por qué una base de datos no debería tener acceso directo a Internet?</li>
+              <li>¿Qué ventajas tiene separar redes en subredes distintas?</li>
+              <li>¿Qué pasaría si una tabla de rutas se configura mal?</li>
+              <li>¿Qué ocurriría si dos VPC usan los mismos rangos IP y luego queremos conectarlas?</li>
+              <li>¿Qué diferencia existe entre tener una IP pública y tener acceso a Internet?</li>
+              <li>¿Puede existir un Internet Gateway sin tabla de rutas? ¿Y viceversa?</li>
+              <li>¿Qué componente toma realmente la decisión final sobre hacia dónde viaja un paquete?</li>
+            </ol>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 10: CASOS DE USO REALES -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-casos" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.11</span>
+            Casos de Uso Reales
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Conectar con la Realidad (5 min)</h4>
+            <p>Estos casos muestran que lo que acaban de construir es exactamente lo que usan las empresas reales. Pregunta: "¿Cuántas subredes necesitaría Netflix?"</p>
+          </div>
+
+          <div class="class-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-top: 1.5rem;">
+            <!-- Caso 1 -->
+            <div class="card" style="margin-bottom: 0;">
+              <h3 style="color: var(--color-cyan); font-size: 1.15rem; margin-bottom: 0.75rem;">🛒 Sitio Web (mitienda.cl)</h3>
+              <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.75rem;">Una empresa quiere publicar su tienda online.</p>
+              <div style="font-family: 'Fira Code', monospace; font-size: 0.8rem; color: var(--text-muted);">
+                <div>✅ VPC</div>
+                <div>✅ Subred Pública</div>
+                <div>✅ Internet Gateway</div>
+                <div>✅ Tabla de rutas</div>
+                <div>✅ EC2 con web server</div>
+              </div>
+              <p style="font-size: 0.85rem; color: var(--color-cyan); margin-top: 0.75rem; font-weight: 600;">= Todo lo que acabas de construir.</p>
+            </div>
+
+            <!-- Caso 2 -->
+            <div class="card" style="margin-bottom: 0;">
+              <h3 style="color: var(--color-pink); font-size: 1.15rem; margin-bottom: 0.75rem;">🗄️ Base de Datos (PostgreSQL)</h3>
+              <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.75rem;">La base de datos NO debería estar expuesta a Internet.</p>
+              <div style="font-family: 'Fira Code', monospace; font-size: 0.8rem; color: var(--text-muted);">
+                <div>✅ Misma VPC</div>
+                <div>✅ Otra subred (Privada)</div>
+                <div>❌ Sin ruta a Internet</div>
+                <div>✅ Solo accesible desde la subred pública</div>
+              </div>
+              <p style="font-size: 0.85rem; color: var(--color-pink); margin-top: 0.75rem; font-weight: 600;">= Subred privada. Seguridad por diseño.</p>
+            </div>
+
+            <!-- Caso 3 -->
+            <div class="card" style="margin-bottom: 0;">
+              <h3 style="color: var(--color-accent); font-size: 1.15rem; margin-bottom: 0.75rem;">🎓 Sistema de Notas (Universidad)</h3>
+              <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.75rem;">Arquitectura de 3 capas profesional.</p>
+              <div style="font-family: 'Fira Code', monospace; font-size: 0.8rem; color: var(--text-muted);">
+                <div>🌐 Internet → Web (Pública)</div>
+                <div>🔗 Web → Backend (Privada)</div>
+                <div>🔗 Backend → BD (Privada)</div>
+              </div>
+              <p style="font-size: 0.85rem; color: var(--color-accent); margin-top: 0.75rem; font-weight: 600;">= Cada capa en su propia subred.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 11: LIMPIEZA DE RECURSOS -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-limpieza" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.12</span>
+            Limpieza — Eliminar todos los recursos
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Limpieza (5 min)</h4>
+            <p><strong>CRÍTICO:</strong> Verifica que TODOS los alumnos eliminen sus recursos antes de salir. La VPC en sí no genera cargos, pero si lanzan una EC2 dentro y la olvidan, sí.</p>
+          </div>
+
+          <div class="warning-callout">
+            <strong>⚠️ IMPORTANTE:</strong> Debes eliminar los recursos en <strong>orden inverso</strong>. No puedes eliminar la VPC si tiene subredes, ni las subredes si tienen recursos asociados.
+          </div>
+
+          <div class="stepper-wizard" style="margin-top: 1.5rem;">
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle">1</div>
+                <div class="stepper-line"></div>
+              </div>
+              <div class="stepper-content">
+                <h4>Desasociar y eliminar la tabla de rutas</h4>
+                <ul>
+                  <li>Ve a <strong>Tablas de enrutamiento</strong></li>
+                  <li>Selecciona <code>RT-Publica-Taller</code> → Asociaciones → Editar → Desmarca la subred → Guardar</li>
+                  <li>Luego selecciona la tabla → Acciones → <strong>Eliminar</strong></li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle">2</div>
+                <div class="stepper-line"></div>
+              </div>
+              <div class="stepper-content">
+                <h4>Desasociar y eliminar el Internet Gateway</h4>
+                <ul>
+                  <li>Ve a <strong>Puertas de enlace de Internet</strong></li>
+                  <li>Selecciona <code>IGW-Taller</code> → Acciones → <strong>Desasociar de VPC</strong></li>
+                  <li>Luego → Acciones → <strong>Eliminar</strong></li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle">3</div>
+                <div class="stepper-line"></div>
+              </div>
+              <div class="stepper-content">
+                <h4>Eliminar las subredes</h4>
+                <ul>
+                  <li>Ve a <strong>Subredes</strong></li>
+                  <li>Selecciona <code>Subred-Publica</code> → Acciones → <strong>Eliminar</strong></li>
+                  <li>Repite para <code>Subred-Privada</code></li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle">4</div>
+              </div>
+              <div class="stepper-content">
+                <h4>Eliminar la VPC</h4>
+                <ul>
+                  <li>Ve a <strong>Sus VPC</strong></li>
+                  <li>Selecciona <code>MiVPC-Taller</code> → Acciones → <strong>Eliminar VPC</strong></li>
+                  <li>Escribe <code>eliminar</code> para confirmar</li>
+                </ul>
+
+                <div class="why-callout" style="margin-top: 0.75rem;">
+                  <strong>💡 ¿Por qué en orden inverso?</strong> AWS no permite eliminar un recurso que tiene dependencias activas. Es como demoler un edificio: primero sacas los muebles (rutas), luego quitas las puertas (IGW), después los pisos (subredes), y al final la estructura (VPC).
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Final checklist -->
+          <div class="card" style="margin-top: 1.5rem; padding: 1.25rem; border: 2px solid rgba(16,185,129,0.3);">
+            <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; color: var(--color-teacher);">✅ Checklist Final de Limpieza</h4>
+            <div class="checklist-container" data-group="cleanup">
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Tabla de rutas eliminada</span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Internet Gateway desasociado y eliminado</span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Subred Pública eliminada</span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">Subred Privada eliminada</span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">VPC eliminada</span></div>
+              <div class="checklist-item" onclick="toggleCheck(this)"><div class="checklist-box"></div><span class="checklist-text">🎉 ¡Laboratorio limpio! Sin cargos pendientes.</span></div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Sticky Sidebar -->
+      <aside class="sidebar-navigation">
+        <h4>Contenido del Taller</h4>
+        <ul class="sidebar-links">
+          <li><a href="#slide-portada" class="active">T.0 Objetivos</a></li>
+          <li><a href="#slide-conceptos">T.1 Conceptos Clave</a></li>
+          <li><a href="#slide-arquitectura">T.2 Arquitectura</a></li>
+          <li><a href="#slide-vpc-builder">T.3 VPC Builder</a></li>
+          <li><a href="#slide-mod1">T.4 Crear VPC</a></li>
+          <li><a href="#slide-mod2">T.5 Crear Subredes</a></li>
+          <li><a href="#slide-mod3">T.6 Crear IGW</a></li>
+          <li><a href="#slide-mod4">T.7 Tabla de Rutas</a></li>
+          <li><a href="#slide-mod5">T.8 Asociar Subred</a></li>
+          <li><a href="#slide-evaluacion">T.9 Cuestionario</a></li>
+          <li><a href="#slide-desafio">T.10 Desafío Final</a></li>
+          <li><a href="#slide-casos">T.11 Casos de Uso</a></li>
+          <li><a href="#slide-limpieza">T.12 Limpieza</a></li>
+        </ul>
+      </aside>
+
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>© 2026 Portal de Cloud Computing - Diseñado para una docencia ágil e interactiva.</p>
+    <p style="margin-top: 0.5rem;"><a href="index.html">← Volver al Dashboard Principal</a></p>
+  </footer>
+
+  <script src="script.js"></script>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initQuiz();
+      initSidebarScrollSpy();
+      initProgressBar();
+      initEvaluation();
+    });
+
+    // =========================================================
+    // VPC BUILDER SIMULATOR
+    // =========================================================
+    const builderState = {
+      vpc: false,
+      subnets: false,
+      igw: false,
+      route: false,
+      assoc: false
+    };
+
+    function buildStep(step) {
+      const alert = document.getElementById('builderAlert');
+
+      // If sending a packet, check the state
+      if (step === 'send') {
+        sendPacket();
+        return;
+      }
+
+      // Check prerequisite order
+      const order = ['vpc', 'subnets', 'igw', 'route', 'assoc'];
+      const stepIndex = order.indexOf(step);
+
+      // Can't redo a completed step
+      if (builderState[step]) {
+        showBuilderAlert('info', `✅ Este paso ya está completado.`);
+        return;
+      }
+
+      // Check all previous steps are done
+      for (let i = 0; i < stepIndex; i++) {
+        if (!builderState[order[i]]) {
+          const names = {
+            vpc: 'crear la VPC primero',
+            subnets: 'crear las subredes primero',
+            igw: 'crear el Internet Gateway primero',
+            route: 'crear la tabla de rutas primero',
+            assoc: 'asociar la subred primero'
+          };
+          showBuilderAlert('error', `❌ Necesitas ${names[order[i]]}. No puedes saltarte pasos, igual que en AWS.`);
+          return;
+        }
+      }
+
+      // Execute the step
+      builderState[step] = true;
+
+      switch(step) {
+        case 'vpc':
+          document.getElementById('builderVPC').classList.add('visible');
+          document.getElementById('builderInternet').classList.add('visible');
+          showBuilderAlert('success', '✅ <strong>VPC creada.</strong> Ahora tienes un terreno aislado con 65.536 IPs. Pero está vacío — necesitas barrios (subredes).');
+          break;
+        case 'subnets':
+          document.getElementById('builderSubPub').classList.add('visible');
+          document.getElementById('builderSubPriv').classList.add('visible');
+          showBuilderAlert('success', '✅ <strong>Subredes creadas.</strong> Ahora tienes dos barrios: uno público y uno privado. Pero no hay salida a Internet — necesitas una puerta (IGW).');
+          break;
+        case 'igw':
+          document.getElementById('builderIGW').classList.add('visible');
+          showBuilderAlert('success', '✅ <strong>Internet Gateway creado.</strong> La puerta existe, pero nadie sabe dónde está. Necesitas un mapa (tabla de rutas).');
+          break;
+        case 'route':
+          document.getElementById('builderRT').classList.add('visible');
+          document.getElementById('builderRTRoute').classList.add('visible');
+          showBuilderAlert('success', '✅ <strong>Tabla de rutas configurada.</strong> El mapa dice: "Todo lo desconocido → IGW". Pero la subred no sabe que este mapa le pertenece. Falta la asociación.');
+          break;
+        case 'assoc':
+          showBuilderAlert('success', '🎉 <strong>¡Arquitectura VPC completa!</strong> La subred pública ahora está asociada a la tabla de rutas con salida a Internet. Prueba enviando un paquete. 🚀');
+          break;
+      }
+
+      // Update UI
+      updateBuilderUI();
+    }
+
+    function sendPacket() {
+      const alert = document.getElementById('builderAlert');
+      const packet = document.getElementById('builderPacket');
+
+      // Check what's missing
+      if (!builderState.vpc) {
+        showBuilderAlert('error', '❌ <strong>Error:</strong> No existe ninguna VPC. El paquete no tiene red donde vivir. Crea la VPC primero.');
+        return;
+      }
+      if (!builderState.subnets) {
+        showBuilderAlert('error', '❌ <strong>Error:</strong> No hay subredes. El paquete no tiene subred asignada. Crea las subredes primero.');
+        return;
+      }
+      if (!builderState.igw) {
+        showBuilderAlert('error', '❌ <strong>Error:</strong> No existe Internet Gateway. El paquete llega a la subred pero no hay puerta de salida. Sin IGW, la VPC está completamente aislada de Internet.');
+        return;
+      }
+      if (!builderState.route) {
+        showBuilderAlert('error', '❌ <strong>Error:</strong> No hay tabla de rutas con destino 0.0.0.0/0. El paquete no sabe por dónde ir. El IGW existe, pero sin ruta que lo señale, es invisible.');
+        return;
+      }
+      if (!builderState.assoc) {
+        showBuilderAlert('error', '❌ <strong>Error:</strong> La subred no está asociada a la tabla de rutas. Aunque la ruta existe, la subred no la conoce. Sin asociación, sigue usando la tabla principal (que no tiene ruta a Internet).');
+        return;
+      }
+
+      // All good — animate the packet!
+      animatePacket();
+    }
+
+    function animatePacket() {
+      const packet = document.getElementById('builderPacket');
+      const canvas = document.getElementById('vpcBuilderCanvas');
+      const canvasRect = canvas.getBoundingClientRect();
+
+      // Get positions of elements
+      const subPub = document.getElementById('builderSubPub');
+      const rt = document.getElementById('builderRT');
+      const igw = document.getElementById('builderIGW');
+      const internet = document.getElementById('builderInternet');
+
+      // Calculate relative positions
+      const subPubRect = subPub.getBoundingClientRect();
+      const rtRect = rt.getBoundingClientRect();
+      const igwRect = igw.getBoundingClientRect();
+      const internetRect = internet.getBoundingClientRect();
+
+      // Start position: center of public subnet
+      const startX = subPubRect.left - canvasRect.left + subPubRect.width / 2;
+      const startY = subPubRect.top - canvasRect.top + subPubRect.height / 2;
+
+      // RT position
+      const rtX = rtRect.left - canvasRect.left + rtRect.width / 2;
+      const rtY = rtRect.top - canvasRect.top + rtRect.height / 2;
+
+      // IGW position
+      const igwX = igwRect.left - canvasRect.left + igwRect.width / 2;
+      const igwY = igwRect.top - canvasRect.top + igwRect.height / 2;
+
+      // Internet position
+      const intX = internetRect.left - canvasRect.left + internetRect.width / 2;
+      const intY = internetRect.top - canvasRect.top + internetRect.height / 2;
+
+      // Reset and start
+      packet.style.transition = 'none';
+      packet.style.left = startX + 'px';
+      packet.style.top = startY + 'px';
+      packet.style.opacity = '1';
+
+      showBuilderAlert('info', '📦 Paquete sale de EC2 en la subred pública...');
+
+      // Step 1: to Route Table
+      setTimeout(() => {
+        packet.style.transition = 'left 0.6s ease, top 0.6s ease';
+        packet.style.left = rtX + 'px';
+        packet.style.top = rtY + 'px';
+        showBuilderAlert('info', '📦 → Consulta la <strong>tabla de rutas</strong>... destino 0.0.0.0/0 → IGW');
+      }, 400);
+
+      // Step 2: to IGW
+      setTimeout(() => {
+        packet.style.left = igwX + 'px';
+        packet.style.top = igwY + 'px';
+        showBuilderAlert('info', '📦 → Llega al <strong>Internet Gateway</strong>... NAT realizado...');
+      }, 1200);
+
+      // Step 3: to Internet
+      setTimeout(() => {
+        packet.style.left = intX + 'px';
+        packet.style.top = intY + 'px';
+        showBuilderAlert('success', '🎉 <strong>¡Paquete entregado a Internet!</strong> El viaje completo: EC2 → Subred → Tabla de Rutas → IGW → Internet. ¡Felicidades, entiendes redes en AWS!');
+      }, 2000);
+
+      // Fade out
+      setTimeout(() => {
+        packet.style.opacity = '0';
+      }, 3200);
+    }
+
+    function updateBuilderUI() {
+      const order = ['vpc', 'subnets', 'igw', 'route', 'assoc'];
+      const btnIds = {
+        vpc: 'btnBuildVPC',
+        subnets: 'btnBuildSubnets',
+        igw: 'btnBuildIGW',
+        route: 'btnBuildRoute',
+        assoc: 'btnBuildAssoc'
+      };
+      const statusIds = {
+        vpc: 'statusVPC',
+        subnets: 'statusSubnets',
+        igw: 'statusIGW',
+        route: 'statusRoute',
+        assoc: 'statusAssoc'
+      };
+      const statusLabels = {
+        vpc: 'VPC',
+        subnets: 'Subredes',
+        igw: 'IGW',
+        route: 'Ruta',
+        assoc: 'Asociación'
+      };
+
+      let nextStepFound = false;
+
+      order.forEach((step, idx) => {
+        const btn = document.getElementById(btnIds[step]);
+        const status = document.getElementById(statusIds[step]);
+
+        if (builderState[step]) {
+          // Completed
+          btn.disabled = false;
+          btn.classList.remove('next-step');
+          btn.classList.add('completed');
+          status.classList.add('done');
+          status.textContent = `✅ ${statusLabels[step]}`;
+        } else if (!nextStepFound) {
+          // Next available step
+          btn.disabled = false;
+          btn.classList.add('next-step');
+          btn.classList.remove('completed');
+          nextStepFound = true;
+          status.textContent = `⬜ ${statusLabels[step]}`;
+        } else {
+          // Locked
+          btn.disabled = true;
+          btn.classList.remove('next-step', 'completed');
+          status.textContent = `⬜ ${statusLabels[step]}`;
+        }
+      });
+    }
+
+    function resetBuilder() {
+      // Reset state
+      builderState.vpc = false;
+      builderState.subnets = false;
+      builderState.igw = false;
+      builderState.route = false;
+      builderState.assoc = false;
+
+      // Reset visual elements
+      document.getElementById('builderVPC').classList.remove('visible');
+      document.getElementById('builderSubPub').classList.remove('visible');
+      document.getElementById('builderSubPriv').classList.remove('visible');
+      document.getElementById('builderIGW').classList.remove('visible');
+      document.getElementById('builderRT').classList.remove('visible');
+      document.getElementById('builderRTRoute').classList.remove('visible');
+      document.getElementById('builderInternet').classList.remove('visible');
+      document.getElementById('builderPacket').style.opacity = '0';
+
+      // Reset alert
+      document.getElementById('builderAlert').style.display = 'none';
+
+      // Reset buttons
+      updateBuilderUI();
+    }
+
+    function showBuilderAlert(type, html) {
+      const alert = document.getElementById('builderAlert');
+      alert.className = `builder-alert ${type}`;
+      alert.innerHTML = html;
+      alert.style.display = 'block';
+    }
+
+    // =========================================================
+    // QUIZ
+    // =========================================================
+    function initQuiz() {
+      const quizCards = document.querySelectorAll('.quiz-question-card');
+      quizCards.forEach(card => {
+        const options = card.querySelectorAll('.quiz-option');
+        const explanation = card.querySelector('.quiz-explanation');
+        let answered = false;
+        options.forEach(opt => {
+          opt.addEventListener('click', () => {
+            if (answered) return;
+            answered = true;
+            if (opt.getAttribute('data-correct') === 'true') {
+              opt.classList.add('correct');
+            } else {
+              opt.classList.add('incorrect');
+              options.forEach(o => {
+                if (o.getAttribute('data-correct') === 'true') o.classList.add('correct');
+              });
+            }
+            if (explanation) explanation.style.display = 'block';
+          });
+        });
+      });
+    }
+
+    // =========================================================
+    // CHECKLIST
+    // =========================================================
+    function toggleCheck(el) {
+      el.classList.toggle('checked');
+    }
+
+    // =========================================================
+    // SIDEBAR SCROLL SPY
+    // =========================================================
+    function initSidebarScrollSpy() {
+      const sidebarLinks = document.querySelectorAll('.sidebar-links a');
+      const slidesList = document.querySelectorAll('.slide');
+      const onScroll = () => {
+        if (document.body.classList.contains('presentation-mode')) return;
+        let currentSlideId = '';
+        const scrollPosition = window.scrollY + 200;
+        slidesList.forEach(slide => {
+          const top = slide.offsetTop;
+          const height = slide.offsetHeight;
+          if (scrollPosition >= top && scrollPosition < top + height) {
+            currentSlideId = slide.getAttribute('id');
+          }
+        });
+        if (currentSlideId) {
+          sidebarLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href') === `#${currentSlideId}`) link.classList.add('active');
+          });
+        }
+      };
+      window.addEventListener('scroll', onScroll);
+    }
+
+    // =========================================================
+    // PROGRESS BAR SCROLL SYNC
+    // =========================================================
+    function initProgressBar() {
+      const progressSteps = document.querySelectorAll('.taller-progress-bar .progress-step');
+      const slidesList = document.querySelectorAll('.slide');
+
+      if (!progressSteps.length || !slidesList.length) return;
+
+      // Click navigation
+      progressSteps.forEach(step => {
+        step.addEventListener('click', () => {
+          const targetId = step.getAttribute('data-target');
+          const targetEl = document.getElementById(targetId);
+          if (targetEl) {
+            targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
+        step.style.cursor = 'pointer';
+      });
+
+      // Scroll sync
+      const onScroll = () => {
+        if (document.body.classList.contains('presentation-mode')) return;
+        const scrollPos = window.scrollY + 250;
+        let activeIdx = 0;
+
+        slidesList.forEach((slide, idx) => {
+          if (scrollPos >= slide.offsetTop) {
+            activeIdx = idx;
+          }
+        });
+
+        progressSteps.forEach((step, idx) => {
+          if (idx <= activeIdx) {
+            step.classList.add('active');
+          } else {
+            step.classList.remove('active');
+          }
+        });
+      };
+
+      window.addEventListener('scroll', onScroll);
+    }
+
+    // =========================================================
+    // EVALUATION QUESTIONNAIRE & TXT EXPORT
+    // =========================================================
+    const evalData = {
+      q2: '',
+      q3: []
+    };
+
+    function initEvaluation() {
+      // 1. Radio elements (Q2)
+      const q2Cards = document.querySelectorAll('[data-question="q2"] .eval-option-card');
+      q2Cards.forEach(card => {
+        card.addEventListener('click', () => {
+          q2Cards.forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+          evalData.q2 = card.getAttribute('data-value');
+          saveEvalState();
+        });
+      });
+
+      // 2. Checkbox elements (Q3)
+      const q3Cards = document.querySelectorAll('[data-question="q3"] .eval-option-card');
+      q3Cards.forEach(card => {
+        card.addEventListener('click', () => {
+          card.classList.toggle('selected');
+          const value = card.getAttribute('data-value');
+          if (card.classList.contains('selected')) {
+            if (!evalData.q3.includes(value)) evalData.q3.push(value);
+          } else {
+            evalData.q3 = evalData.q3.filter(v => v !== value);
+          }
+          saveEvalState();
+        });
+      });
+
+      // 3. Text inputs and textareas (Name, RUT, Q1, Q4)
+      const inputs = ['evalStudentName', 'evalStudentId', 'evalQ1', 'evalQ4'];
+      inputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('input', saveEvalState);
+        }
+      });
+
+      // 4. Load from localStorage if present
+      loadEvalState();
+    }
+
+    function saveEvalState() {
+      const state = {
+        name: document.getElementById('evalStudentName').value,
+        id: document.getElementById('evalStudentId').value,
+        q1: document.getElementById('evalQ1').value,
+        q2: evalData.q2,
+        q3: evalData.q3,
+        q4: document.getElementById('evalQ4').value
+      };
+      localStorage.setItem('taller_vpc_eval_state', JSON.stringify(state));
+    }
+
+    function loadEvalState() {
+      try {
+        const raw = localStorage.getItem('taller_vpc_eval_state');
+        if (!raw) return;
+        const state = JSON.parse(raw);
+        
+        if (state.name) document.getElementById('evalStudentName').value = state.name;
+        if (state.id) document.getElementById('evalStudentId').value = state.id;
+        if (state.q1) document.getElementById('evalQ1').value = state.q1;
+        if (state.q4) document.getElementById('evalQ4').value = state.q4;
+
+        if (state.q2) {
+          evalData.q2 = state.q2;
+          const card = document.querySelector(`[data-question="q2"] [data-value="${state.q2}"]`);
+          if (card) card.classList.add('selected');
+        }
+
+        if (state.q3 && Array.isArray(state.q3)) {
+          evalData.q3 = state.q3;
+          state.q3.forEach(val => {
+            const card = document.querySelector(`[data-question="q3"] [data-value="${val}"]`);
+            if (card) card.classList.add('selected');
+          });
+        }
+      } catch (e) {
+        console.error('Error loading evaluation state:', e);
+      }
+    }
+
+    function exportAnswersToTXT() {
+      const name = document.getElementById('evalStudentName').value.trim();
+      const rut = document.getElementById('evalStudentId').value.trim();
+      const q1 = document.getElementById('evalQ1').value.trim();
+      const q4 = document.getElementById('evalQ4').value.trim();
+      const errorMsg = document.getElementById('evalErrorMsg');
+
+      // Validation
+      if (!name || !rut || !q1 || !q4 || !evalData.q2 || evalData.q3.length === 0) {
+        errorMsg.style.display = 'block';
+        errorMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      errorMsg.style.display = 'none';
+
+      // Map answer choices to full text for the file
+      const q2Options = {
+        A: 'A) Internet Gateway (IGW)',
+        B: 'B) Tabla de Rutas (Route Table) [CORRECTA]',
+        C: 'C) VPC CIDR Block',
+        D: 'D) Subnet ACL'
+      };
+
+      const q3Options = {
+        A: 'A) Tabla de rutas (ruta 0.0.0.0/0 pointing to IGW) [CORRECTA]',
+        B: 'B) Internet Gateway (attached to VPC) [CORRECTA]',
+        C: 'C) Asociación de subred (explicit link to public route table) [CORRECTA]',
+        D: 'D) Rango de IPs (CIDR Block)'
+      };
+
+      const selectedQ2Text = q2Options[evalData.q2] || evalData.q2;
+      const selectedQ3Texts = evalData.q3.map(v => q3Options[v] || v).join('\n   - ');
+
+      // Build text content
+      const now = new Date();
+      const fileContent = `============================================================
+EVALUACIÓN DE LABORATORIO: TU PRIMERA VPC EN AWS
+============================================================
+
+[DATOS DEL ESTUDIANTE]
+Nombre Completo: ${name}
+RUT / ID de Estudiante: ${rut}
+Fecha de Exportación: ${now.toLocaleString('es-CL')}
+Laboratorio: Taller 3 - Construyendo tu Primera VPC en AWS
+
+------------------------------------------------------------
+PREGUNTA 1: Reflexión Práctica
+¿Por qué es fundamental que la subred privada no tenga una asociación 
+con la tabla de rutas que apunta al Internet Gateway (IGW)? 
+Explica el riesgo en un escenario real (ej. base de datos).
+
+RESPUESTA:
+${q1}
+
+------------------------------------------------------------
+PREGUNTA 2: Alternativa (Opción Única)
+¿Qué componente de red en AWS determina a través de qué caminos viales 
+viajan los paquetes a nivel de subred (es decir, funciona como el GPS)?
+
+RESPUESTA SELECCIONADA:
+${selectedQ2Text}
+
+------------------------------------------------------------
+PREGUNTA 3: Selección Múltiple
+Si una instancia EC2 alojada en tu subred pública no puede comunicarse 
+con Internet, ¿cuáles de las siguientes configuraciones de red o recursos 
+debes inspeccionar?
+
+OPCIONES SELECCIONADAS:
+   - ${selectedQ3Texts}
+
+------------------------------------------------------------
+PREGUNTA 4: Investigación y Ampliación de Horizontes
+¿Qué es una subred privada que utiliza un NAT Gateway en vez de un Internet Gateway? 
+¿En qué se diferencia el flujo de paquetes de un NAT Gateway con respecto a un Internet Gateway?
+
+RESPUESTA DE INVESTIGACIÓN:
+${q4}
+
+============================================================
+Fin de la evidencia del taller. Generado automáticamente por Cloud Foundations.
+`;
+
+      // Trigger download
+      try {
+        const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        
+        // Sanitize name for filename
+        const cleanName = name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+        const cleanRut = rut.toLowerCase().replace(/[^a-z0-9]/g, '_');
+        
+        a.href = url;
+        a.download = `evaluacion_vpc_${cleanName}_${cleanRut}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error('Error generating TXT file:', err);
+        alert('Hubo un error al generar el archivo. Por favor inténtalo de nuevo.');
+      }
+    }
+  </script>
+</body>
+</html>
