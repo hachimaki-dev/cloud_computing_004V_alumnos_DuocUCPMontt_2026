@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Taller Práctico: Despliegue de Servidores EC2 en VPC | Cloud Computing</title>
+  <meta name="description" content="Taller práctico para desplegar un servidor web público y un servidor backend privado usando EC2, Security Groups y un Bastion Host.">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* ============================================================
+       EC2 BUILDER SIMULATOR — Styles
+       ============================================================ */
+    .vpc-builder-canvas {
+      background: #06050a;
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      min-height: 420px;
+      position: relative;
+      overflow: hidden;
+      padding: 1rem;
+    }
+
+    .builder-vpc-box {
+      position: absolute;
+      top: 30px; left: 20px; right: 130px; bottom: 30px;
+      border: 2px dashed rgba(139,92,246,0.4);
+      border-radius: 16px;
+      background: rgba(139,92,246,0.03);
+    }
+    .builder-vpc-label {
+      position: absolute;
+      top: -12px; left: 14px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--color-accent);
+      background: #06050a;
+      padding: 0 6px;
+      text-transform: uppercase;
+    }
+
+    /* Subnets - Always visible here as base */
+    .builder-subnet {
+      position: absolute;
+      border: 1px dashed rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 0.5rem;
+      opacity: 1;
+    }
+    .builder-subnet.public {
+      top: 35px; left: 15px; width: 48%; bottom: 15px;
+      border-color: rgba(6,182,212,0.3);
+      background: rgba(6,182,212,0.03);
+    }
+    .builder-subnet.private {
+      top: 35px; left: 52%; width: 46%; bottom: 15px;
+      border-color: rgba(236,72,153,0.3);
+      background: rgba(236,72,153,0.02);
+    }
+    .builder-subnet-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.25rem;
+    }
+    .builder-subnet.public .builder-subnet-label { color: var(--color-cyan); }
+    .builder-subnet.private .builder-subnet-label { color: var(--color-pink); }
+
+    /* EC2 Instances */
+    .builder-ec2 {
+      position: absolute;
+      border-radius: 8px;
+      padding: 0.75rem;
+      text-align: center;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: all 0.5s cubic-bezier(0.4,0,0.2,1);
+      z-index: 10;
+    }
+    .builder-ec2.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+    .builder-ec2.public-web {
+      top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8);
+      background: rgba(16,185,129,0.1);
+      border: 1px solid rgba(16,185,129,0.4);
+    }
+    .builder-ec2.public-web.visible { transform: translate(-50%, -50%) scale(1); }
+    
+    .builder-ec2.private-db {
+      top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8);
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.4);
+    }
+    .builder-ec2.private-db.visible { transform: translate(-50%, -50%) scale(1); }
+
+    .builder-ec2-icon { font-size: 1.8rem; margin-bottom: 0.3rem; }
+    .builder-ec2-label { font-size: 0.7rem; font-weight: 700; color: #fff; }
+    .builder-ec2-ip { font-size: 0.6rem; color: var(--text-muted); font-family: monospace; margin-top: 0.2rem; }
+
+    /* Security Groups (Aura around EC2) */
+    .builder-sg {
+      position: absolute;
+      top: -15px; left: -15px; right: -15px; bottom: -15px;
+      border: 2px dotted transparent;
+      border-radius: 12px;
+      transition: all 0.5s;
+      pointer-events: none;
+    }
+    .builder-sg.public-sg.visible {
+      border-color: #10b981;
+      animation: sgRotate 10s linear infinite;
+    }
+    .builder-sg.private-sg.visible {
+      border-color: #f59e0b;
+      animation: sgRotate 10s linear infinite reverse;
+    }
+
+    @keyframes sgRotate {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Connection Lines */
+    .connection-line {
+      position: absolute;
+      background: transparent;
+      transition: background 0.5s;
+      z-index: 5;
+    }
+    .connection-line.internet-to-web.visible {
+      height: 2px; top: 50%; right: 15px; left: 70%;
+      background: repeating-linear-gradient(90deg, #10b981 0px, #10b981 6px, transparent 6px, transparent 12px);
+      animation: dashMoveLeft 1s linear infinite;
+    }
+    .connection-line.web-to-db.visible {
+      height: 2px; top: 50%; left: 25%; width: 50%;
+      background: repeating-linear-gradient(90deg, #f59e0b 0px, #f59e0b 6px, transparent 6px, transparent 12px);
+      animation: dashMoveRight 1s linear infinite;
+    }
+
+    @keyframes dashMoveRight { 0% { background-position: 0 0; } 100% { background-position: 12px 0; } }
+    @keyframes dashMoveLeft { 0% { background-position: 12px 0; } 100% { background-position: 0 0; } }
+
+    /* Internet & Users */
+    .builder-internet {
+      position: absolute; top: 50%; right: 15px; transform: translateY(-50%);
+      text-align: center; color: var(--text-muted);
+    }
+    .builder-internet-icon { font-size: 2rem; }
+
+    /* Controls */
+    .builder-controls { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+    .builder-btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border);
+      color: var(--text-secondary); padding: 0.5rem 1rem; border-radius: 8px;
+      font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    }
+    .builder-btn:hover:not(:disabled) { border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); color: var(--text-primary); }
+    .builder-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .builder-btn.next-step { border-color: rgba(6,182,212,0.4); background: rgba(6,182,212,0.1); color: var(--color-cyan); animation: pulseGlow 2s infinite; }
+    .builder-btn-send { background: var(--color-accent); color: white; border-color: var(--color-accent); box-shadow: 0 4px 15px rgba(139,92,246,0.3); }
+
+    /* Status Bar */
+    .builder-status { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.75rem; font-size: 0.8rem; }
+    .builder-status-item { display: flex; align-items: center; gap: 0.3rem; color: var(--text-muted); }
+    .builder-status-item.done { color: #34d399; }
+
+    /* Flip Cards for Concepts */
+    .concept-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+    .flip-card { background-color: transparent; height: 180px; perspective: 1000px; cursor: pointer; }
+    .flip-card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.6s; transform-style: preserve-3d; }
+    .flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
+    .flip-card-front, .flip-card-back {
+      position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden;
+      border-radius: 12px; border: 1px solid var(--glass-border); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 1.5rem;
+    }
+    .flip-card-front { background: rgba(255,255,255,0.02); }
+    .flip-card-back { background: rgba(139,92,246,0.05); border-color: rgba(139,92,246,0.3); transform: rotateY(180deg); text-align: left; }
+    .flip-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .flip-card-front h4 { margin: 0; color: var(--text-primary); }
+    .flip-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem; }
+    .flip-card-back p { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4; margin: 0; }
+
+    /* Architect Diagram */
+    .arch-diagram { background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-radius: 12px; padding: 2rem; text-align: center; margin: 1.5rem 0; }
+    .arch-vpc-boundary { border: 2px dashed rgba(139,92,246,0.4); border-radius: 16px; padding: 1.5rem; position: relative; margin-top: 1rem; }
+    .arch-vpc-label { position: absolute; top: -12px; left: 20px; background: #0f172a; padding: 0 10px; color: var(--color-accent); font-weight: bold; font-size: 0.9rem; }
+    .arch-row { display: flex; justify-content: center; gap: 2rem; align-items: center; }
+    .arch-node { background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 8px; padding: 1rem; width: 180px; text-align: center; }
+    .arch-icon { font-size: 2rem; display: block; margin-bottom: 0.5rem; }
+    .arch-connector { font-size: 1.5rem; color: var(--text-muted); margin: 0.5rem 0; }
+
+    /* Stepper Wizard */
+    .stepper-wizard { margin: 1.5rem 0; }
+    .stepper-step { display: flex; gap: 1rem; margin-bottom: 1.5rem; opacity: 1; }
+    .stepper-indicator { display: flex; flex-direction: column; align-items: center; }
+    .stepper-circle { width: 30px; height: 30px; border-radius: 50%; background: rgba(6,182,212,0.1); border: 1px solid var(--color-cyan); color: var(--color-cyan); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem; z-index: 2; }
+    .stepper-line { width: 2px; height: 100%; background: var(--glass-border); margin-top: 0.5rem; }
+    .stepper-content { flex: 1; padding-top: 0.25rem; }
+    .stepper-content h4 { color: var(--text-primary); margin-bottom: 0.5rem; }
+    .stepper-content ul { padding-left: 1.5rem; color: var(--text-secondary); font-size: 0.9rem; }
+    .stepper-content li { margin-bottom: 0.3rem; }
+
+    /* Evaluation Styles */
+    .eval-input-group { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.25rem; text-align: left; }
+    .eval-input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.5rem; text-align: left; }
+    .eval-label { font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; }
+    .eval-input { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--glass-border); border-radius: 8px; padding: 0.75rem 1rem; color: var(--text-primary); font-family: inherit; font-size: 0.95rem; }
+    .eval-input:focus { outline: none; border-color: rgba(6, 182, 212, 0.5); }
+    .eval-textarea { min-height: 120px; resize: vertical; }
+    .eval-options-grid { display: grid; grid-template-columns: 1fr; gap: 0.75rem; margin: 1rem 0; }
+    .eval-option-card { display: flex; align-items: flex-start; gap: 0.75rem; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--glass-border); border-radius: 10px; padding: 1rem; cursor: pointer; text-align: left; }
+    .eval-option-card.selected { background: rgba(6, 182, 212, 0.08); border-color: rgba(6, 182, 212, 0.4); }
+    .eval-radio { width: 18px; height: 18px; border: 1px solid var(--glass-border); border-radius: 50%; margin-top: 2px; }
+    .eval-option-card.selected .eval-radio { background: var(--color-cyan); border-color: var(--color-cyan); position: relative; }
+    .eval-option-card.selected .eval-radio::after { content: ""; width: 8px; height: 8px; background: white; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+
+    /* Utilities */
+    .teacher-note { background: rgba(139,92,246,0.1); border-left: 4px solid var(--color-accent); padding: 1rem; margin-bottom: 1.5rem; border-radius: 0 8px 8px 0; }
+    .teacher-note h4 { color: #c4b5fd; margin-bottom: 0.5rem; font-size: 0.95rem; }
+    .teacher-note p, .teacher-note ul { font-size: 0.85rem; color: #ddd6fe; margin: 0; }
+    .teacher-note ul { padding-left: 1.25rem; margin-top: 0.5rem; }
+    .warning-callout { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); padding: 1rem; border-radius: 8px; color: #f87171; font-size: 0.9rem; margin: 1rem 0; }
+    .why-callout { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); padding: 1rem; border-radius: 8px; color: #fbbf24; font-size: 0.9rem; margin: 1rem 0; }
+    .comparison-table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.85rem; }
+    .comparison-table th, .comparison-table td { padding: 0.75rem; border: 1px solid var(--glass-border); text-align: left; }
+    .comparison-table th { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+    .feature-col { font-weight: 600; color: var(--color-cyan); }
+    
+    /* Code Blocks */
+    pre { background: #0d1117; padding: 1rem; border-radius: 8px; overflow-x: auto; border: 1px solid var(--glass-border); }
+    code { font-family: 'Fira Code', monospace; font-size: 0.85rem; color: #e2e8f0; }
+
+    /* Progress bar */
+    .taller-progress-bar { display: flex; overflow-x: auto; gap: 0.5rem; padding: 1rem 0; border-bottom: 1px solid var(--glass-border); margin-bottom: 1.5rem; }
+    .progress-step { padding: 0.5rem 1rem; background: rgba(255,255,255,0.05); border-radius: 20px; font-size: 0.8rem; white-space: nowrap; cursor: pointer; color: var(--text-secondary); transition: all 0.3s; }
+    .progress-step.active { background: var(--color-accent); color: white; }
+    .progress-step:hover { background: rgba(255,255,255,0.1); }
+
+    /* Hide slides except active */
+    .slide { display: none; outline: none; }
+    .slide.active { display: block; animation: fadeIn 0.5s forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #e2e8f0; margin: 0; }
+    .container { max-width: 900px; margin: 0 auto; padding: 2rem; }
+    .navbar { display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background: rgba(15,23,42,0.9); border-bottom: 1px solid var(--glass-border); backdrop-filter: blur(10px); }
+    .nav-brand { display: flex; align-items: center; gap: 0.5rem; color: white; text-decoration: none; font-weight: 700; }
+    .nav-brand svg { width: 24px; height: 24px; }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <a href="index.html" class="nav-brand">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17.5 19A3.5 3.5 0 0 0 21 15.5c0-2.79-2.54-4.5-5-4.5-.42 0-.83.04-1.24.12A6.5 6.5 0 0 0 3 13.5A3.5 3.5 0 0 0 6.5 17H12" />
+        <path d="M12 12V21" />
+        <path d="m9 18 3 3 3-3" />
+      </svg>
+      <span>Cloud Foundations</span>
+    </a>
+  </nav>
+
+  <!-- Main Content Container -->
+  <main class="container">
+    
+    <header class="class-header">
+      <span style="margin-bottom: 0.5rem; display: inline-block; padding: 0.2rem 0.6rem; border-radius: 4px; background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); font-size: 0.8rem; font-weight: bold;">🔒 Taller Práctico Seguridad</span>
+      <h1 style="margin-top: 0.5rem;">Aislamiento y Servidor Privado</h1>
+      <p style="color: var(--text-secondary); font-size: 1.1rem; max-width: 800px; line-height: 1.5;">
+        Ya tienes tu servidor web público corriendo. Ahora enfrentaremos el desafío de levantar un servidor en una subred aislada sin acceso directo a Internet.
+      </p>
+    </header>
+
+    <!-- Module Progress Bar -->
+    <div class="taller-progress-bar" id="tallerProgressBar">
+      <div class="progress-step active" data-target="slide-portada">Inicio</div>
+      <div class="progress-step" data-target="slide-conceptos">Conceptos</div>
+      <div class="progress-step" data-target="slide-arquitectura">Arquitectura</div>
+      <div class="progress-step" data-target="slide-builder">EC2 Builder</div>
+      <div class="progress-step" data-target="slide-mod1">Mod 1: Servidor Privado</div>
+      <div class="progress-step" data-target="slide-mod2">Mod 2: El Desafío</div>
+      <div class="progress-step" data-target="slide-limpieza">Limpieza</div>
+      <div class="progress-step" data-target="slide-evaluacion">Evaluación</div>
+    </div>
+
+    <!-- Content with Slides Container -->
+    <div class="class-content-wrapper">
+      <div class="main-content-flow slides-container" id="slidesContainer">
+        
+        <!-- ============================================================ -->
+        <!-- SLIDE 0: PORTADA -->
+        <!-- ============================================================ -->
+        <section class="slide active" id="slide-portada" tabindex="0">
+          <h2 class="section-title">
+            <span style="color: #10b981; margin-right: 0.5rem;">0.</span>¿Qué vas a construir hoy?
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: El Desafío Privado</h4>
+            <p><strong>Meta:</strong> Obligar a los alumnos a investigar soluciones de conectividad para entornos aislados (Jump Servers, SSM).</p>
+            <ul>
+              <li><strong>Prerequisito:</strong> VPC y Servidor Web Público ya corriendo.</li>
+              <li><strong>Enfoque:</strong> Seguridad a nivel de arquitectura y resolución de problemas de redes (Troubleshooting).</li>
+            </ul>
+          </div>
+
+          <p>Ya tienes un servidor web en la zona pública. Ahora, vamos a simular el backend de tu aplicación (una base de datos o lógica de negocio):</p>
+
+          <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-top: 2rem;">
+            <div style="background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.3); border-radius: 12px; padding: 1.5rem;">
+              <h3 style="color: #fbbf24; margin-top: 0;">🔐 El Backend (Privado)</h3>
+              <p style="font-size: 0.9rem; color: #cbd5e1;">Estará en la subred privada. No tendrá IP pública en absoluto. Tu desafío evaluado de hoy será averiguar cómo puedes acceder a la consola de este servidor sin comprometer su aislamiento de la red.</p>
+            </div>
+          </div>
+
+          <div class="warning-callout">
+            <strong>⚠️ Recordatorio de Costos:</strong> Las instancias EC2 que levantemos hoy aplican para la Capa Gratuita (t2.micro), pero DEBES eliminarlas al terminar la clase para no consumir tus horas gratuitas.
+          </div>
+          
+          <button class="builder-btn builder-btn-send" style="margin-top: 1rem;" onclick="nextSlide()">Comenzar Taller →</button>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 1: CONCEPTOS -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-conceptos" tabindex="0">
+          <h2 class="section-title">1. Conceptos Clave</h2>
+          <p>Haz clic en cada tarjeta para repasar los conceptos de cómputo que usaremos hoy.</p>
+
+          <div class="concept-cards-grid">
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+              <div class="flip-card-inner">
+                <div class="flip-card-front">
+                  <span class="flip-icon">🖥️</span>
+                  <h4>EC2</h4>
+                  <span class="flip-hint">Clic para ver →</span>
+                </div>
+                <div class="flip-card-back">
+                  <p><strong>Elastic Compute Cloud.</strong> Es un servidor virtual en AWS. Tienes control total sobre el sistema operativo.</p>
+                </div>
+              </div>
+            </div>
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+              <div class="flip-card-inner">
+                <div class="flip-card-front">
+                  <span class="flip-icon">🛡️</span>
+                  <h4>Security Group Avanzado</h4>
+                  <span class="flip-hint">Clic para ver →</span>
+                </div>
+                <div class="flip-card-back">
+                  <p>Hoy aprenderás que el origen de un firewall no tiene que ser una IP, sino que <strong>puede ser otro Security Group</strong>.</p>
+                </div>
+              </div>
+            </div>
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+              <div class="flip-card-inner">
+                <div class="flip-card-front">
+                  <span class="flip-icon">🤔</span>
+                  <h4>El Desafío</h4>
+                  <span class="flip-hint">Clic para ver →</span>
+                </div>
+                <div class="flip-card-back">
+                  <p><strong>Aislamiento Total.</strong> Aprenderás a crear recursos que no tienen contacto directo con Internet. Tendrás que investigar cómo administrarlos en la práctica.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <button class="builder-btn next-step" style="margin-top: 2rem;" onclick="nextSlide()">Siguiente →</button>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 2: ARQUITECTURA -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-arquitectura" tabindex="0">
+          <h2 class="section-title">2. Mapa Arquitectónico</h2>
+          <p>Esta es la arquitectura final que tendrás corriendo hoy:</p>
+
+          <div class="arch-diagram">
+            <div class="arch-row" style="margin-bottom: 1rem;">
+              <div class="arch-node" style="border:none; background:transparent;">
+                <span class="arch-icon">🧑‍💻</span><h5>Usuario</h5>
+              </div>
+            </div>
+            <div class="arch-connector">↕️ HTTP (Puerto 80)</div>
+            
+            <div class="arch-vpc-boundary">
+              <span class="arch-vpc-label">VPC (10.0.0.0/16)</span>
+              
+              <div class="arch-row" style="gap: 3rem; padding: 2rem 0;">
+                <!-- Public Area -->
+                <div style="text-align: center;">
+                  <h4 style="color: #06b6d4; margin-bottom: 1rem;">Subred Pública (10.0.0.0/20)</h4>
+                  <div class="arch-node" style="border-color: #10b981; box-shadow: 0 0 15px rgba(16,185,129,0.2);">
+                    <span class="arch-icon">🌐</span>
+                    <h5 style="color: #10b981;">Web Server (Existente)</h5>
+                    <small>Ya está corriendo</small>
+                  </div>
+                </div>
+
+                <div class="arch-connector" style="color: #ef4444; font-weight: bold;">❌ ¿Cómo pasamos de aquí para acá? 🤔</div>
+
+                <!-- Private Area -->
+                <div style="text-align: center;">
+                  <h4 style="color: #ec4899; margin-bottom: 1rem;">Subred Privada (10.0.16.0/20)</h4>
+                  <div class="arch-node" style="border-color: #f59e0b; box-shadow: 0 0 15px rgba(245,158,11,0.2);">
+                    <span class="arch-icon">🗄️</span>
+                    <h5 style="color: #f59e0b;">Backend/DB (EC2)</h5>
+                    <small>IP Pública: No<br>SG: Puerto 22 solo desde Web</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <button class="builder-btn next-step" onclick="nextSlide()">Siguiente →</button>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 3: BUILDER INTERACTIVO -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-builder" tabindex="0">
+          <h2 class="section-title">3. 🏗️ Simulador de Despliegue</h2>
+          <p>Simulemos la configuración antes de ir a la consola de AWS. Agrega los recursos en orden.</p>
+
+          <div style="background: #06050a; border: 1px solid var(--glass-border); border-radius: 12px; padding: 1.5rem;">
+            <div class="vpc-builder-canvas" id="ec2BuilderCanvas">
+              
+              <div class="builder-vpc-box">
+                <span class="builder-vpc-label">VPC Creada en Clase Anterior</span>
+                
+                <div class="builder-subnet public">
+                  <div class="builder-subnet-label">Subred Pública</div>
+                  <!-- Web EC2 -->
+                  <div class="builder-ec2 public-web" id="bWebEC2">
+                    <div class="builder-sg public-sg" id="bWebSG"></div>
+                    <div class="builder-ec2-icon">🌐</div>
+                    <div class="builder-ec2-label">Web Server</div>
+                    <div class="builder-ec2-ip">Ya está activo</div>
+                  </div>
+                </div>
+
+                <div class="builder-subnet private">
+                  <div class="builder-subnet-label">Subred Privada</div>
+                  <!-- DB EC2 -->
+                  <div class="builder-ec2 private-db" id="bDbEC2">
+                    <div class="builder-sg private-sg" id="bDbSG"></div>
+                    <div class="builder-ec2-icon">🗄️</div>
+                    <div class="builder-ec2-label">Backend Server</div>
+                    <div class="builder-ec2-ip">IP Pública: No</div>
+                  </div>
+                </div>
+
+              </div>
+
+              <div class="builder-internet" style="right: 5%;">
+                <div class="builder-internet-icon">👨‍💻</div>
+                <div>Tú</div>
+              </div>
+              
+              <!-- Connection Lines -->
+              <div class="connection-line internet-to-web" id="bLineWeb"></div>
+              <div class="connection-line web-to-db" id="bLineDb"></div>
+
+            </div>
+
+            <!-- Controls -->
+            <div class="builder-controls">
+              <button class="builder-btn next-step" id="btnB1" onclick="simStep(1)">1. Lanzar EC2 Privada</button>
+              <button class="builder-btn" id="btnB2" onclick="simStep(2)" disabled>2. ¿El Desafío? 🤔</button>
+              <button class="builder-btn" onclick="simReset()" style="margin-left: auto;">🔄 Reiniciar</button>
+            </div>
+          </div>
+          
+          <button class="builder-btn next-step" style="margin-top: 1.5rem;" onclick="nextSlide()">Ir a la Práctica Real →</button>
+        </section>
+
+
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 6: MÓDULO 1 - EC2 PRIVADA -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-mod1" tabindex="0">
+          <h2 class="section-title">Módulo 1 — Servidor Backend en Subred Privada</h2>
+          <p>Ahora lanzaremos la base de datos simulada en la subred aislada.</p>
+
+          <div class="stepper-wizard">
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle">1</div>
+              </div>
+              <div class="stepper-content">
+                <h4>Lanzar la Instancia Privada</h4>
+                <ul>
+                  <li>Haz clic en <strong>Launch Instances</strong> nuevamente.</li>
+                  <li>Nombre: <code>Backend-Privado-Taller</code>.</li>
+                  <li>AMI: <strong>Amazon Linux 2023</strong> / Tipo: <strong>t2.micro</strong>.</li>
+                  <li>Key pair: Usa el <strong>mismo</strong> que creaste antes (<code>llave-taller</code>).</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle">2</div>
+              </div>
+              <div class="stepper-content">
+                <h4>Red y Seguridad (DIFERENTE AL ANTERIOR)</h4>
+                <p>En "Network settings" haz clic en Edit:</p>
+                <table class="comparison-table">
+                  <tbody>
+                    <tr><td class="feature-col">VPC</td><td><code>MiVPC-Taller</code></td></tr>
+                    <tr><td class="feature-col">Subnet</td><td><strong><code>Subred-Privada</code></strong></td></tr>
+                    <tr><td class="feature-col">Auto-assign public IP</td><td><strong>Disable</strong> (Desactivado. ¡Es privado!)</td></tr>
+                    <tr><td class="feature-col">Firewall</td><td>Create security group -> Nombre: <code>SG-Backend-Privado</code></td></tr>
+                  </tbody>
+                </table>
+                <p style="margin-top: 1rem;">En reglas de Security Group (Inbound rules):</p>
+                <ul>
+                  <li>Type: <strong>SSH</strong></li>
+                  <li>Source: <strong>Custom</strong>. En la caja de al lado, busca y selecciona el Security Group del servidor web (<code>SG-Web-Publica</code>).</li>
+                </ul>
+                <div class="why-callout">
+                  <strong>💡 ¿Qué hicimos aquí?</strong> Le estamos diciendo a AWS: "Solo acepta conexiones SSH si vienen desde el servidor Web. Bloquea todo lo demás." Esto es seguridad a nivel de arquitectura.
+                </div>
+                <p>Haz clic en <strong>Launch instance</strong>.</p>
+              </div>
+            </div>
+          </div>
+          <button class="builder-btn next-step" onclick="nextSlide()">Siguiente →</button>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 7: MÓDULO 2 - EL DESAFÍO -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-mod2" tabindex="0">
+          <h2 class="section-title">Módulo 2 — El Desafío (Evaluación Práctica) 🤔</h2>
+          
+          <div style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
+            <h3 style="color: #ef4444; margin-top: 0;">Problema: ¡Estás fuera!</h3>
+            <p style="color: #cbd5e1; font-size: 0.95rem; line-height: 1.5;">Tu servidor <code>Backend-Privado-Taller</code> se está ejecutando perfectamente. El problema es que <strong>NO tiene IP pública</strong>. Si intentas conectarte directamente desde tu PC de la casa o la universidad, la conexión fallará inmediatamente. Está aislado del Internet por diseño.</p>
+          </div>
+
+          <div class="stepper-wizard">
+            <div class="stepper-step active">
+              <div class="stepper-indicator">
+                <div class="stepper-circle" style="border-color: #f59e0b; color: #f59e0b; background: rgba(245,158,11,0.1);">3</div>
+              </div>
+              <div class="stepper-content">
+                <h4 style="color: #f59e0b;">Misión de Investigación Evaluada</h4>
+                <p>Tu tarea es <strong>investigar e implementar</strong> una solución para poder ingresar por consola (SSH) al Servidor Backend Privado de forma remota, <strong>manteniéndolo en la subred privada</strong> (es decir, prohibido hacer trampa dándole una IP pública o pasándolo a la subred pública).</p>
+                
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 8px; padding: 1rem; margin-top: 1rem;">
+                  <h5 style="color: white; margin-top: 0;">Criterios de Evaluación:</h5>
+                  <ul style="color: var(--text-secondary); padding-left: 1.2rem; font-size: 0.9rem;">
+                    <li><strong>Investigación (40%):</strong> ¿Qué estrategias o servicios existen en AWS para conectarse de forma segura a instancias en subredes privadas sin exponerlas directamente a internet? (Ej: <em>A través de otras máquinas, AWS Systems Manager, Endpoints, etc.</em>). Elige una.</li>
+                    <li><strong>Implementación (40%):</strong> Configura la solución que elegiste en AWS y logra conectarte a la consola del <code>Backend-Privado-Taller</code>. Saca una captura de pantalla donde se vea claramente tu terminal conectada al servidor, demostrando que estás dentro.</li>
+                    <li><strong>Reflexión (20%):</strong> ¿Por qué nos damos todo este trabajo? ¿Por qué no simplemente le damos IP pública a todas las máquinas, abrimos el puerto 22 a todo el mundo (0.0.0.0/0) y nos ahorramos el problema? Redacta un párrafo corto argumentando desde la perspectiva de ciberseguridad.</li>
+                  </ul>
+                </div>
+
+                <div class="teacher-note" style="margin-top: 1.5rem;">
+                  <h4>💡 Tip Inicial para tu investigación:</h4>
+                  <p>Piensa en la arquitectura que acabas de construir. Tienes un Servidor Web que <strong>sí</strong> tiene conexión al exterior y en el cual ya estás dentro, y ese servidor está en la misma VPC que tu base de datos privada. ¿Qué pasaría si intentas "saltar" desde adentro?</p>
+                </div>
+
+              </div>
+            </div>
+          </div>
+          <button class="builder-btn next-step" onclick="nextSlide()">Siguiente →</button>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 8: LIMPIEZA -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-limpieza" tabindex="0">
+          <h2 class="section-title">Limpieza de Recursos ⚠️</h2>
+          <div class="warning-callout">
+            <strong>CRÍTICO:</strong> Debes eliminar las instancias EC2 ahora mismo para no incurrir en costos de AWS.
+          </div>
+          <ul>
+            <li>Ve al panel de EC2 -> Instances.</li>
+            <li>Selecciona <code>Web-Publica-Taller</code> y <code>Backend-Privado-Taller</code>.</li>
+            <li>Arriba a la derecha: <strong>Instance state -> Terminate instance</strong>.</li>
+            <li>Espera a que pasen a estado "Terminated".</li>
+          </ul>
+          <p>Una vez eliminadas las instancias, puedes proceder a borrar la VPC y sus subredes como aprendimos en el taller anterior.</p>
+          <button class="builder-btn next-step" onclick="nextSlide()">Ir a Evaluación →</button>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 9: EVALUACIÓN -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-evaluacion" tabindex="0">
+          <h2 class="section-title">Evaluación de Conocimientos</h2>
+          
+          <div class="eval-input-group">
+            <h4 style="margin-bottom: 0.5rem;">1. ¿Por qué el servidor Backend necesita que el origen de su puerto 22 (SSH) sea el Security Group del Servidor Web y no "Anywhere"?</h4>
+            <div class="eval-options-grid" id="q1">
+              <div class="eval-option-card" onclick="selectEval(this, 'q1')"><div class="eval-radio"></div>
+                <div class="eval-option-text">Para que solo el tráfico que ya pasó por el servidor web y fue validado pueda acceder al backend, reduciendo la superficie de ataque.</div>
+              </div>
+              <div class="eval-option-card" onclick="selectEval(this, 'q1')"><div class="eval-radio"></div>
+                <div class="eval-option-text">Porque AWS no permite poner "Anywhere" en subredes privadas.</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 2rem; padding: 1.5rem; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); border-radius: 8px; text-align: center;">
+            <h3 style="color: #10b981; margin-top:0;">¡Felicidades! Has completado el taller.</h3>
+            <p style="margin-bottom: 0;">Has construido una arquitectura tradicional de dos capas completamente funcional y segura en la nube.</p>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // --- Navigation Logic ---
+    let currentSlideIndex = 0;
+    const slides = document.querySelectorAll('.slide');
+    const steps = document.querySelectorAll('.progress-step');
+
+    function showSlide(index) {
+      slides.forEach(s => s.classList.remove('active'));
+      steps.forEach(s => s.classList.remove('active'));
+      
+      slides[index].classList.add('active');
+      for(let i=0; i<=index; i++) {
+        steps[i].classList.add('active');
+      }
+      currentSlideIndex = index;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function nextSlide() {
+      if(currentSlideIndex < slides.length - 1) {
+        showSlide(currentSlideIndex + 1);
+      }
+    }
+
+    steps.forEach((step, idx) => {
+      step.addEventListener('click', () => showSlide(idx));
+    });
+
+    // --- Simulator Logic ---
+    let simStepIdx = 0;
+    
+    // Inicializar el Web Server como existente
+    document.addEventListener("DOMContentLoaded", () => {
+        document.getElementById('bWebEC2').classList.add('visible');
+        document.getElementById('bWebSG').classList.add('visible');
+        document.getElementById('bLineWeb').classList.add('visible');
+    });
+
+    function simStep(stepNum) {
+      if(stepNum === 1) {
+        document.getElementById('bDbEC2').classList.add('visible');
+        document.getElementById('bDbSG').classList.add('visible');
+        document.getElementById('btnB1').classList.remove('next-step');
+        document.getElementById('btnB1').classList.add('completed');
+        document.getElementById('btnB2').disabled = false;
+        document.getElementById('btnB2').classList.add('next-step');
+      }
+      if(stepNum === 2) {
+        document.getElementById('bLineDb').classList.add('visible');
+        document.getElementById('btnB2').classList.remove('next-step');
+        document.getElementById('btnB2').classList.add('completed');
+      }
+    }
+
+    function simReset() {
+      document.getElementById('bDbEC2').classList.remove('visible');
+      document.getElementById('bDbSG').classList.remove('visible');
+      document.getElementById('bLineDb').classList.remove('visible');
+
+      const btns = [document.getElementById('btnB1'), document.getElementById('btnB2')];
+      btns.forEach(b => { b.classList.remove('completed', 'next-step'); });
+      
+      btns[0].classList.add('next-step');
+      btns[1].disabled = true;
+    }
+
+    // --- Quiz Logic ---
+    function selectEval(element, group) {
+      const cards = document.querySelectorAll(`#${group} .eval-option-card`);
+      cards.forEach(c => c.classList.remove('selected'));
+      element.classList.add('selected');
+    }
+  </script>
+</body>
+</html>
