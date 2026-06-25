@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Evaluación Práctica: Infraestructura Web Segura | Cloud Computing</title>
+  <meta name="description" content="Evaluación práctica para desplegar una arquitectura VPC y EC2 en AWS, con subida de evidencias y generación de PDF.">
+  <link rel="stylesheet" href="styles.css">
+  <!-- Librerías para generar el PDF (pdfmake) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+  <style>
+    /* ============================================================
+       EVALUATION SPECIFIC STYLES - Premium Dark/Glassmorphism
+       ============================================================ */
+    :root {
+      --eval-accent: #ec4899;
+      --eval-bg-card: rgba(255, 255, 255, 0.03);
+      --eval-border: rgba(236, 72, 153, 0.2);
+    }
+    
+    body {
+      background-color: #0f172a;
+      color: #f8fafc;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .eval-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .eval-header {
+      text-align: center;
+      margin-bottom: 3rem;
+      position: relative;
+    }
+    .eval-header::after {
+      content: "";
+      position: absolute;
+      width: 200px;
+      height: 200px;
+      background: rgba(236, 72, 153, 0.15);
+      filter: blur(80px);
+      top: -50px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: -1;
+    }
+
+    .eval-title {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #fbcfe8, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .eval-student-info {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2.5rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      backdrop-filter: blur(10px);
+    }
+
+    .eval-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .eval-input-group label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .eval-input-group input[type="text"],
+    .eval-input-group textarea {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      color: white;
+      font-family: inherit;
+      font-size: 1rem;
+      transition: all 0.3s;
+    }
+    .eval-input-group input[type="text"]:focus,
+    .eval-input-group textarea:focus {
+      outline: none;
+      border-color: var(--eval-accent);
+      box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.2);
+    }
+    .eval-input-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .eval-step {
+      background: var(--eval-bg-card);
+      border: 1px solid var(--eval-border);
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      backdrop-filter: blur(12px);
+      transition: transform 0.3s, box-shadow 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+    .eval-step:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      border-color: rgba(236, 72, 153, 0.4);
+    }
+
+    .eval-step-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 1rem;
+    }
+    .eval-step-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .eval-step-badge {
+      background: rgba(236, 72, 153, 0.15);
+      color: #f472b6;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      border: 1px solid rgba(236, 72, 153, 0.3);
+    }
+
+    /* File Upload Styling */
+    .file-upload-wrapper {
+      position: relative;
+      margin-top: 1.5rem;
+    }
+    .file-upload-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px dashed rgba(255, 255, 255, 0.3);
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-weight: 600;
+      transition: all 0.2s;
+      width: 100%;
+      justify-content: center;
+      box-sizing: border-box;
+    }
+    .file-upload-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--eval-accent);
+      color: white;
+    }
+    input[type="file"] {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .preview-container {
+      margin-top: 1rem;
+      display: none;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.1);
+      text-align: center;
+      background: rgba(0,0,0,0.5);
+    }
+    .preview-img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+
+    /* Code Block specific to evaluation */
+    .eval-code {
+      background: #090e17;
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 1rem;
+      border-radius: 8px;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.85rem;
+      color: #e2e8f0;
+      overflow-x: auto;
+      margin: 1rem 0;
+    }
+
+    /* Actions */
+    .eval-actions {
+      text-align: center;
+      margin-top: 4rem;
+      margin-bottom: 2rem;
+    }
+    .btn-export {
+      background: linear-gradient(135deg, #ec4899, #be185d);
+      color: white;
+      border: none;
+      padding: 1rem 2.5rem;
+      font-size: 1.1rem;
+      font-weight: 700;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 10px 25px rgba(236, 72, 153, 0.3);
+      transition: all 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .btn-export:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 15px 35px rgba(236, 72, 153, 0.5);
+    }
+
+    /* Print Specific Styles */
+    .pdf-mode .navbar,
+    .pdf-mode .eval-actions,
+    .pdf-mode .file-upload-btn,
+    .pdf-mode .back-link {
+      display: none !important;
+    }
+    .pdf-mode .eval-step {
+      border: 1px solid #ddd;
+      background: white;
+      color: black;
+      page-break-inside: avoid;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+    .pdf-mode .eval-title,
+    .pdf-mode .eval-step-title,
+    .pdf-mode .eval-input-group label {
+      color: black !important;
+      -webkit-text-fill-color: black;
+    }
+    .pdf-mode .eval-input-group input,
+    .pdf-mode .eval-input-group textarea {
+      background: transparent;
+      border: 1px solid #ccc;
+      color: black;
+    }
+    .pdf-mode body {
+      background: white;
+    }
+    .pdf-mode .warning-callout {
+      display: none !important;
+    }
+
+    /* Spinner Overlay styling */
+    .pdf-loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.85); /* Slate background with transparency */
+      backdrop-filter: blur(8px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000; /* On top of everything */
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .pdf-loading-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(255, 255, 255, 0.1);
+      border-top: 5px solid #ec4899; /* Pink eval accent */
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 1.5rem;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .loading-text {
+      color: #f8fafc;
+      font-size: 1.2rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-align: center;
+      font-family: 'Inter', sans-serif;
+    }
+    .loading-subtext {
+      color: #94a3b8;
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PDF Generation Loading Overlay -->
+  <div id="pdfLoadingOverlay" class="pdf-loading-overlay">
+    <div class="spinner"></div>
+    <div class="loading-text">Generando tu Informe PDF</div>
+    <div class="loading-subtext">Esto puede tardar unos segundos, por favor espera...</div>
+  </div>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar" id="navbar">
+    <a href="index.html" class="nav-brand">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17.5 19A3.5 3.5 0 0 0 21 15.5c0-2.79-2.54-4.5-5-4.5-.42 0-.83.04-1.24.12A6.5 6.5 0 0 0 3 13.5A3.5 3.5 0 0 0 6.5 17H12" />
+        <path d="M12 12V21" />
+        <path d="m9 18 3 3 3-3" />
+      </svg>
+      <span>Cloud Foundations</span>
+    </a>
+    <div class="nav-links">
+      <a href="index.html" class="nav-link">Dashboard</a>
+    </div>
+  </nav>
+
+  <main class="eval-container" id="evalContent">
+    
+    <a href="index.html" class="back-link" style="display:inline-flex; align-items:center; gap:0.5rem; color:var(--text-secondary); text-decoration:none; margin-bottom:1.5rem;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+      </svg>
+      Volver al Dashboard
+    </a>
+
+    <header class="eval-header">
+      <span style="background: rgba(236,72,153,0.15); color: #ec4899; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.85rem; font-weight: bold; border: 1px solid rgba(236,72,153,0.3); display: inline-block; margin-bottom: 1rem;">📝 Evaluación Calificada</span>
+      <h1 class="eval-title">Construcción de Infraestructura Segura</h1>
+      <p style="color: var(--text-secondary); font-size: 1.1rem;">Demuestra tus habilidades construyendo una VPC, enrutamiento a Internet y desplegando un servidor web público con automatización de inicio.</p>
+    </header>
+
+    <!-- Student Info -->
+    <div class="eval-student-info">
+      <div class="eval-input-group">
+        <label for="studentName">Nombre Completo</label>
+        <input type="text" id="studentName" placeholder="Ej. Juan Pérez" required>
+      </div>
+      <div class="eval-input-group">
+        <label for="studentId">RUT o Matrícula</label>
+        <input type="text" id="studentId" placeholder="12.345.678-9" required>
+      </div>
+    </div>
+
+    <div class="warning-callout" style="background: rgba(236,72,153,0.1); border: 1px solid rgba(236,72,153,0.3); color: #f472b6; padding: 1rem; border-radius: 8px; margin-bottom: 2rem;">
+      <strong style="display:block; margin-bottom: 0.5rem;">⚠️ Instrucciones Generales:</strong> Para cada paso a continuación, ve a la consola de AWS y realiza la configuración técnica solicitada. Una vez completado el paso, toma una <strong>captura de pantalla ESPECÍFICA</strong> (según se detalla en "Evidencia") y súbela en el botón correspondiente. Responde además las preguntas teóricas justificando tus decisiones. Finalmente, exporta todo a PDF.
+    </div>
+
+    <!-- Rúbrica de Evaluación -->
+    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.5rem; margin-bottom: 2.5rem;">
+      <h3 style="margin-top: 0; color: #f8fafc; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--eval-accent)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Rúbrica de Evaluación (Escala Chilena)
+      </h3>
+      <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">La nota final se calcula con una <strong>exigencia del 60%</strong> para la nota 4.0. Puntaje total: 100 puntos.</p>
+      
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
+        <thead>
+          <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: var(--text-muted);">
+            <th style="padding: 0.5rem 0;">Ítem</th>
+            <th style="padding: 0.5rem 0; text-align: center;">Puntaje</th>
+          </tr>
+        </thead>
+        <tbody style="color: #cbd5e1;">
+          <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <td style="padding: 0.5rem 0;">1. Red Base (CIDR, VPC y Subredes)</td>
+            <td style="padding: 0.5rem 0; text-align: center; color: var(--eval-accent); font-weight: bold;">15 pts</td>
+          </tr>
+          <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <td style="padding: 0.5rem 0;">2. Ruteo a Internet (IGW y Route Table)</td>
+            <td style="padding: 0.5rem 0; text-align: center; color: var(--eval-accent); font-weight: bold;">30 pts</td>
+          </tr>
+          <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <td style="padding: 0.5rem 0;">3. EC2 y Seguridad (Instancia, SG y Puertos)</td>
+            <td style="padding: 0.5rem 0; text-align: center; color: var(--eval-accent); font-weight: bold;">15 pts</td>
+          </tr>
+          <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <td style="padding: 0.5rem 0;">4. Automatización y Validación Web (User Data)</td>
+            <td style="padding: 0.5rem 0; text-align: center; color: var(--eval-accent); font-weight: bold;">40 pts</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- STEP 1 -->
+    <div class="eval-step">
+      <div class="eval-step-header">
+        <div class="eval-step-title"><span>1️⃣</span> Red Base (VPC y Subredes)</div>
+        <div class="eval-step-badge">15 Pts</div>
+      </div>
+      <p style="color: #cbd5e1; margin-bottom: 1.5rem;">Crea una VPC y al menos dos subredes (una pública y una privada) asegurando que sus bloques CIDR no se superpongan.</p>
+      
+      <div class="eval-input-group" style="margin-bottom: 1.5rem;">
+        <label>¿Qué rango CIDR asignaste a tu VPC, subred pública y privada? <span style="color: var(--eval-accent); font-weight: bold;">(Pregunta: 5 Pts)</span></label>
+        <textarea id="ans1" placeholder="Ej. VPC: 10.0.0.0/16 | Pública: 10.0.0.0/20 | Privada: 10.0.16.0/20"></textarea>
+      </div>
+
+      <div class="eval-input-group">
+        <label>Evidencia: Captura de pantalla COMPLETA del panel de AWS "Subnets". Debe ser visible que tienes al menos dos subredes (una pública y una privada) y en la columna "VPC" debe verse explícitamente que pertenecen a la VPC que acabas de crear. <span style="color: var(--eval-accent); font-weight: bold;">(Captura: 10 Pts)</span></label>
+        <div class="file-upload-wrapper">
+          <div class="file-upload-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span>Subir Captura de Pantalla</span>
+            <input type="file" accept="image/*" onchange="previewImage(this, 'preview1')">
+          </div>
+          <div class="preview-container" id="preview1">
+            <img src="" class="preview-img" alt="Vista previa">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="eval-step">
+      <div class="eval-step-header">
+        <div class="eval-step-title"><span>2️⃣</span> Ruteo a Internet (IGW y Route Table)</div>
+        <div class="eval-step-badge">30 Pts</div>
+      </div>
+      <p style="color: #cbd5e1; margin-bottom: 1.5rem;">Crea un Internet Gateway, asócialo a tu VPC y configura una tabla de rutas que permita la salida a Internet solo a tu subred pública.</p>
+      
+      <div class="eval-input-group" style="margin-bottom: 1.5rem;">
+        <label>Teoría: ¿Por qué la subred privada no puede conectarse a Internet en tu arquitectura actual? <span style="color: var(--eval-accent); font-weight: bold;">(Pregunta: 5 Pts)</span></label>
+        <textarea id="ans2" placeholder="Explica el motivo basándote en las tablas de rutas y asociaciones..."></textarea>
+      </div>
+
+      <div class="eval-input-group">
+        <label>Evidencia: Captura de pantalla del panel "Route tables". Selecciona tu tabla de rutas pública, ve a la pestaña inferior "Routes" y toma la captura donde se vea la ruta 0.0.0.0/0 apuntando a tu Internet Gateway (igw-...). <span style="color: var(--eval-accent); font-weight: bold;">(Captura: 25 Pts)</span></label>
+        <div class="file-upload-wrapper">
+          <div class="file-upload-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span>Subir Captura de Pantalla</span>
+            <input type="file" accept="image/*" onchange="previewImage(this, 'preview2')">
+          </div>
+          <div class="preview-container" id="preview2">
+            <img src="" class="preview-img" alt="Vista previa">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="eval-step">
+      <div class="eval-step-header">
+        <div class="eval-step-title"><span>3️⃣</span> Servidor EC2 y Seguridad</div>
+        <div class="eval-step-badge">15 Pts</div>
+      </div>
+      <p style="color: #cbd5e1; margin-bottom: 1.5rem;">Lanza una instancia EC2 t2.micro en tu subred pública. Asignale IP Pública y configura su Security Group.</p>
+      
+      <div class="eval-input-group" style="margin-bottom: 1.5rem;">
+        <label>¿Qué puertos habilitaste en las Inbound Rules del Security Group y por qué? <span style="color: var(--eval-accent); font-weight: bold;">(Pregunta: 5 Pts)</span></label>
+        <textarea id="ans3" placeholder="Detalla los puertos y su propósito..."></textarea>
+      </div>
+
+      <div class="eval-input-group">
+        <label>Evidencia: Captura de pantalla de la página "Instances" en EC2. Selecciona tu instancia web. Debe verse claramente la instancia en estado "Running" y en el panel inferior los detalles mostrando tu "Public IPv4 address". <span style="color: var(--eval-accent); font-weight: bold;">(Captura: 10 Pts)</span></label>
+        <div class="file-upload-wrapper">
+          <div class="file-upload-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span>Subir Captura de Pantalla</span>
+            <input type="file" accept="image/*" onchange="previewImage(this, 'preview3')">
+          </div>
+          <div class="preview-container" id="preview3">
+            <img src="" class="preview-img" alt="Vista previa">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="eval-step">
+      <div class="eval-step-header">
+        <div class="eval-step-title"><span>4️⃣</span> Automatización (User Data) y Validación</div>
+        <div class="eval-step-badge">40 Pts</div>
+      </div>
+      <p style="color: #cbd5e1; margin-bottom: 0.5rem;">Utiliza el siguiente script en la sección de "User Data" al crear la EC2. <strong>Importante:</strong> Reemplaza "NOMBRE Y APELLIDO" con tus datos reales en la línea 101 del script.</p>
+      
+      <div class="eval-code-container" style="position: relative; margin: 1rem 0;">
+        <button onclick="copyScript()" style="position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem; transition: all 0.2s; z-index: 10;">📋 Copiar Código</button>
+        <pre class="eval-code" id="userDataScript" style="white-space: pre-wrap; margin: 0;">#!/bin/bash
+# Actualizar el sistema
+yum update -y
+
+# Instalar servidor web Apache
+yum install -y httpd
+
+# Iniciar el servicio y habilitarlo al arranque
+systemctl start httpd
+systemctl enable httpd
+
+# Crear una página HTML moderna
+cat &lt;&lt; 'EOF' &gt; /var/www/html/index.html
+&lt;!DOCTYPE html&gt;
+&lt;html lang="es"&gt;
+&lt;head&gt;
+&lt;meta charset="UTF-8"&gt;
+&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+&lt;title&gt;Servidor Web Público&lt;/title&gt;
+
+&lt;style&gt;
+*{ margin:0; padding:0; box-sizing:border-box; }
+body{ font-family:Arial, Helvetica, sans-serif; height:100vh; display:flex; justify-content:center; align-items:center; background:linear-gradient(135deg,#0f172a,#1e3a8a,#2563eb); color:white; overflow:hidden; }
+body::before{ content:""; position:absolute; width:600px; height:600px; background:rgba(255,255,255,.08); border-radius:50%; top:-180px; right:-180px; filter:blur(20px); }
+body::after{ content:""; position:absolute; width:500px; height:500px; background:rgba(255,255,255,.05); border-radius:50%; bottom:-150px; left:-150px; filter:blur(25px); }
+.container{ position:relative; z-index:1; background:rgba(255,255,255,0.12); backdrop-filter:blur(10px); padding:60px 80px; border-radius:20px; text-align:center; border:1px solid rgba(255,255,255,.25); box-shadow:0 20px 40px rgba(0,0,0,.35); }
+h1{ font-size:4rem; margin-bottom:20px; text-transform:uppercase; letter-spacing:3px; }
+p{ font-size:1.3rem; color:#e5e7eb; margin-bottom:10px; }
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div class="container"&gt;
+    &lt;h1&gt;WEB PÚBLICA DE&lt;br&gt; "NOMBRE Y APELLIDO"&lt;/h1&gt;
+    &lt;p&gt;Servidor Web Público desplegado correctamente.&lt;/p&gt;
+&lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+EOF</pre>
+      </div>
+
+      <div class="eval-input-group" style="margin-top: 1.5rem;">
+        <label>Evidencia Final: Captura de pantalla completa de tu navegador (mostrando la barra de direcciones con la IP Pública) donde se vea cargada la página web que muestra tu Nombre y Apellido. <span style="color: var(--eval-accent); font-weight: bold;">(Captura: 40 Pts)</span></label>
+        <div class="file-upload-wrapper">
+          <div class="file-upload-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span>Subir Captura de Pantalla</span>
+            <input type="file" accept="image/*" onchange="previewImage(this, 'preview4')">
+          </div>
+          <div class="preview-container" id="preview4">
+            <img src="" class="preview-img" alt="Vista previa">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rúbrica Detallada al Final -->
+    <div class="rubric-detail-card" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 1.5rem; margin-top: 3rem; margin-bottom: 2rem;">
+      <h3 style="margin-top: 0; color: #f8fafc; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.75rem;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--eval-accent)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Rúbrica Detallada y Escala de Notas
+      </h3>
+      <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-top: 1rem;">
+        <div>
+          <h4 style="color: var(--eval-accent); font-size: 1rem; margin-bottom: 0.5rem;">Criterios de Puntaje</h4>
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
+            <thead>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: var(--text-muted);">
+                <th style="padding: 0.5rem 0;">Criterio / Item</th>
+                <th style="padding: 0.5rem 0; text-align: center;">Pregunta Teórica</th>
+                <th style="padding: 0.5rem 0; text-align: center;">Captura de Evidencia</th>
+                <th style="padding: 0.5rem 0; text-align: center;">Puntaje Total</th>
+              </tr>
+            </thead>
+            <tbody style="color: #cbd5e1;">
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <td style="padding: 0.5rem 0;">1. Red Base (VPC y Subredes)</td>
+                <td style="padding: 0.5rem 0; text-align: center;">5 pts</td>
+                <td style="padding: 0.5rem 0; text-align: center;">10 pts</td>
+                <td style="padding: 0.5rem 0; text-align: center; font-weight: bold; color: var(--eval-accent);">15 pts</td>
+              </tr>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <td style="padding: 0.5rem 0;">2. Ruteo a Internet (IGW y Route Table)</td>
+                <td style="padding: 0.5rem 0; text-align: center;">5 pts</td>
+                <td style="padding: 0.5rem 0; text-align: center;">25 pts</td>
+                <td style="padding: 0.5rem 0; text-align: center; font-weight: bold; color: var(--eval-accent);">30 pts</td>
+              </tr>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <td style="padding: 0.5rem 0;">3. EC2 y Seguridad (SG y Puertos)</td>
+                <td style="padding: 0.5rem 0; text-align: center;">5 pts</td>
+                <td style="padding: 0.5rem 0; text-align: center;">10 pts</td>
+                <td style="padding: 0.5rem 0; text-align: center; font-weight: bold; color: var(--eval-accent);">15 pts</td>
+              </tr>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <td style="padding: 0.5rem 0;">4. Automatización y Validación Web</td>
+                <td style="padding: 0.5rem 0; text-align: center; color: var(--text-muted);">-</td>
+                <td style="padding: 0.5rem 0; text-align: center;">40 pts</td>
+                <td style="padding: 0.5rem 0; text-align: center; font-weight: bold; color: var(--eval-accent);">40 pts</td>
+              </tr>
+              <tr style="font-weight: bold; background: rgba(236,72,153,0.05);">
+                <td style="padding: 0.5rem 0;">Puntaje Total Máximo</td>
+                <td style="padding: 0.5rem 0; text-align: center;">15 pts</td>
+                <td style="padding: 0.5rem 0; text-align: center;">85 pts</td>
+                <td style="padding: 0.5rem 0; text-align: center; color: var(--eval-accent);">100 pts</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div>
+          <h4 style="color: var(--eval-accent); font-size: 1rem; margin-bottom: 0.5rem;">Escala de Notas (Escala Chilena - 60% Exigencia)</h4>
+          <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">Fórmula de cálculo para la nota (de 1.0 a 7.0 con nota 4.0 al 60% de exigencia, es decir, con 60 puntos):</p>
+          <ul style="color: #cbd5e1; font-size: 0.85rem; padding-left: 1.2rem; margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.25rem;">
+            <li>Si el puntaje es menor a 60: <code>Nota = (Puntaje / 60) * 3 + 1</code></li>
+            <li>Si el puntaje es mayor o igual a 60: <code>Nota = ((Puntaje - 60) / 40) * 3 + 4</code></li>
+          </ul>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; text-align: center; font-size: 0.8rem;">
+            <div style="background: rgba(255,255,255,0.05); padding: 0.5rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+              <span style="display:block; color: var(--text-muted); font-size: 0.75rem;">60 Pts (Exigencia)</span>
+              <strong style="color: #38bdf8; font-size: 0.95rem;">Nota 4.0</strong>
+            </div>
+            <div style="background: rgba(255,255,255,0.05); padding: 0.5rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+              <span style="display:block; color: var(--text-muted); font-size: 0.75rem;">70 Pts</span>
+              <strong style="color: #38bdf8; font-size: 0.95rem;">Nota 4.8</strong>
+            </div>
+            <div style="background: rgba(255,255,255,0.05); padding: 0.5rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+              <span style="display:block; color: var(--text-muted); font-size: 0.75rem;">85 Pts</span>
+              <strong style="color: #38bdf8; font-size: 0.95rem;">Nota 5.9</strong>
+            </div>
+            <div style="background: rgba(255,255,255,0.05); padding: 0.5rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+              <span style="display:block; color: var(--text-muted); font-size: 0.75rem;">100 Pts</span>
+              <strong style="color: var(--eval-accent); font-size: 0.95rem;">Nota 7.0</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="eval-actions">
+      <button class="btn-export" onclick="exportToPDF()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exportar a PDF para Entregar
+      </button>
+      <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 1rem;">Nota: Esta acción generará un archivo PDF con tus respuestas e imágenes.</p>
+    </div>
+
+  </main>
+
+  <script>
+    // Mostrar preview de las imágenes seleccionadas
+    function previewImage(input, previewId) {
+      const previewContainer = document.getElementById(previewId);
+      const previewImage = previewContainer.querySelector('img');
+      const uploadBtn = input.parentElement;
+
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+          previewImage.src = e.target.result;
+          previewContainer.style.display = 'block';
+          uploadBtn.querySelector('span').innerText = 'Cambiar Imagen';
+        }
+        
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    // Exportar el contenedor a PDF
+    function exportToPDF() {
+      const name = document.getElementById('studentName').value.trim();
+      const rut = document.getElementById('studentId').value.trim();
+      
+      if(!name || !rut) {
+        alert("Por favor, ingresa tu Nombre y RUT/Matrícula antes de exportar.");
+        document.getElementById(!name ? 'studentName' : 'studentId').focus();
+        return;
+      }
+
+      // Recopilar respuestas
+      const ans1 = document.getElementById('ans1').value.trim() || 'Sin respuesta';
+      const ans2 = document.getElementById('ans2').value.trim() || 'Sin respuesta';
+      const ans3 = document.getElementById('ans3').value.trim() || 'Sin respuesta';
+
+      // Recopilar imágenes (validar que no sean el src vacío o el alt)
+      const getImgSrc = (id) => {
+        const img = document.querySelector(`#${id} img`);
+        return (img && img.getAttribute('src') && img.getAttribute('src').startsWith('data:')) ? img.getAttribute('src') : null;
+      };
+      
+      const img1 = getImgSrc('preview1');
+      const img2 = getImgSrc('preview2');
+      const img3 = getImgSrc('preview3');
+      const img4 = getImgSrc('preview4');
+
+      const today = new Date().toLocaleDateString('es-CL');
+
+      // Mostrar overlay de carga
+      const loader = document.getElementById('pdfLoadingOverlay');
+      if (loader) loader.classList.add('active');
+
+      // Cambiar texto de botón para feedback
+      const exportBtn = document.querySelector('.btn-export');
+      const originalText = exportBtn.innerHTML;
+      exportBtn.innerHTML = '⏳ Generando PDF...';
+      exportBtn.disabled = true;
+
+      const hideLoader = () => {
+        if (loader) loader.classList.remove('active');
+        exportBtn.innerHTML = originalText;
+        exportBtn.disabled = false;
+      };
+
+      // Definición del documento pdfmake
+      const docDefinition = {
+        content: [
+          // Cabecera del Reporte
+          { text: 'Evaluación Práctica: Infraestructura Web Segura', style: 'header', alignment: 'center' },
+          { text: 'Asignatura: Cloud Computing', style: 'subheader', alignment: 'center', margin: [0, 5, 0, 15] },
+          { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 532, y2: 0, lineWidth: 2, lineColor: '#ec4899' }], margin: [0, 0, 0, 20] },
+          
+          // Ficha del Estudiante
+          {
+            table: {
+              widths: ['*'],
+              body: [
+                [
+                  {
+                    text: [
+                      { text: 'Estudiante: ', bold: true, color: '#0f172a' }, name, '\n',
+                      { text: 'RUT o Matrícula: ', bold: true, color: '#0f172a' }, rut, '\n',
+                      { text: 'Fecha de Entrega: ', bold: true, color: '#0f172a' }, today
+                    ],
+                    margin: [12, 10, 12, 10]
+                  }
+                ]
+              ]
+            },
+            layout: {
+              hLineWidth: () => 1,
+              vLineWidth: () => 1,
+              hLineColor: () => '#cbd5e1',
+              vLineColor: () => '#cbd5e1',
+              fillColor: () => '#f8fafc'
+            },
+            margin: [0, 0, 0, 25]
+          },
+          
+          // Sección 1
+          { text: '1. Red Base (VPC y Subredes) - Total 15 Pts', style: 'sectionHeader' },
+          { text: 'Rango CIDR asignado (5 Pts):', style: 'questionLabel' },
+          {
+            table: {
+              widths: ['*'],
+              body: [[{ text: ans1, margin: [10, 8, 10, 8] }]]
+            },
+            layout: {
+              hLineWidth: () => 1, vLineWidth: () => 1,
+              hLineColor: () => '#e2e8f0', vLineColor: () => '#e2e8f0',
+              fillColor: () => '#f1f5f9'
+            },
+            margin: [0, 5, 0, 15]
+          },
+          { text: 'Evidencia: Panel de Subnets (VPC y Subredes creadas) (10 Pts):', style: 'evidenceLabel' },
+          img1 ? { image: img1, fit: [530, 360], alignment: 'center', margin: [0, 5, 0, 0] } 
+               : { text: '[No se adjuntó captura de pantalla para este paso]', style: 'noImage' },
+          
+          // Sección 2
+          { text: '2. Ruteo a Internet (IGW y Route Table) - Total 30 Pts', style: 'sectionHeader', pageBreak: 'before' },
+          { text: 'Justificación Teórica (Salida a Internet de subred pública vs privada) (5 Pts):', style: 'questionLabel' },
+          {
+            table: {
+              widths: ['*'],
+              body: [[{ text: ans2, margin: [10, 8, 10, 8] }]]
+            },
+            layout: {
+              hLineWidth: () => 1, vLineWidth: () => 1,
+              hLineColor: () => '#e2e8f0', vLineColor: () => '#e2e8f0',
+              fillColor: () => '#f1f5f9'
+            },
+            margin: [0, 5, 0, 15]
+          },
+          { text: 'Evidencia: Configuración de la Tabla de Rutas y Asociación de Subredes (25 Pts):', style: 'evidenceLabel' },
+          img2 ? { image: img2, fit: [530, 360], alignment: 'center', margin: [0, 5, 0, 0] } 
+               : { text: '[No se adjuntó captura de pantalla para este paso]', style: 'noImage' },
+          
+          // Sección 3
+          { text: '3. Servidor EC2 y Seguridad - Total 15 Pts', style: 'sectionHeader', pageBreak: 'before' },
+          { text: 'Puertos habilitados en el Security Group y justificación (5 Pts):', style: 'questionLabel' },
+          {
+            table: {
+              widths: ['*'],
+              body: [[{ text: ans3, margin: [10, 8, 10, 8] }]]
+            },
+            layout: {
+              hLineWidth: () => 1, vLineWidth: () => 1,
+              hLineColor: () => '#e2e8f0', vLineColor: () => '#e2e8f0',
+              fillColor: () => '#f1f5f9'
+            },
+            margin: [0, 5, 0, 15]
+          },
+          { text: 'Evidencia: Instancia EC2 en estado "Running" y detalles de IP Pública (10 Pts):', style: 'evidenceLabel' },
+          img3 ? { image: img3, fit: [530, 360], alignment: 'center', margin: [0, 5, 0, 0] } 
+               : { text: '[No se adjuntó captura de pantalla para este paso]', style: 'noImage' },
+          
+          // Sección 4
+          { text: '4. Automatización y Validación Web - Total 40 Pts', style: 'sectionHeader', pageBreak: 'before' },
+          { text: 'Evidencia: Navegador web mostrando la página desplegada con el Nombre del alumno (40 Pts):', style: 'evidenceLabel' },
+          img4 ? { image: img4, fit: [530, 360], alignment: 'center', margin: [0, 5, 0, 0] } 
+               : { text: '[No se adjuntó captura de pantalla para este paso]', style: 'noImage' },
+
+          // Sección de Pauta de Evaluación para el docente
+          { text: 'Pauta de Evaluación (Uso del Docente)', style: 'sectionHeader', pageBreak: 'before' },
+          {
+            table: {
+              headerRows: 1,
+              widths: ['*', 100, 100],
+              body: [
+                [
+                  { text: 'Criterio / Item', bold: true, fillColor: '#f1f5f9' },
+                  { text: 'Puntaje Máximo', bold: true, alignment: 'center', fillColor: '#f1f5f9' },
+                  { text: 'Puntaje Obtenido', bold: true, alignment: 'center', fillColor: '#f1f5f9' }
+                ],
+                [
+                  { text: '1. Red Base: Rango CIDR (5 pts) + Captura Subnets (10 pts)' },
+                  { text: '15 pts', alignment: 'center' },
+                  { text: '', alignment: 'center' }
+                ],
+                [
+                  { text: '2. Ruteo a Internet: Justificación (5 pts) + Captura de Rutas (25 pts)' },
+                  { text: '30 pts', alignment: 'center' },
+                  { text: '', alignment: 'center' }
+                ],
+                [
+                  { text: '3. EC2 y Seguridad: Puertos SG (5 pts) + Captura EC2 Running (10 pts)' },
+                  { text: '15 pts', alignment: 'center' },
+                  { text: '', alignment: 'center' }
+                ],
+                [
+                  { text: '4. Automatización: Captura Web cargada con IP Pública (40 pts)' },
+                  { text: '40 pts', alignment: 'center' },
+                  { text: '', alignment: 'center' }
+                ],
+                [
+                  { text: 'Puntaje Total', bold: true, fillColor: '#f8fafc' },
+                  { text: '100 pts', bold: true, alignment: 'center', fillColor: '#f8fafc' },
+                  { text: ' / 100 pts', bold: true, alignment: 'center', fillColor: '#f8fafc' }
+                ]
+              ]
+            },
+            layout: {
+              hLineWidth: () => 1,
+              vLineWidth: () => 1,
+              hLineColor: () => '#cbd5e1',
+              vLineColor: () => '#cbd5e1'
+            },
+            margin: [0, 10, 0, 20]
+          },
+          {
+            text: [
+              { text: 'Nota Final: ', bold: true, fontSize: 12 },
+              { text: '_______________  (Exigencia 60% para Nota 4.0 con 60 Pts)', fontSize: 12 }
+            ],
+            margin: [0, 10, 0, 0]
+          }
+        ],
+        footer: function(currentPage, pageCount) {
+          return {
+            text: `Evaluación de Cloud Computing | Página ${currentPage} de ${pageCount}`,
+            alignment: 'center',
+            fontSize: 9,
+            color: '#64748b',
+            margin: [0, 10, 0, 0]
+          };
+        },
+        styles: {
+          header: { fontSize: 20, bold: true, color: '#0f172a' },
+          subheader: { fontSize: 13, bold: true, color: '#ec4899' },
+          sectionHeader: { fontSize: 15, bold: true, color: '#0f172a', margin: [0, 10, 0, 15] },
+          questionLabel: { fontSize: 11, bold: true, color: '#334155', margin: [0, 5, 0, 5] },
+          evidenceLabel: { fontSize: 11, bold: true, color: '#334155', margin: [0, 5, 0, 10] },
+          noImage: { fontSize: 11, bold: true, color: '#ef4444', margin: [0, 5, 0, 0] }
+        },
+        defaultStyle: {
+          font: 'Roboto'
+        }
+      };
+
+      try {
+        pdfMake.createPdf(docDefinition).download(`Evaluacion_VPC_${name.replace(/\s+/g, '_')}.pdf`);
+        // Dar un breve retraso para simular la descarga y restaurar el botón y loader
+        setTimeout(() => {
+          hideLoader();
+        }, 1500);
+      } catch (err) {
+        console.error('Error generando PDF:', err);
+        alert('Hubo un error al generar el PDF. Por favor verifica las imágenes cargadas o intenta de nuevo.');
+        hideLoader();
+      }
+    }
+
+    // Función para copiar script
+    function copyScript() {
+      const text = document.getElementById('userDataScript').innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.querySelector('.eval-code-container button');
+        btn.innerText = '✅ Copiado!';
+        setTimeout(() => btn.innerText = '📋 Copiar Código', 2000);
+      }).catch(err => {
+        console.error('Error al copiar el texto: ', err);
+      });
+    }
+  </script>
+</body>
+</html>
