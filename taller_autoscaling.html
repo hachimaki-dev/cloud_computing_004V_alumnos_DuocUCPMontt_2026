@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Taller de Investigación: Escalabilidad | Cloud Computing</title>
+  <meta name="description" content="Taller investigativo sobre fundamentos de escalabilidad, casos reales de caídas de servidores y el concepto de Auto Scaling.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <a href="index.html" class="nav-brand">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17.5 19A3.5 3.5 0 0 0 21 15.5c0-2.79-2.54-4.5-5-4.5-.42 0-.83.04-1.24.12A6.5 6.5 0 0 0 3 13.5A3.5 3.5 0 0 0 6.5 17H12" />
+        <path d="M12 12V21" />
+        <path d="m9 18 3 3 3-3" />
+      </svg>
+      <span>Cloud Foundations</span>
+    </a>
+    
+    <div class="nav-links">
+      <a href="index.html" class="nav-link">Dashboard</a>
+      
+      <!-- Teacher Mode Switcher -->
+      <div class="teacher-toggle-container">
+        <span class="teacher-toggle-label">Modo Profesor</span>
+        <label class="switch">
+          <input type="checkbox" id="teacherModeToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content Container -->
+  <main class="container">
+    
+    <!-- Back button -->
+    <a href="index.html" class="back-link">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+      </svg>
+      Volver al Dashboard
+    </a>
+
+    <!-- Class Header -->
+    <header class="class-header">
+      <span class="class-number" style="margin-bottom: 0.5rem; display: inline-block; background: rgba(139,92,246,0.15); color: #8b5cf6; border-color: rgba(139,92,246,0.3);">🔍 Taller de Investigación</span>
+      <h1>Escalabilidad y el Síndrome "Punto Ticket"</h1>
+      <p style="color: var(--text-secondary); font-size: 1.1rem; max-width: 800px;">
+        Antes de tocar la consola de AWS, necesitamos entender el problema. ¿Por qué se caen las páginas web cuando hay mucha gente? Investigaremos 10 preguntas clave para comprender la magia detrás del Auto Scaling.
+      </p>
+    </header>
+
+    <!-- Module Progress Bar -->
+    <div class="taller-progress-bar" id="tallerProgressBar">
+      <div class="progress-step active" data-target="slide-portada">Inicio</div>
+      <div class="progress-step" data-target="slide-conceptos">1. Conceptos Básicos</div>
+      <div class="progress-step" data-target="slide-casos">2. Casos Reales</div>
+      <div class="progress-step" data-target="slide-autoscaling">3. Auto Scaling</div>
+      <div class="progress-step" data-target="slide-sabado">Próximo Sábado</div>
+    </div>
+
+    <!-- Content with Slides Container -->
+    <div class="class-content-wrapper">
+      
+      <!-- Slides Container -->
+      <div class="main-content-flow slides-container" id="slidesContainer">
+        
+        <!-- ============================================================ -->
+        <!-- SLIDE 0: PORTADA + OBJETIVOS -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-portada" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.0</span>
+            Instrucciones del Taller
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Introducción (5 min)</h4>
+            <p><strong>Meta:</strong> Esta clase es puramente teórica/investigativa. Los estudiantes no saben qué es escalar. El objetivo es que ellos mismos descubran los conceptos buscando en internet y debatiendo.</p>
+            <ul>
+              <li><strong>Formato:</strong> Grupos de 3 personas (Tríos).</li>
+              <li><strong>Entregable:</strong> Documento compartido (Word, Google Docs, o escrito a mano) con las respuestas a las 10 preguntas.</li>
+              <li><strong>Tiempo de investigación:</strong> 45 - 60 minutos.</li>
+              <li><strong>Plenario:</strong> Dedica los últimos 20 minutos a discutir las respuestas en voz alta.</li>
+            </ul>
+          </div>
+
+          <p>En la vida real, los ingenieros Cloud no abren la consola de AWS a presionar botones sin entender el problema de negocio que están resolviendo. Hoy, ustedes actuarán como arquitectos Cloud analizando un problema crítico: <strong>El colapso de los servidores por exceso de éxito.</strong></p>
+
+          <div class="warning-callout" style="background: rgba(139,92,246,0.1); border-left-color: #8b5cf6;">
+            <strong>📋 Reglas del Trabajo de Hoy:</strong>
+            <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+              <li>Fórmense en grupos de 3 personas.</li>
+              <li>Abran un documento colaborativo.</li>
+              <li>Tienen que buscar información en Google, leer noticias y debatir entre ustedes para responder las 10 preguntas orientadoras que vienen a continuación.</li>
+              <li>No hay respuestas 100% incorrectas si están bien justificadas con sus palabras.</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 1: CONCEPTOS -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-conceptos" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">P.1</span>
+            Parte 1: Conceptos Básicos (Preguntas 1 a 3)
+          </h2>
+
+          <p>Investiguen y respondan las siguientes preguntas con sus propias palabras, evitando copiar y pegar definiciones de Wikipedia.</p>
+
+          <div class="terminal-window" style="background: var(--bg-card); color: var(--text-primary); border-radius: 8px; border: 1px solid var(--border-color); padding: 1.5rem; margin-top: 1.5rem;">
+            <ol style="margin-left: 1.5rem; line-height: 1.6;">
+              <li style="margin-bottom: 1.5rem;">
+                <strong style="color: var(--color-cyan);">Concepto Básico:</strong> ¿Qué significa exactamente la palabra "escalar" en el contexto de la tecnología y los servidores? 
+                <br><em>Reto: Explíquenlo usando una analogía de la vida real (por ejemplo, cómo atiende un supermercado cuando hay mucha fila vs cuando está vacío, o la cocina de un restaurante).</em>
+              </li>
+              
+              <li style="margin-bottom: 1.5rem;">
+                <strong style="color: var(--color-cyan);">Escalado Vertical vs Horizontal:</strong> Investiguen la diferencia entre "Escalabilidad Vertical" (Scale Up) y "Escalabilidad Horizontal" (Scale Out). 
+                <br><em>Reto: Den un ejemplo de qué tendrían que comprar/hacerle a un computador físico en cada caso.</em>
+              </li>
+              
+              <li style="margin-bottom: 0.5rem;">
+                <strong style="color: var(--color-cyan);">Límites Físicos:</strong> ¿Por qué el escalado vertical tiene un límite técnico? ¿Qué pasa si intento seguir agregándole RAM y CPU a una misma máquina física de forma infinita?
+              </li>
+            </ol>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 2: CASOS REALES -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-casos" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">P.2</span>
+            Parte 2: Casos Noticiosos (Preguntas 4 a 6)
+          </h2>
+
+          <p>Es hora de ver cómo este problema afecta a millones de personas y millones de dólares en la vida real.</p>
+
+          <div class="terminal-window" style="background: var(--bg-card); color: var(--text-primary); border-radius: 8px; border: 1px solid var(--border-color); padding: 1.5rem; margin-top: 1.5rem;">
+            <ol start="4" style="margin-left: 1.5rem; line-height: 1.6;">
+              <li style="margin-bottom: 1.5rem;">
+                <strong style="color: #f59e0b;">Búsqueda de Noticias:</strong> Busquen en Google al menos 2 noticias reales de sitios web famosos que se hayan caído por exceso de tráfico (ej. ventas de entradas, lanzamientos de consolas, CyberDay, etc.). 
+                <br><em>Reto: Anoten los titulares, qué evento lo provocó, y qué decían los usuarios frustrados en redes sociales.</em>
+              </li>
+              
+              <li style="margin-bottom: 1.5rem;">
+                <strong style="color: #f59e0b;">Anatomía de una Caída (El caso Punto Ticket):</strong> Cuando hay una fila virtual para comprar entradas (ej. Lollapalooza o Bad Bunny) y el sistema finalmente colapsa tirando un "Error 503 Service Unavailable"...
+                <br><em>Reto: Según lo que investiguen, ¿qué componentes internos del servidor creen que se saturan primero y provocan esto? (¿Será la CPU, la Memoria RAM, el Ancho de banda de Red, o el Disco Duro?). Justifiquen.</em>
+              </li>
+              
+              <li style="margin-bottom: 0.5rem;">
+                <strong style="color: #f59e0b;">El Problema Económico:</strong> Imaginen que son dueños de una gran tienda de retail y deciden comprar 50 servidores físicos inmensos ($10,000 USD cada uno) para asegurarse de que la página no se caiga en el CyberDay. 
+                <br><em>Reto: ¿Qué pasará con esos 50 servidores una semana después cuando las ventas vuelvan a la normalidad? ¿Por qué esta solución "a la antigua" es terrible financieramente para la empresa?</em>
+              </li>
+            </ol>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 3: AUTO SCALING -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-autoscaling" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">P.3</span>
+            Parte 3: La Nube al Rescate (Preguntas 7 a 10)
+          </h2>
+
+          <p>AWS y Cloud Computing cambiaron las reglas del juego. Investiguen cómo la nube soluciona esto automáticamente.</p>
+
+          <div class="terminal-window" style="background: var(--bg-card); color: var(--text-primary); border-radius: 8px; border: 1px solid var(--border-color); padding: 1.5rem; margin-top: 1.5rem;">
+            <ol start="7" style="margin-left: 1.5rem; line-height: 1.6;">
+              <li style="margin-bottom: 1.5rem;">
+                <strong style="color: #10b981;">La Solución en la Nube:</strong> Investiguen qué es el servicio "Auto Scaling" (o Autoescalado) en Cloud Computing. 
+                <br><em>Reto: ¿Cómo resuelve específicamente el problema económico que describieron en la pregunta 6? (Pista: piensen en el concepto de "pago por uso").</em>
+              </li>
+              
+              <li style="margin-bottom: 1.5rem;">
+                <strong style="color: #10b981;">Métricas de Gatillo (Triggers):</strong> Si ustedes tuvieran que programar a un robot para que decida cuándo encender nuevos servidores de forma automática, ¿qué "síntomas" del servidor le dirían que vigile? 
+                <br><em>Reto: Mencionen al menos 3 métricas que se usan en la vida real para gatillar un Auto Scaling (Ejemplo: "Gatillar si la CPU supera el 80% durante 5 minutos...").</em>
+              </li>
+
+              <li style="margin-bottom: 1.5rem;">
+                <strong style="color: #10b981;">El Desescalado (Scale-In):</strong> Tan importante como crecer, es achicarse. ¿Por qué el Auto Scaling incluye reglas para "destruir" servidores automáticamente cuando ya no hay tráfico? 
+                <br><em>Reto: ¿Qué pasaría con la tarjeta de crédito de la empresa si configuramos bien el escalado hacia arriba, pero olvidamos configurar el desescalado hacia abajo?</em>
+              </li>
+              
+              <li style="margin-bottom: 0.5rem;">
+                <strong style="color: #10b981;">El Desafío de los Datos (Avanzado):</strong> Escalar horizontalmente un servidor web (donde solo hay archivos HTML e imágenes) es fácil: simplemente se clona. Pero, ¿por qué es mucho más difícil y riesgoso clonar automáticamente un servidor de Base de Datos centralizado (donde se guarda quién compró qué, o cuánto stock queda)?
+                <br><em>Reto: ¿Qué desastre pasaría con el stock de zapatillas si hay 3 bases de datos clonadas atendiendo pedidos sin estar perfectamente sincronizadas?</em>
+              </li>
+            </ol>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 4: SÁBADO -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-sabado" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.2</span>
+            Preparación para el Laboratorio (Próximo Sábado)
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Cierre (5 min)</h4>
+            <p>Felicita a los estudiantes por llegar a las conclusiones teóricas. Explícales que el próximo sábado dejarán la teoría y pasarán a la práctica destructiva en AWS.</p>
+          </div>
+
+          <p>Hoy han entendido la teoría, el dolor de negocio y la economía detrás de la escalabilidad.</p>
+          
+          <div class="warning-callout" style="background: rgba(245,158,11,0.1); border-left-color: #f59e0b; margin-top: 1.5rem;">
+            <strong>🚀 Spoiler del Próximo Sábado:</strong>
+            <p style="margin-top: 0.5rem;">En nuestra próxima clase práctica en la consola de AWS, ustedes mismos van a:</p>
+            <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+              <li>Crear una plantilla de servidor (Launch Template).</li>
+              <li>Configurar un grupo de Auto Scaling que vigile la CPU.</li>
+              <li>Entrar a su propio servidor por SSH e inyectarle un comando de "estrés" para llevar la CPU al 100%.</li>
+              <li>Ver con sus propios ojos cómo AWS detecta el problema y empieza a clonar su servidor de forma automática para salvarlos de la caída.</li>
+            </ul>
+          </div>
+          
+          <h3 style="text-align: center; margin-top: 3rem; color: var(--color-cyan);">¡Guarden sus respuestas y nos vemos el Sábado en el Laboratorio Práctico!</h3>
+        </section>
+
+      </div> <!-- End Slides Container -->
+    </div> <!-- End Class Content Wrapper -->
+  </main>
+
+  <script>
+    // -----------------------------------------------------------------
+    // 1. Teacher Mode Toggle
+    // -----------------------------------------------------------------
+    const teacherToggle = document.getElementById('teacherModeToggle');
+    
+    // Check localStorage
+    if (localStorage.getItem('teacherMode') === 'true') {
+      document.body.classList.add('teacher-mode-active');
+      teacherToggle.checked = true;
+    }
+    
+    teacherToggle.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        document.body.classList.add('teacher-mode-active');
+        localStorage.setItem('teacherMode', 'true');
+      } else {
+        document.body.classList.remove('teacher-mode-active');
+        localStorage.setItem('teacherMode', 'false');
+      }
+    });
+
+    // -----------------------------------------------------------------
+    // 2. Progress Bar Scroll Sync
+    // -----------------------------------------------------------------
+    function initProgressBarScrollSync() {
+      const progressSteps = document.querySelectorAll('.progress-step');
+      const slidesList = document.querySelectorAll('.slide');
+
+      // Click to scroll
+      progressSteps.forEach(step => {
+        step.addEventListener('click', () => {
+          const targetId = step.getAttribute('data-target');
+          const targetEl = document.getElementById(targetId);
+          if (targetEl) {
+            // Un poco de offset para el header sticky
+            const y = targetEl.getBoundingClientRect().top + window.scrollY - 100;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+          }
+        });
+      });
+
+      // Scroll sync
+      const onScroll = () => {
+        let currentSlideId = '';
+        const scrollPosition = window.scrollY + 250;
+
+        slidesList.forEach(slide => {
+          const top = slide.offsetTop;
+          const height = slide.offsetHeight;
+          if (scrollPosition >= top && scrollPosition < top + height) {
+            currentSlideId = slide.getAttribute('id');
+          }
+        });
+
+        if (currentSlideId) {
+          progressSteps.forEach(step => {
+            step.classList.remove('active');
+            if (step.getAttribute('data-target') === currentSlideId) {
+              step.classList.add('active');
+            }
+          });
+        }
+      };
+
+      window.addEventListener('scroll', onScroll);
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      initProgressBarScrollSync();
+    });
+  </script>
+</body>
+</html>
