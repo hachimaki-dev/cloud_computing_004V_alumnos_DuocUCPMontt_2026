@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Taller Práctico: Auto Scaling y Tolerancia a Fallos | Cloud Computing</title>
+  <meta name="description" content="Laboratorio práctico de Auto Scaling. Crea una plantilla, estresa la CPU de un servidor y observa cómo AWS clona la máquina automáticamente.">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* ============================================================
+       TALLER AUTO SCALING — Estilos específicos
+       ============================================================ */
+
+    /* Tablas campo→valor */
+    .field-table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+    .field-table th, .field-table td { padding: 0.75rem 1rem; border: 1px solid var(--glass-border, rgba(255,255,255,0.1)); text-align: left; }
+    .field-table th { background: rgba(255,255,255,0.05); color: var(--text-primary, #e2e8f0); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .field-table td:first-child { font-weight: 600; color: var(--color-cyan, #06b6d4); white-space: nowrap; width: 35%; }
+    .field-table td:last-child { color: var(--text-secondary, #94a3b8); }
+    .field-table code { background: rgba(255,255,255,0.08); padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.85em; }
+
+    /* Callouts de éxito / verificación */
+    .success-check { background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-left: 4px solid #10b981; padding: 1rem 1.25rem; border-radius: 0 8px 8px 0; margin: 1.25rem 0; font-size: 0.9rem; color: #a7f3d0; }
+    .success-check strong { color: #10b981; }
+
+    /* Callouts de peligro */
+    .danger-check { background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-left: 4px solid #ef4444; padding: 1rem 1.25rem; border-radius: 0 8px 8px 0; margin: 1.25rem 0; font-size: 0.9rem; color: #fca5a5; }
+    .danger-check strong { color: #ef4444; }
+
+    /* Callouts de info */
+    .info-check { background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.25); border-left: 4px solid #06b6d4; padding: 1rem 1.25rem; border-radius: 0 8px 8px 0; margin: 1.25rem 0; font-size: 0.9rem; color: #a5f3fc; }
+    .info-check strong { color: #06b6d4; }
+
+    /* Callouts de advertencia */
+    .warn-check { background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-left: 4px solid #f59e0b; padding: 1rem 1.25rem; border-radius: 0 8px 8px 0; margin: 1.25rem 0; font-size: 0.9rem; color: #fde68a; }
+    .warn-check strong { color: #f59e0b; }
+
+    /* Checklist de prerequisitos */
+    .prereq-list { list-style: none; padding: 0; margin: 1rem 0; }
+    .prereq-list li { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border, rgba(255,255,255,0.1)); border-radius: 8px; margin-bottom: 0.5rem; font-size: 0.95rem; cursor: pointer; transition: all 0.2s; }
+    .prereq-list li:hover { background: rgba(255,255,255,0.06); }
+    .prereq-list li.checked { background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.3); }
+    .prereq-check { width: 22px; height: 22px; border: 2px solid var(--glass-border, rgba(255,255,255,0.2)); border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; font-size: 0.8rem; }
+    .prereq-list li.checked .prereq-check { background: #10b981; border-color: #10b981; }
+
+    /* Stepper wizard */
+    .wizard-step { display: flex; gap: 1rem; margin-bottom: 1.5rem; padding-left: 0.5rem; }
+    .wizard-step-indicator { display: flex; flex-direction: column; align-items: center; }
+    .wizard-step-circle { width: 32px; height: 32px; border-radius: 50%; background: rgba(6,182,212,0.15); border: 2px solid var(--color-cyan, #06b6d4); color: var(--color-cyan, #06b6d4); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; flex-shrink: 0; }
+    .wizard-step-circle.skip { background: rgba(100,116,139,0.15); border-color: #64748b; color: #64748b; }
+    .wizard-step-line { width: 2px; flex: 1; background: var(--glass-border, rgba(255,255,255,0.1)); margin-top: 0.4rem; min-height: 20px; }
+    .wizard-step-content { flex: 1; padding-top: 0.2rem; }
+    .wizard-step-content h4 { margin: 0 0 0.5rem 0; color: var(--text-primary, #e2e8f0); font-size: 1rem; }
+    .wizard-step-content h4.skip-title { color: #64748b; }
+    .wizard-step-content p, .wizard-step-content ul { font-size: 0.9rem; color: var(--text-secondary, #94a3b8); margin: 0; }
+    .wizard-step-content ul { padding-left: 1.25rem; margin-top: 0.4rem; }
+    .wizard-step-content li { margin-bottom: 0.3rem; }
+
+    /* Code blocks */
+    .code-block { background: #0d1117; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 1rem; margin: 0.75rem 0; overflow-x: auto; position: relative; }
+    .code-block code { font-family: 'Fira Code', 'Consolas', monospace; font-size: 0.85rem; color: #e2e8f0; white-space: pre; }
+    .code-block .code-label { position: absolute; top: 0; right: 0; background: rgba(139,92,246,0.2); color: #c4b5fd; font-size: 0.7rem; padding: 0.2rem 0.6rem; border-radius: 0 8px 0 8px; font-weight: 600; }
+    .code-block-red code { color: #ff6b6b; }
+
+    /* Evaluation quiz */
+    .quiz-option { display: flex; align-items: flex-start; gap: 0.75rem; background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border, rgba(255,255,255,0.1)); border-radius: 10px; padding: 1rem; cursor: pointer; text-align: left; margin-bottom: 0.5rem; transition: all 0.2s; }
+    .quiz-option:hover { background: rgba(255,255,255,0.05); }
+    .quiz-option.selected { background: rgba(6, 182, 212, 0.08); border-color: rgba(6, 182, 212, 0.4); }
+    .quiz-option.correct { background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.4); }
+    .quiz-option.wrong { background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.3); opacity: 0.7; }
+    .quiz-radio { width: 18px; height: 18px; border: 2px solid var(--glass-border, rgba(255,255,255,0.2)); border-radius: 50%; flex-shrink: 0; margin-top: 2px; transition: all 0.2s; }
+    .quiz-option.selected .quiz-radio { background: var(--color-cyan, #06b6d4); border-color: var(--color-cyan, #06b6d4); }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <a href="index.html" class="nav-brand">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17.5 19A3.5 3.5 0 0 0 21 15.5c0-2.79-2.54-4.5-5-4.5-.42 0-.83.04-1.24.12A6.5 6.5 0 0 0 3 13.5A3.5 3.5 0 0 0 6.5 17H12" />
+        <path d="M12 12V21" />
+        <path d="m9 18 3 3 3-3" />
+      </svg>
+      <span>Cloud Foundations</span>
+    </a>
+    
+    <div class="nav-links">
+      <a href="index.html" class="nav-link">Dashboard</a>
+      
+      <!-- Teacher Mode Switcher -->
+      <div class="teacher-toggle-container">
+        <span class="teacher-toggle-label">Modo Profesor</span>
+        <label class="switch">
+          <input type="checkbox" id="teacherModeToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content Container -->
+  <main class="container">
+    
+    <!-- Back button -->
+    <a href="index.html" class="back-link">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+      </svg>
+      Volver al Dashboard
+    </a>
+
+    <!-- Class Header -->
+    <header class="class-header">
+      <span class="class-number" style="margin-bottom: 0.5rem; display: inline-block; background: rgba(220, 38, 38, 0.15); color: #dc2626; border-color: rgba(220, 38, 38, 0.3);">🚀 Taller Práctico Final</span>
+      <h1>Auto Scaling: Sobreviviendo a un Colapso</h1>
+      <p style="color: var(--text-secondary); font-size: 1.1rem; max-width: 800px;">
+        Es hora de la verdad. Llevaremos un servidor al límite (100% de CPU) y veremos cómo AWS detecta el problema y clona el servidor automáticamente para salvarnos de la caída.
+      </p>
+    </header>
+
+    <!-- Module Progress Bar -->
+    <div class="taller-progress-bar" id="tallerProgressBar">
+      <div class="progress-step active" data-target="slide-prereqs">Prerequisitos</div>
+      <div class="progress-step" data-target="slide-plantilla">1. Launch Template</div>
+      <div class="progress-step" data-target="slide-asg">2. Auto Scaling Group</div>
+      <div class="progress-step" data-target="slide-stress">3. Estrés CPU</div>
+      <div class="progress-step" data-target="slide-magia">4. La Magia</div>
+      <div class="progress-step" data-target="slide-limpieza">5. Limpieza</div>
+      <div class="progress-step" data-target="slide-evaluacion">Evaluación</div>
+    </div>
+
+    <!-- Content with Slides Container -->
+    <div class="class-content-wrapper">
+      
+      <!-- Slides Container -->
+      <div class="main-content-flow slides-container" id="slidesContainer">
+        
+        <!-- ============================================================ -->
+        <!-- SLIDE 0: PREREQUISITOS -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-prereqs" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">T.7</span>
+            Antes de Empezar — Prerequisitos
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Preparación (5 min)</h4>
+            <p><strong>Meta:</strong> Asegurarse de que todos los alumnos tengan lo mínimo necesario antes de empezar. Si algún alumno no tiene VPC propia, pueden usar la <strong>VPC por defecto</strong> que AWS trae de fábrica (toda cuenta la tiene).</p>
+            <ul>
+              <li><strong>Tip:</strong> Si la clase anterior fue el taller VPC, los alumnos ya tienen todo. Si no, guíalos a usar la VPC default.</li>
+              <li><strong>Tiempo total estimado del taller:</strong> 45-60 minutos.</li>
+            </ul>
+          </div>
+
+          <p>Solo necesitas estas 2 cosas. Haz clic en cada una cuando la confirmes:</p>
+
+          <ul class="prereq-list" id="prereqList">
+            <li onclick="togglePrereq(this)">
+              <span class="prereq-check"></span>
+              <div>
+                <strong>Sesión iniciada en AWS Academy / Learner Lab</strong>
+                <br><span style="font-size: 0.85em; color: var(--text-secondary);">Tu lab debe estar en estado "verde" (running). Si está rojo, presiona "Start Lab".</span>
+              </div>
+            </li>
+            <li onclick="togglePrereq(this)">
+              <span class="prereq-check"></span>
+              <div>
+                <strong>Estar en el servicio EC2 de la consola</strong>
+                <br><span style="font-size: 0.85em; color: var(--text-secondary);">Escribe <code>EC2</code> en la barra de búsqueda superior y haz clic en el resultado.</span>
+              </div>
+            </li>
+          </ul>
+
+          <div class="info-check">
+            <strong>💡 ¿Necesito una VPC, subredes, Key Pair o Security Group?</strong>
+            <br>No te preocupes por nada de eso. Usaremos la <strong>VPC por defecto</strong> que toda cuenta AWS trae de fábrica (ya tiene subredes públicas listas). El Key Pair y el Security Group los crearemos durante el taller.
+          </div>
+
+          <div class="info-check">
+            <strong>📋 Lo que haremos hoy en 4 pasos:</strong>
+            <ol style="margin: 0.5rem 0 0 1.5rem; line-height: 1.8;">
+              <li><strong>Crear una plantilla de servidor</strong> (Launch Template) → La "receta" para clonar.</li>
+              <li><strong>Crear un Auto Scaling Group</strong> → El "vigilante" que monitorea la CPU.</li>
+              <li><strong>Conectarnos por SSH y estresar la CPU</strong> → Simular un ataque de tráfico.</li>
+              <li><strong>Ver cómo AWS lanza un servidor de rescate solo</strong> → ¡La magia!</li>
+            </ol>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 1: LAUNCH TEMPLATE -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-plantilla" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">1</span>
+            Crear la Plantilla de Servidor (Launch Template)
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Launch Template (10 min)</h4>
+            <p>Explica la analogía: <strong>"La Launch Template es como una receta de cocina. Cada vez que AWS necesite crear un servidor nuevo, seguirá exactamente esta receta: mismo sistema operativo, mismo tamaño, misma configuración."</strong></p>
+            <ul>
+              <li>Si algún alumno no tiene Key Pair, que lo cree aquí mismo (paso 3 de la tabla).</li>
+              <li>El User Data ya instala <code>stress</code> automáticamente para que no tengan que hacerlo a mano.</li>
+            </ul>
+          </div>
+
+          <p>Antes de que AWS pueda clonar servidores automáticamente, necesita saber <strong>qué</strong> clonar. Para eso existe la Launch Template: es la receta exacta de tu servidor.</p>
+
+          <!-- Sub-paso 1: Navegar -->
+          <div class="wizard-step">
+            <div class="wizard-step-indicator">
+              <div class="wizard-step-circle">1</div>
+              <div class="wizard-step-line"></div>
+            </div>
+            <div class="wizard-step-content">
+              <h4>Navegar al servicio EC2</h4>
+              <ul>
+                <li>En la <strong>barra de búsqueda superior</strong> de la consola AWS (donde dice "Search"), escribe <code>EC2</code> y haz clic en el resultado.</li>
+                <li>En el <strong>menú lateral izquierdo</strong>, busca la sección <em>Instances</em> y haz clic en <strong>Launch Templates</strong>.</li>
+                <li>Haz clic en el botón naranja <strong>Create launch template</strong>.</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Sub-paso 2: Configurar campos -->
+          <div class="wizard-step">
+            <div class="wizard-step-indicator">
+              <div class="wizard-step-circle">2</div>
+              <div class="wizard-step-line"></div>
+            </div>
+            <div class="wizard-step-content">
+              <h4>Configurar los campos (usa esta tabla exacta)</h4>
+              <table class="field-table">
+                <thead><tr><th>Campo en AWS</th><th>Qué escribir / seleccionar</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Launch template name</td>
+                    <td><code>MiPlantillaRescate</code></td>
+                  </tr>
+                  <tr>
+                    <td>Template version description</td>
+                    <td><code>Servidor para probar auto scaling</code> (opcional)</td>
+                  </tr>
+                  <tr>
+                    <td>Application and OS Images (AMI)</td>
+                    <td>En la pestaña <strong>Quick Start</strong>, elige <strong>Amazon Linux</strong>. Selecciona <strong>Amazon Linux 2023 AMI</strong> (la que dice "Free tier eligible").</td>
+                  </tr>
+                  <tr>
+                    <td>Instance type</td>
+                    <td><code>t2.micro</code> — Dice "Free tier eligible" al lado.</td>
+                  </tr>
+                  <tr>
+                    <td>Key pair (login)</td>
+                    <td>Selecciona tu llave existente. <strong>¿No tienes?</strong> Haz clic en "Create new key pair", nómbrala <code>llave-autoscaling</code>, tipo RSA, formato .pem, y descárgala.</td>
+                  </tr>
+                  <tr>
+                    <td>Network settings</td>
+                    <td>Haz clic en <strong>Create security group</strong>. Nombre: <code>SG-AutoScaling</code>. Descripción: <code>SSH para taller</code>. Agrega una regla: Type: <strong>SSH</strong>, Source: <strong>Anywhere</strong>.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Sub-paso 3: User Data -->
+          <div class="wizard-step">
+            <div class="wizard-step-indicator">
+              <div class="wizard-step-circle">3</div>
+              <div class="wizard-step-line"></div>
+            </div>
+            <div class="wizard-step-content">
+              <h4>El Toque Especial: User Data (¡NO saltarse!)</h4>
+              <p>Baja hasta el final de la página y haz clic en el triángulo <strong>▶ Advanced details</strong> para desplegarlo. Baja hasta el último campo que dice <strong>User data</strong> y pega este script:</p>
+              
+              <div class="code-block">
+                <span class="code-label">Amazon Linux 2023</span>
+                <code>#!/bin/bash
+yum update -y
+yum install stress -y</code>
+              </div>
+
+              <div class="warn-check">
+                <strong>⚠️ ¿Tu profesor indicó usar Ubuntu en vez de Amazon Linux?</strong> Entonces pega este script en su lugar:
+                <div class="code-block" style="margin-top: 0.5rem;">
+                  <span class="code-label">Ubuntu</span>
+                  <code>#!/bin/bash
+apt update -y
+apt install stress -y</code>
+                </div>
+              </div>
+
+              <p style="margin-top: 0.5rem;"><strong>¿Qué hace este script?</strong> Cuando AWS encienda un servidor usando esta plantilla, lo primero que hará (antes de que tú te conectes) es instalar automáticamente la herramienta <code>stress</code> que usaremos para saturar la CPU.</p>
+            </div>
+          </div>
+
+          <!-- Sub-paso 4: Crear -->
+          <div class="wizard-step">
+            <div class="wizard-step-indicator">
+              <div class="wizard-step-circle">4</div>
+            </div>
+            <div class="wizard-step-content">
+              <h4>Crear la plantilla</h4>
+              <p>Haz clic en el botón naranja <strong>Create launch template</strong> que está abajo del todo.</p>
+            </div>
+          </div>
+
+          <div class="success-check">
+            <strong>✅ Si todo salió bien:</strong> Verás un mensaje verde que dice <em>"Successfully created launch template: MiPlantillaRescate"</em>. Además, abajo verás una sección de <strong>"Siguientes pasos"</strong>.
+            <br><br>👉 Haz clic directamente en el link azul <strong>"Crear grupo de Auto Scaling"</strong> que aparece en esa pantalla. Eso te lleva directo al siguiente paso sin tener que buscar en el menú.
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 2: AUTO SCALING GROUP -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-asg" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">2</span>
+            Crear el Auto Scaling Group (El Vigilante)
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: ASG (15 min)</h4>
+            <p><strong>Analogía:</strong> "El Auto Scaling Group es como un guardia de seguridad que vigila el termómetro de la CPU. Si ve que sube de 50°, llama refuerzos (clona servidores). Si baja, manda a los refuerzos a casa."</p>
+            <ul>
+              <li>El wizard tiene 7 pantallas. La mayoría se saltan con Next. La pantalla 4 (Group size) es la única crítica.</li>
+              <li>Recuerda: el ASG creará automáticamente 1 instancia EC2 al terminar. Eso es normal y esperado.</li>
+            </ul>
+          </div>
+
+          <p>Ahora crearemos el <strong>vigilante</strong> que usará nuestra plantilla para clonar servidores cuando detecte problemas de CPU. El wizard tiene varias pantallas, pero la mayoría se saltan.</p>
+
+          <!-- Pantalla 1 -->
+          <div class="wizard-step">
+            <div class="wizard-step-indicator">
+              <div class="wizard-step-circle">1</div>
+              <div class="wizard-step-line"></div>
+            </div>
+            <div class="wizard-step-content">
+              <h4>Pantalla 1 — Nombre y Plantilla</h4>
+              <ul>
+                <li>¿Vienes de la pantalla de éxito del Launch Template? Haz clic en el link <strong>"Crear grupo de Auto Scaling"</strong> que aparecía ahí.</li>
+                <li><strong>¿Ya cerraste esa pantalla?</strong> No pasa nada: en el menú izquierdo de EC2, baja hasta el final y busca <strong>Auto Scaling Groups</strong> (está bajo la sección "Auto Scaling"). Haz clic en el botón naranja <strong>Create Auto Scaling group</strong>.</li>
+              </ul>
+              <table class="field-table">
+                <thead><tr><th>Campo</th><th>Qué poner</th></tr></thead>
+                <tbody>
+                  <tr><td>Auto Scaling group name</td><td><code>MiGrupoAutoScaling</code></td></tr>
+                  <tr><td>Launch template</td><td>Selecciona <code>MiPlantillaRescate</code> (debería aparecer en el desplegable)</td></tr>
+                </tbody>
+              </table>
+              <p style="margin-top: 0.5rem;">Haz clic en <strong>Next</strong>.</p>
+            </div>
+          </div>
+
+          <!-- Pantalla 2 -->
+          <div class="wizard-step">
+            <div class="wizard-step-indicator">
+              <div class="wizard-step-circle">2</div>
+              <div class="wizard-step-line"></div>
+            </div>
+            <div class="wizard-step-content">
+              <h4>Pantalla 2 — Red (Network)</h4>
+              <table class="field-table">
+                <thead><tr><th>Campo</th><th>Qué poner</th></tr></thead>
+                <tbody>
+                  <tr><td>VPC</td><td>Déjala como está. La <strong>VPC por defecto</strong> ya viene seleccionada automáticamente.</td></tr>
+                  <tr><td>Availability Zones and subnets</td><td>Selecciona <strong>al menos 2 subredes</strong> de la lista (haz clic en 2 cualesquiera). Esto permite que AWS ponga servidores en diferentes edificios físicos para mayor resistencia.</td></tr>
+                </tbody>
+              </table>
+              <p style="margin-top: 0.5rem;">Haz clic en <strong>Next</strong>.</p>
+            </div>
+          </div>
+
+          <!-- Pantalla 3 -->
+          <div class="wizard-step">
+            <div class="wizard-step-indicator">
+              <div class="wizard-step-circle skip">3</div>
+              <div class="wizard-step-line"></div>
+            </div>
+            <div class="wizard-step-content">
+              <h4 class="skip-title">Pantalla 3 — Load Balancer (SALTAR)</h4>
+              <p>No necesitamos balanceador de carga para este taller. <strong>No toques nada.</strong> Haz clic en <strong>Next</strong> directamente.</p>
+            </div>
+          </div>
+
+          <!-- Pantalla 4 — LA CLAVE -->
+          <div class="wizard-step">
+            <div class="wizard-step-indicator">
+              <div class="wizard-step-circle" style="background: rgba(220,38,38,0.2); border-color: #dc2626; color: #dc2626;">4</div>
+              <div class="wizard-step-line"></div>
+            </div>
+            <div class="wizard-step-content">
+              <h4 style="color: #dc2626;">⚡ Pantalla 4 — Group Size y Scaling (¡LA MÁS IMPORTANTE!)</h4>
+              <p>Aquí configuramos cuántos servidores queremos y cuándo escalar.</p>
+
+              <p style="margin-top: 0.75rem;"><strong>Sección "Group size":</strong></p>
+              <table class="field-table">
+                <thead><tr><th>Campo</th><th>Valor</th><th>¿Qué significa?</th></tr></thead>
+                <tbody>
+                  <tr><td>Desired capacity</td><td><code>1</code></td><td>Quiero 1 servidor corriendo ahora mismo.</td></tr>
+                  <tr><td>Min desired capacity</td><td><code>1</code></td><td>Nunca bajes de 1 servidor (siempre tener al menos 1).</td></tr>
+                  <tr><td>Max desired capacity</td><td><code>3</code></td><td>Aunque haya mucho estrés, no crees más de 3 servidores.</td></tr>
+                </tbody>
+              </table>
+
+              <p style="margin-top: 1rem;"><strong>Sección "Automatic scaling":</strong></p>
+              <table class="field-table">
+                <thead><tr><th>Campo</th><th>Qué hacer</th></tr></thead>
+                <tbody>
+                  <tr><td>Scaling policies</td><td>Selecciona <strong>Target tracking scaling policy</strong></td></tr>
+                  <tr><td>Metric type</td><td>Selecciona <strong>Average CPU utilization</strong></td></tr>
+                  <tr><td>Target value</td><td>Escribe <code>50</code> (esto significa: "si la CPU promedio supera el 50%, escalar")</td></tr>
+                  <tr><td>Instance warmup</td><td>Escribe <code>60</code> segundos (o déjalo como está)</td></tr>
+                </tbody>
+              </table>
+              <p style="margin-top: 0.5rem;">Haz clic en <strong>Next</strong>.</p>
+            </div>
+          </div>
+
+          <!-- Pantalla 5 -->
+          <div class="wizard-step">
+            <div class="wizard-step-indicator">
+              <div class="wizard-step-circle skip">5</div>
+              <div class="wizard-step-line"></div>
+            </div>
+            <div class="wizard-step-content">
+              <h4 class="skip-title">Pantalla 5 — Notifications (SALTAR)</h4>
+              <p>No necesitamos notificaciones. <strong>No toques nada.</strong> Haz clic en <strong>Next</strong>.</p>
+            </div>
+          </div>
+
+          <!-- Pantalla 6 -->
+          <div class="wizard-step">
+            <div class="wizard-step-indicator">
+              <div class="wizard-step-circle skip">6</div>
+              <div class="wizard-step-line"></div>
+            </div>
+            <div class="wizard-step-content">
+              <h4 class="skip-title">Pantalla 6 — Tags (SALTAR)</h4>
+              <p>No necesitamos etiquetas. <strong>No toques nada.</strong> Haz clic en <strong>Next</strong>.</p>
+            </div>
+          </div>
+
+          <!-- Pantalla 7 -->
+          <div class="wizard-step">
+            <div class="wizard-step-indicator">
+              <div class="wizard-step-circle">7</div>
+            </div>
+            <div class="wizard-step-content">
+              <h4>Pantalla 7 — Review (Revisar y Crear)</h4>
+              <p>Revisa que tu configuración tenga:</p>
+              <ul>
+                <li>Launch template: <code>MiPlantillaRescate</code></li>
+                <li>Desired: 1, Min: 1, Max: 3</li>
+                <li>Scaling policy: Target tracking, CPU 50%</li>
+              </ul>
+              <p>Si todo se ve bien, haz clic en <strong>Create Auto Scaling group</strong>.</p>
+            </div>
+          </div>
+
+          <div class="success-check">
+            <strong>✅ Si todo salió bien:</strong> Verás tu grupo <code>MiGrupoAutoScaling</code> en la lista con estado "Updating capacity". Después de 1-2 minutos, ve a <strong>EC2 → Instances</strong> y verás que <strong>apareció una instancia nueva sin que tú la lanzaras</strong>. ¡Ese es el Auto Scaling cumpliendo tu "Desired capacity" de 1!
+          </div>
+
+          <div class="warn-check">
+            <strong>⏳ Espera importante:</strong> Antes de pasar al siguiente paso, espera a que la instancia esté en estado <strong>"Running"</strong> (con un círculo verde). Esto toma 1-2 minutos. Puedes refrescar la lista de instancias con el botón de recarga (🔄) en la esquina superior derecha.
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 3: ESTRÉS CPU -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-stress" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">3</span>
+            Llevar el Servidor al 100% de CPU (Modo Caos 💥)
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Estrés (10 min)</h4>
+            <p><strong>Recomendación:</strong> Usa <strong>EC2 Instance Connect</strong> porque no requiere PuTTY ni configuración. Es un clic desde la consola de AWS. Si algún alumno tiene problemas de conexión, verifica que el Security Group tenga el puerto 22 abierto y que la instancia tenga IP pública.</p>
+            <ul>
+              <li>El <code>stress</code> puede tardar 1-2 minutos en instalarse vía User Data. Si el alumno se conecta muy rápido y <code>stress</code> no existe, que ejecute <code>sudo yum install stress -y</code> manualmente.</li>
+            </ul>
+          </div>
+
+          <p>Ahora viene la parte divertida: vamos a conectarnos al servidor que creó el Auto Scaling y vamos a <strong>hacerlo sufrir</strong> para provocar que se active el escalado.</p>
+
+          <!-- Sub-paso 1: Encontrar la instancia -->
+          <div class="wizard-step">
+            <div class="wizard-step-indicator">
+              <div class="wizard-step-circle">1</div>
+              <div class="wizard-step-line"></div>
+            </div>
+            <div class="wizard-step-content">
+              <h4>Encontrar tu instancia</h4>
+              <ul>
+                <li>Ve a <strong>EC2 → Instances</strong> (menú izquierdo).</li>
+                <li>Busca la instancia que dice <strong>"Running"</strong> con un círculo verde. Es la que creó el Auto Scaling Group (no tendrá nombre, o tendrá un nombre genérico).</li>
+                <li><strong>Selecciónala</strong> haciendo clic en su checkbox.</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Sub-paso 2: Conectarse -->
+          <div class="wizard-step">
+            <div class="wizard-step-indicator">
+              <div class="wizard-step-circle">2</div>
+              <div class="wizard-step-line"></div>
+            </div>
+            <div class="wizard-step-content">
+              <h4>Conectarse por SSH (Método fácil: EC2 Instance Connect)</h4>
+              <p>Esta es la forma más rápida, sin instalar nada:</p>
+              <ol style="margin-top: 0.5rem; padding-left: 1.25rem;">
+                <li>Con la instancia seleccionada, haz clic en el botón <strong>Connect</strong> (arriba a la derecha).</li>
+                <li>En la pestaña <strong>EC2 Instance Connect</strong>, deja todo como está.</li>
+                <li>Haz clic en el botón naranja <strong>Connect</strong>.</li>
+                <li>Se abrirá una <strong>terminal negra en tu navegador</strong>. ¡Ya estás dentro del servidor!</li>
+              </ol>
+
+              <div class="info-check">
+                <strong>💡 ¿Prefieres usar PuTTY o Git Bash?</strong> Entonces copia la <strong>Public IPv4 address</strong> de la instancia (aparece en la pestaña "Details" abajo) y conéctate como siempre: <code>ssh -i tu-llave.pem ec2-user@IP-PUBLICA</code>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-paso 3: Estresar -->
+          <div class="wizard-step">
+            <div class="wizard-step-indicator">
+              <div class="wizard-step-circle" style="background: rgba(220,38,38,0.2); border-color: #dc2626; color: #dc2626;">3</div>
+              <div class="wizard-step-line"></div>
+            </div>
+            <div class="wizard-step-content">
+              <h4 style="color: #dc2626;">🔥 Ejecutar el comando de estrés</h4>
+              <p>Escribe este comando en la terminal y presiona <strong>Enter</strong>:</p>
+
+              <div class="code-block code-block-red">
+                <code>stress --cpu 1 --timeout 600</code>
+              </div>
+
+              <p style="margin-top: 0.5rem;"><strong>¿Qué hace?</strong> Simula que 1 proceso está usando la CPU al 100% durante 10 minutos (600 segundos). Como el <code>t2.micro</code> tiene solo 1 CPU virtual, esto lo llevará al máximo.</p>
+
+              <div class="warn-check">
+                <strong>⚠️ ¿Te sale "stress: command not found"?</strong> Significa que el User Data aún no terminó de instalar. Ejecuta esto manualmente y luego vuelve a intentar:
+                <div class="code-block" style="margin-top: 0.5rem;"><code>sudo yum install stress -y</code></div>
+              </div>
+
+              <div class="info-check">
+                <strong>💡 Plan B si nada funciona:</strong> Este comando hace lo mismo sin necesidad de instalar nada:
+                <div class="code-block" style="margin-top: 0.5rem;"><code>yes > /dev/null &</code></div>
+                <span style="font-size: 0.85em;">(Ejecútalo 2 veces para asegurar saturación. Para detenerlo después: <code>killall yes</code>)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-paso 4: Verificar que está sufriendo -->
+          <div class="wizard-step">
+            <div class="wizard-step-indicator">
+              <div class="wizard-step-circle">4</div>
+            </div>
+            <div class="wizard-step-content">
+              <h4>Verificar que la CPU está al 100%</h4>
+              <p>Si quieres <strong>ver</strong> la CPU sufriendo en tiempo real, abre una segunda conexión SSH (repite el paso 2) y ejecuta:</p>
+              <div class="code-block"><code>top</code></div>
+              <p style="margin-top: 0.5rem;">Verás algo como <code>%Cpu(s): 99.7 us</code> en la parte superior. Eso significa que la CPU está al 100%. <strong>Deja ambas ventanas abiertas</strong> y pasa al siguiente paso.</p>
+            </div>
+          </div>
+
+          <div class="success-check">
+            <strong>✅ Si todo salió bien:</strong> La terminal donde ejecutaste <code>stress</code> debería quedarse "congelada" (eso es normal, está trabajando). No la cierres. Ahora pasa al siguiente paso para ver la magia.
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 4: LA MAGIA -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-magia" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">4</span>
+            ¡Auto Scaling en Acción! 🎯
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: El Momento Wow (10-15 min de espera)</h4>
+            <p><strong>Este es el momento cumbre de la clase.</strong> CloudWatch con monitoreo básico (el gratuito) toma métricas cada <strong>5 minutos</strong>, y la alarma necesita <strong>3 datos consecutivos en breach</strong> para disparar. Esto significa una espera real de <strong>5 a 10 minutos</strong>. Usa ese tiempo para:</p>
+            <ul>
+              <li>Preguntar a los alumnos: "¿Qué creen que va a pasar?", "¿Por qué AWS no reacciona instantáneamente?"</li>
+              <li>Explicar que en producción se usa <strong>Detailed Monitoring</strong> (métricas cada 1 minuto, de pago) para reaccionar más rápido.</li>
+              <li>Llevarlos a la pestaña <strong>Activity</strong> del ASG para que vean el log de eventos en vivo.</li>
+              <li>Si después de 12 minutos no aparece nada, verificar la pestaña "Automatic scaling" del ASG y confirmar que la política de Target Tracking está creada.</li>
+            </ul>
+          </div>
+
+          <p>La trampa está tendida. Tu servidor está agonizando al 100% de CPU. Ahora siéntate y observa cómo la nube reacciona sola.</p>
+
+          <!-- Paso 1 -->
+          <div class="wizard-step">
+            <div class="wizard-step-indicator">
+              <div class="wizard-step-circle">1</div>
+              <div class="wizard-step-line"></div>
+            </div>
+            <div class="wizard-step-content">
+              <h4>Vuelve a la consola de AWS</h4>
+              <p>Deja la terminal SSH abierta (con el estrés corriendo) y vuelve a tu navegador. Ve a <strong>EC2 → Instances</strong>.</p>
+              <p>Ahora mismo deberías ver <strong>solo 1 instancia</strong> en estado "Running".</p>
+            </div>
+          </div>
+
+          <!-- Paso 2 -->
+          <div class="wizard-step">
+            <div class="wizard-step-indicator">
+              <div class="wizard-step-circle">2</div>
+              <div class="wizard-step-line"></div>
+            </div>
+            <div class="wizard-step-content">
+              <h4>⏳ Esperar y refrescar (5 a 10 minutos — ten paciencia)</h4>
+              <p><strong>¿Por qué tarda tanto?</strong> AWS no reacciona al instante a propósito. CloudWatch con monitoreo básico (gratuito) toma métricas de CPU <strong>cada 5 minutos</strong>, y necesita ver <strong>varios datos consecutivos</strong> por encima del umbral antes de disparar la alarma. Esto evita que un pico de 10 segundos cause un escalado innecesario (que costaría dinero).</p>
+              <p style="margin-top: 0.75rem;">Mientras esperas:</p>
+              <ul>
+                <li>Haz clic en el botón de <strong>refrescar</strong> (🔄) en la esquina superior derecha de la tabla de instancias cada 30 segundos.</li>
+                <li>Ve a <strong>Auto Scaling Groups → MiGrupoAutoScaling → pestaña Activity</strong> para ver el log de eventos en vivo. Cuando veas un evento nuevo de tipo "Launching", ¡es que está pasando!</li>
+                <li>También puedes revisar la pestaña <strong>Monitoreo</strong> de tu instancia para ver cómo sube el gráfico de CPU (tarda unos minutos en actualizarse).</li>
+              </ul>
+
+              <div class="warn-check">
+                <strong>⚠️ Es normal que el gráfico de CPU muestre 30-40% al principio.</strong> CloudWatch está promediando datos. Dale unos minutos más y verás cómo sube a 90-100%. La alarma se disparará cuando acumule suficientes lecturas consecutivas por encima del 50%.
+              </div>
+            </div>
+          </div>
+
+          <!-- Paso 3 -->
+          <div class="wizard-step">
+            <div class="wizard-step-indicator">
+              <div class="wizard-step-circle" style="background: rgba(16,185,129,0.2); border-color: #10b981; color: #10b981;">3</div>
+            </div>
+            <div class="wizard-step-content">
+              <h4 style="color: #10b981;">🎉 ¡APARECE UNA SEGUNDA INSTANCIA!</h4>
+              <p>De pronto verás aparecer una <strong>nueva instancia</strong> en estado <em>"Pending"</em> que tú nunca lanzaste manualmente.</p>
+              <p><strong>¿Qué acaba de pasar?</strong></p>
+              <ol style="padding-left: 1.25rem; margin-top: 0.5rem;">
+                <li>CloudWatch detectó que la CPU promedio del grupo superó el 50%.</li>
+                <li>Disparó una alarma al Auto Scaling Group.</li>
+                <li>El ASG consultó tu Launch Template ("la receta").</li>
+                <li>Creó un servidor <strong>idéntico</strong> automáticamente para repartir la carga.</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="success-check">
+            <strong>🏆 ¡Felicidades, Arquitecto Cloud!</strong> Acabas de presenciar la <strong>elasticidad</strong> de la nube en vivo. Este es exactamente el mecanismo que usan Netflix, Spotify y todas las empresas para sobrevivir a picos de tráfico sin caerse.
+          </div>
+
+          <div class="info-check">
+            <strong>🔄 Bonus: El desescalado automático</strong>
+            <br>Si detienes el estrés en la terminal (presiona <code>Ctrl+C</code>), la CPU bajará a 0%. Después de unos minutos, AWS detectará que ya no necesita el servidor extra y lo <strong>destruirá automáticamente</strong> para que no pagues de más. ¡Eso es el "Scale In"!
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 5: LIMPIEZA -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-limpieza" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">5</span>
+            Limpieza de Recursos ⚠️
+          </h2>
+
+          <div class="teacher-note">
+            <h4>💡 Guía Docente: Limpieza (5 min)</h4>
+            <p><strong>CRÍTICO:</strong> No dejes que los alumnos se vayan sin eliminar el ASG. Si el ASG sigue activo, seguirá creando instancias y consumiendo créditos. El orden importa: primero el ASG, luego la plantilla.</p>
+          </div>
+
+          <div class="danger-check">
+            <strong>🚨 OBLIGATORIO: Debes eliminar estos recursos AHORA.</strong> Si dejas el Auto Scaling Group corriendo, seguirá creando instancias y gastando tus créditos de AWS Academy incluso cuando no estés conectado.
+          </div>
+
+          <p>Sigue este orden exacto (el orden importa):</p>
+
+          <!-- Paso 1: Eliminar ASG -->
+          <div class="wizard-step">
+            <div class="wizard-step-indicator">
+              <div class="wizard-step-circle" style="background: rgba(239,68,68,0.2); border-color: #ef4444; color: #ef4444;">1</div>
+              <div class="wizard-step-line"></div>
+            </div>
+            <div class="wizard-step-content">
+              <h4>Eliminar el Auto Scaling Group</h4>
+              <ol style="padding-left: 1.25rem;">
+                <li>Ve a <strong>EC2 → Auto Scaling Groups</strong> (menú izquierdo, abajo del todo).</li>
+                <li>Selecciona <code>MiGrupoAutoScaling</code> (checkbox).</li>
+                <li>Haz clic en el botón <strong>Delete</strong> (arriba).</li>
+                <li>Te pedirá confirmación: escribe <code>delete</code> y confirma.</li>
+              </ol>
+              <p style="margin-top: 0.5rem;">Esto automáticamente <strong>terminará todas las instancias</strong> que el grupo haya creado.</p>
+            </div>
+          </div>
+
+          <!-- Paso 2: Verificar instancias -->
+          <div class="wizard-step">
+            <div class="wizard-step-indicator">
+              <div class="wizard-step-circle" style="background: rgba(239,68,68,0.2); border-color: #ef4444; color: #ef4444;">2</div>
+              <div class="wizard-step-line"></div>
+            </div>
+            <div class="wizard-step-content">
+              <h4>Verificar que no quedan instancias</h4>
+              <ul>
+                <li>Ve a <strong>EC2 → Instances</strong>.</li>
+                <li>Espera 1-2 minutos y refresca. Todas las instancias del grupo deberían pasar a estado <strong>"Terminated"</strong> (texto gris).</li>
+                <li>Si alguna sigue en "Running", selecciónala y haz clic en <strong>Instance state → Terminate instance</strong>.</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Paso 3: Eliminar Launch Template -->
+          <div class="wizard-step">
+            <div class="wizard-step-indicator">
+              <div class="wizard-step-circle" style="background: rgba(239,68,68,0.2); border-color: #ef4444; color: #ef4444;">3</div>
+            </div>
+            <div class="wizard-step-content">
+              <h4>Eliminar la Launch Template</h4>
+              <ul>
+                <li>Ve a <strong>EC2 → Launch Templates</strong>.</li>
+                <li>Selecciona <code>MiPlantillaRescate</code>.</li>
+                <li>Haz clic en <strong>Actions → Delete template</strong>.</li>
+                <li>Escribe <code>Delete</code> para confirmar.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="success-check">
+            <strong>✅ Limpieza completa:</strong> Si no ves ninguna instancia en "Running" y no tienes Auto Scaling Groups activos, estás limpio. No se te cobrará nada adicional.
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SLIDE 6: EVALUACIÓN -->
+        <!-- ============================================================ -->
+        <section class="slide" id="slide-evaluacion" tabindex="0">
+          <h2 class="section-title">
+            <span class="section-number">📝</span>
+            ¿Qué Aprendí Hoy?
+          </h2>
+
+          <p>Responde estas preguntas para verificar que entendiste los conceptos fundamentales del Auto Scaling.</p>
+
+          <!-- Pregunta 1 -->
+          <div style="margin-bottom: 2rem;">
+            <h4 style="margin-bottom: 0.75rem;">1. ¿Para qué sirve una Launch Template?</h4>
+            <div id="q1">
+              <div class="quiz-option" onclick="selectQuiz(this, 'q1', true)">
+                <div class="quiz-radio"></div>
+                <div>Es la "receta" que le dice a AWS exactamente cómo crear un servidor (qué sistema operativo, qué tamaño, qué scripts ejecutar). Así puede clonarlos de forma idéntica.</div>
+              </div>
+              <div class="quiz-option" onclick="selectQuiz(this, 'q1', false)">
+                <div class="quiz-radio"></div>
+                <div>Es un servidor que ya está corriendo y que AWS copia a mano cuando le pides más capacidad.</div>
+              </div>
+              <div class="quiz-option" onclick="selectQuiz(this, 'q1', false)">
+                <div class="quiz-radio"></div>
+                <div>Es un documento PDF que describes las especificaciones técnicas del servidor para que el equipo de soporte lo revise.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pregunta 2 -->
+          <div style="margin-bottom: 2rem;">
+            <h4 style="margin-bottom: 0.75rem;">2. ¿Qué métrica usamos para que el Auto Scaling decidiera cuándo crear más servidores?</h4>
+            <div id="q2">
+              <div class="quiz-option" onclick="selectQuiz(this, 'q2', false)">
+                <div class="quiz-radio"></div>
+                <div>El uso de disco duro (almacenamiento).</div>
+              </div>
+              <div class="quiz-option" onclick="selectQuiz(this, 'q2', true)">
+                <div class="quiz-radio"></div>
+                <div>El uso promedio de CPU (Average CPU utilization). Configuramos el umbral en 50%.</div>
+              </div>
+              <div class="quiz-option" onclick="selectQuiz(this, 'q2', false)">
+                <div class="quiz-radio"></div>
+                <div>La cantidad de archivos en el servidor.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pregunta 3 -->
+          <div style="margin-bottom: 2rem;">
+            <h4 style="margin-bottom: 0.75rem;">3. ¿Qué pasaría si configuras bien el "Scale Out" (escalar arriba) pero olvidas el "Scale In" (desescalar)?</h4>
+            <div id="q3">
+              <div class="quiz-option" onclick="selectQuiz(this, 'q3', false)">
+                <div class="quiz-radio"></div>
+                <div>No pasaría nada, AWS se encarga de todo automáticamente sin importar la configuración.</div>
+              </div>
+              <div class="quiz-option" onclick="selectQuiz(this, 'q3', false)">
+                <div class="quiz-radio"></div>
+                <div>Los servidores se apagarían solos después de 24 horas.</div>
+              </div>
+              <div class="quiz-option" onclick="selectQuiz(this, 'q3', true)">
+                <div class="quiz-radio"></div>
+                <div>Los servidores extra se quedarían corriendo para siempre, y la factura de AWS crecería sin control hasta que alguien los apague manualmente.</div>
+              </div>
+            </div>
+          </div>
+
+          <div id="quizResult" style="display: none; margin-top: 2rem; padding: 1.5rem; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); border-radius: 12px; text-align: center;">
+            <h3 style="color: #10b981; margin-top: 0;">🏆 ¡Taller Completado!</h3>
+            <p style="margin-bottom: 0;">Has experimentado en primera persona la elasticidad de la nube. Ahora entiendes por qué empresas como Netflix, Spotify y MercadoLibre confían en el Auto Scaling para sobrevivir a millones de usuarios simultáneos sin caerse.</p>
+          </div>
+        </section>
+
+      </div> <!-- End Slides Container -->
+    </div> <!-- End Class Content Wrapper -->
+  </main>
+
+  <script>
+    // -----------------------------------------------------------------
+    // 1. Teacher Mode Toggle
+    // -----------------------------------------------------------------
+    const teacherToggle = document.getElementById('teacherModeToggle');
+    if (localStorage.getItem('teacherMode') === 'true') {
+      document.body.classList.add('teacher-mode-active');
+      teacherToggle.checked = true;
+    }
+    teacherToggle.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        document.body.classList.add('teacher-mode-active');
+        localStorage.setItem('teacherMode', 'true');
+      } else {
+        document.body.classList.remove('teacher-mode-active');
+        localStorage.setItem('teacherMode', 'false');
+      }
+    });
+
+    // -----------------------------------------------------------------
+    // 2. Prerequisite Checklist
+    // -----------------------------------------------------------------
+    function togglePrereq(li) {
+      li.classList.toggle('checked');
+      const check = li.querySelector('.prereq-check');
+      check.textContent = li.classList.contains('checked') ? '✓' : '';
+    }
+
+    // -----------------------------------------------------------------
+    // 3. Quiz Logic
+    // -----------------------------------------------------------------
+    let answeredQuestions = new Set();
+    
+    function selectQuiz(element, groupId, isCorrect) {
+      if (answeredQuestions.has(groupId)) return; // Already answered
+      answeredQuestions.add(groupId);
+
+      const options = document.querySelectorAll(`#${groupId} .quiz-option`);
+      options.forEach(opt => {
+        opt.style.pointerEvents = 'none';
+        opt.classList.add('wrong');
+      });
+      
+      if (isCorrect) {
+        element.classList.remove('wrong');
+        element.classList.add('selected', 'correct');
+      } else {
+        element.classList.add('selected');
+        // Highlight the correct one
+        options.forEach(opt => {
+          if (opt.getAttribute('onclick').includes('true')) {
+            opt.classList.remove('wrong');
+            opt.classList.add('correct');
+          }
+        });
+      }
+
+      // Show result if all questions answered
+      if (answeredQuestions.size >= 3) {
+        document.getElementById('quizResult').style.display = 'block';
+        document.getElementById('quizResult').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // 4. Progress Bar Scroll Sync
+    // -----------------------------------------------------------------
+    function initProgressBarScrollSync() {
+      const progressSteps = document.querySelectorAll('.progress-step');
+      const slidesList = document.querySelectorAll('.slide');
+
+      progressSteps.forEach(step => {
+        step.addEventListener('click', () => {
+          const targetId = step.getAttribute('data-target');
+          const targetEl = document.getElementById(targetId);
+          if (targetEl) {
+            const y = targetEl.getBoundingClientRect().top + window.scrollY - 100;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+          }
+        });
+      });
+
+      const onScroll = () => {
+        let currentSlideId = '';
+        const scrollPosition = window.scrollY + 250;
+        slidesList.forEach(slide => {
+          const top = slide.offsetTop;
+          const height = slide.offsetHeight;
+          if (scrollPosition >= top && scrollPosition < top + height) {
+            currentSlideId = slide.getAttribute('id');
+          }
+        });
+        if (currentSlideId) {
+          progressSteps.forEach(step => {
+            step.classList.remove('active');
+            if (step.getAttribute('data-target') === currentSlideId) {
+              step.classList.add('active');
+            }
+          });
+        }
+      };
+      window.addEventListener('scroll', onScroll);
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      initProgressBarScrollSync();
+    });
+  </script>
+</body>
+</html>
